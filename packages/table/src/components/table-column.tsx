@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { defineComponent, ExtractPropTypes, inject, reactive, unref } from 'vue';
+import { defineComponent, ExtractPropTypes, inject, reactive, ref, unref } from 'vue';
 
 import { PropTypes } from '@bkui-vue/shared';
 
@@ -73,11 +73,26 @@ export default defineComponent({
     const initColumns = inject(PROVIDE_KEY_INIT_COL, (_col: Column | Column[], _rm = false) => {}, false);
     const bkTableCache = inject(PROVIDE_KEY_TB_CACHE, { queueStack: (_, fn) => fn?.() });
     const column = reactive(Object.assign({}, props, { field: props.prop || props.field }));
+    const isIndexPropChanged = ref(false);
+    const setIsIndexChanged = (val: boolean) => {
+      isIndexPropChanged.value = val;
+    };
+
     return {
+      isIndexPropChanged,
+      setIsIndexChanged,
       initColumns,
       bkTableCache,
       column,
     };
+  },
+  watch: {
+    index: {
+      handler() {
+        this.setIsIndexChanged(!this.isIndexPropChanged);
+      },
+      deep: true,
+    },
   },
   unmounted() {
     this.updateColumnDefine(true);
@@ -86,7 +101,10 @@ export default defineComponent({
     this.updateColumnDefine();
   },
   updated() {
-    this.updateColumnDefineByParent();
+    if (this.isIndexPropChanged) {
+      this.updateColumnDefineByParent();
+      this.setIsIndexChanged(!this.isIndexPropChanged);
+    }
   },
   methods: {
     updateColumnDefine(unmounted = false) {
@@ -107,15 +125,19 @@ export default defineComponent({
       const fn = () => {
         // @ts-ignore
         const selfVnode = (this as any)._;
-        const getTableNode = () => {
-          const parentVnode = selfVnode.parent;
+        const getTableNode = root => {
+          if (root === document.body || !root) {
+            return null;
+          }
+
+          const parentVnode = root.parent;
           if (parentVnode.type?.name === 'Table') {
             return parentVnode.vnode;
           }
-          return getTableNode();
+          return getTableNode(parentVnode);
         };
 
-        const tableNode = getTableNode();
+        const tableNode = getTableNode(selfVnode);
         if (!tableNode) {
           return;
         }
