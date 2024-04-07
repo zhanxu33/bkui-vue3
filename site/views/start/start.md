@@ -52,7 +52,7 @@ import { Button } from 'bkui-vue';
     ...
     resolve: {
       alias: {
-        'bkui-vue$': 'bkui-vue/dist/index.esm.js'
+        'bkui-vue': 'bkui-vue/dist/index.esm.js'
       }
     }
   }
@@ -66,7 +66,7 @@ import { Button } from 'bkui-vue';
     ...
     resolve: {
       alias: {
-        'bkui-vue$': 'bkui-vue/dist/index.esm.js'
+        'bkui-vue': 'bkui-vue/dist/index.esm.js'
       }
     }
   }
