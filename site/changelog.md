@@ -1,6 +1,19 @@
 ## 更新日志
 
 
+### 1.0.3-beta.41
+
+* **[feat]**:
+    - perf(timeline): 代码调整
+
+
+### 1.0.3-beta.40
+
+* **[feat]**:
+    - perf(timeline): 代码调整
+    - bugfix(infobox): 样式问题
+
+
 ### 1.0.3-beta.38
 
 * **[feat]**:

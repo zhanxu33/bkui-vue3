@@ -232,12 +232,14 @@ export default defineComponent({
             {this.visible ? (
               <div class={bodyClass}>
                 <div class={resolveClassName('modal-header')}>{this.$slots.header?.() ?? ''}</div>
-                <div
-                  class={resolveClassName('modal-content')}
-                  style={[this.dialogType === 'show' ? 'padding-bottom: 20px' : '', { ...maxHeight }]}
-                >
-                  {this.$slots.default?.() ?? ''}
-                </div>
+                {this.$slots.default && (
+                  <div
+                    class={resolveClassName('modal-content')}
+                    style={[this.dialogType === 'show' ? 'padding-bottom: 20px' : '', { ...maxHeight }]}
+                  >
+                    {this.$slots.default()}
+                  </div>
+                )}
                 {this.dialogType === 'show' ? (
                   ''
                 ) : (
