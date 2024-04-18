@@ -24,10 +24,10 @@
  * IN THE SOFTWARE.
  */
 import Scrollbar from 'smooth-scrollbar';
-import { onMounted, Ref } from 'vue';
+import { Ref } from 'vue';
 
-export default (target: Ref<HTMLElement>) => {
-  onMounted(() => {
-    Scrollbar.init(target.value, {});
-  });
+export default (target: Ref<HTMLElement>, _scrollFn?) => {
+  Scrollbar.init(target.value, { delegateTo: target.value });
+  // const scrollList = Scrollbar.get(target.value);
+  // scrollList.addListener(scrollFn);
 };

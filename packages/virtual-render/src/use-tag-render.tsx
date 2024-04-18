@@ -47,7 +47,7 @@ export default (props: VirtualRenderProps, ctx) => {
   }));
 
   const refRoot = ref(null);
-  useScrollbar(refRoot);
+
   /** 虚拟渲染外层容器样式 */
   const wrapperStyle = computed(() => {
     const height = typeof props.height === 'number' ? `${props.height}px` : props.height;
@@ -70,6 +70,7 @@ export default (props: VirtualRenderProps, ctx) => {
   onMounted(() => {
     instance = new VisibleRender(binding, refRoot.value);
     instance.install();
+    useScrollbar(refRoot, instance.executeThrottledRender.bind(instance));
   });
 
   onUnmounted(() => {

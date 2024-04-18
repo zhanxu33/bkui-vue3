@@ -93,6 +93,7 @@ export default defineComponent({
     }));
 
     const refRoot = ref(null);
+    const refVirtualSection = ref(null);
     let instance = null;
     const pagination = reactive({
       startIndex: 0,
@@ -125,6 +126,7 @@ export default defineComponent({
       const value = localList.value.slice(start, end + 10);
       calcList.value = value;
       if (event) {
+        console.log('handle-content-scroll', pagination);
         ctx.emit('content-scroll', [event, pagination]);
       }
     };
@@ -132,6 +134,7 @@ export default defineComponent({
     onMounted(() => {
       instance = new VisibleRender(binding, refRoot.value);
       instance.install();
+      useScrollbar(refRoot, instance.executeThrottledRender.bind(instance));
     });
 
     onUnmounted(() => {
@@ -174,7 +177,6 @@ export default defineComponent({
       }
     };
 
-    useScrollbar(refRoot);
     /** 列表数据重置之后的处理事项 */
     const afterListDataReset = (_scrollToOpt = { left: 0, top: 0 }) => {
       const el = refRoot.value as HTMLElement;
@@ -298,6 +300,7 @@ export default defineComponent({
           ),
           ctx.slots.afterContent?.() ?? '',
           h('div', {
+            ref: refVirtualSection,
             class: [resolveClassName('virtual-section')],
             style: innerStyle.value,
           }),
