@@ -27,6 +27,7 @@ import { computed, h, onMounted, onUnmounted, ref } from 'vue';
 
 import { VirtualRenderProps } from './props';
 import useFixTop from './use-fix-top';
+import useScrollbar from './use-scrollbar';
 import { VisibleRender } from './v-virtual-render';
 export default (props: VirtualRenderProps, ctx) => {
   const { renderAs, contentAs } = props;
@@ -46,7 +47,7 @@ export default (props: VirtualRenderProps, ctx) => {
   }));
 
   const refRoot = ref(null);
-
+  useScrollbar(refRoot);
   /** 虚拟渲染外层容器样式 */
   const wrapperStyle = computed(() => {
     const height = typeof props.height === 'number' ? `${props.height}px` : props.height;
