@@ -23,11 +23,27 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import Scrollbar from 'smooth-scrollbar';
-import { Ref } from 'vue';
+import Scrollbar from 'bk-smooth-scrollbar';
+import { Ref, ref } from 'vue';
 
-export default (target: Ref<HTMLElement>, _scrollFn?) => {
-  Scrollbar.init(target.value, { delegateTo: target.value });
-  // const scrollList = Scrollbar.get(target.value);
-  // scrollList.addListener(scrollFn);
+export default (target: Ref<HTMLElement>) => {
+  const instance = ref(null);
+
+  const init = (scrollFn?) => {
+    instance.value = Scrollbar.SmoothScrollbar.init(target.value, {
+      delegateTo: target.value,
+      createNewContent: false,
+    });
+    instance.value.addListener(scrollFn);
+  };
+
+  const scrollTo = (x, y) => {
+    instance.value?.scrollTo(x, y, { createNewContent: false });
+  };
+
+  return {
+    init,
+    instance,
+    scrollTo,
+  };
 };

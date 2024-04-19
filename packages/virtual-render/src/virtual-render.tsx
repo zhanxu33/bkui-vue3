@@ -93,6 +93,8 @@ export default defineComponent({
     }));
 
     const refRoot = ref(null);
+    const { init, scrollTo } = useScrollbar(refRoot);
+
     const refVirtualSection = ref(null);
     let instance = null;
     const pagination = reactive({
@@ -126,15 +128,14 @@ export default defineComponent({
       const value = localList.value.slice(start, end + 10);
       calcList.value = value;
       if (event) {
-        console.log('handle-content-scroll', pagination);
         ctx.emit('content-scroll', [event, pagination]);
       }
     };
 
     onMounted(() => {
       instance = new VisibleRender(binding, refRoot.value);
-      instance.install();
-      useScrollbar(refRoot, instance.executeThrottledRender.bind(instance));
+      init(instance.executeThrottledRender.bind(instance));
+      instance.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
     });
 
     onUnmounted(() => {
@@ -198,8 +199,8 @@ export default defineComponent({
     const innerContentStyle = computed(() =>
       props.scrollPosition === 'content'
         ? {
-            top: `${pagination.scrollTop + props.scrollOffsetTop}px`,
-            transform: `translateY(-${pagination.translateY}px)`,
+            // top: `${pagination.scrollTop + props.scrollOffsetTop}px`,
+            transform: `translate3d(-${pagination.translateX}px,-${pagination.translateY}px, 0)`,
           }
         : {},
     );
@@ -250,9 +251,10 @@ export default defineComponent({
     const reset = () => {
       handleChangeListConfig();
       afterListDataReset();
+      instance?.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
     };
 
-    const { scrollTo, fixToTop } = useFixTop(props, refRoot);
+    const { fixToTop } = useFixTop(props, scrollTo);
 
     watch(
       () => [props.lineHeight, props.height, props.list, props.maxHeight],
@@ -261,6 +263,7 @@ export default defineComponent({
         handleChangeListConfig();
         nextTick(() => {
           afterListDataReset();
+          instance?.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
         });
       },
       { deep: true, immediate: true },

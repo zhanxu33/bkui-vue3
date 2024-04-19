@@ -154,11 +154,11 @@
   "dependencies": {
     "@floating-ui/dom": "~1.5.0",
     "@popperjs/core": "~2.11.8",
+    "bk-smooth-scrollbar": "0.0.5",
     "date-fns": "~2.30.0",
     "js-calendar": "~1.2.3",
     "json-formatter-js": "~2.3.4",
     "lodash": "~4.17.21",
-    "smooth-scrollbar": "~8.8.4",
     "tinycolor2": "~1.6.0",
     "vue-types": "~4.1.1"
   }

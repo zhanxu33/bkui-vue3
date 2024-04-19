@@ -55,14 +55,14 @@ export function getMatchedIndex(
   return { startIndex, height, diffHeight };
 }
 
-export function computedVirtualIndex(lineHeight, callback, pagination, _el, event) {
-  if (!event.target) {
+export function computedVirtualIndex(lineHeight, callback, pagination, wrapper, event) {
+  if (!wrapper || !event.offset) {
     return;
   }
-  const elScrollTop = event.target.scrollTop;
-  const elScrollLeft = event.target.scrollLeft;
-  const elScrollHeight = event.target.scrollHeight;
-  const elOffsetHeight = event.target.offsetHeight;
+  const elScrollTop = event.offset.y;
+  const elScrollLeft = event.offset.x;
+  const elScrollHeight = wrapper.scrollHeight;
+  const elOffsetHeight = wrapper.offsetHeight;
 
   const { count, groupItemCount } = pagination;
   let targetStartIndex = 0;
@@ -87,6 +87,7 @@ export function computedVirtualIndex(lineHeight, callback, pagination, _el, even
   typeof callback === 'function' &&
     callback(event, targetStartIndex, targetEndIndex, elScrollTop, translateY, elScrollLeft, {
       bottom: bottom >= 0 ? bottom : 0,
+      scrollbar: event,
     });
 
   return {
@@ -112,10 +113,13 @@ export class VisibleRender {
   public render(e) {
     const { lineHeight = 30, handleScrollCallback, pagination = {}, onlyScroll } = this.binding.value;
     if (onlyScroll) {
-      const elScrollTop = this.wrapper.scrollTop;
-      const elScrollLeft = this.wrapper.scrollLeft;
+      const elScrollTop = e.offset?.y;
+      const elScrollLeft = e.offset?.x ?? 0;
       const bottom = this.wrapper.scrollHeight - this.wrapper.offsetHeight - this.wrapper.scrollTop;
-      handleScrollCallback(e, null, null, elScrollTop, elScrollTop, elScrollLeft, { bottom: bottom >= 0 ? bottom : 0 });
+      handleScrollCallback(e, null, null, elScrollTop, elScrollTop, elScrollLeft, {
+        bottom: bottom >= 0 ? bottom : 0,
+        scrollbar: e,
+      });
       return;
     }
 
@@ -134,11 +138,11 @@ export class VisibleRender {
   }
 
   public install() {
-    this.wrapper?.addEventListener('scroll', this.executeThrottledRender.bind(this));
+    // this.wrapper?.addEventListener('scroll', this.executeThrottledRender.bind(this));
   }
 
   public uninstall() {
-    this.wrapper?.removeListener?.('scroll', this.executeThrottledRender.bind(this));
+    // this.wrapper?.removeListener?.('scroll', this.executeThrottledRender.bind(this));
   }
 
   public setBinding(binding) {
