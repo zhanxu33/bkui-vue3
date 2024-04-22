@@ -14,7 +14,6 @@
     </div>
     <bk-virtual-render
       ref="refFixToTop"
-      :scrollbar="scrollbar"
       :list="randomRows"
       :line-height="30"
       :height="300"
@@ -81,10 +80,6 @@
             create_time: '2018-05-25 15:02:24',
           },
         ],
-        scrollbar: {
-          enabled: false,
-          keepStruct: false,
-        },
       };
     },
     created() {
@@ -114,7 +109,7 @@
         this.randomRows.splice(
           0,
           this.randomRows.length,
-          ...new Array(Math.ceil(Math.random() * 900) + 100).fill('')
+          ...new Array(Math.ceil(Math.random() * 9000) + 1000).fill('')
             .map((_, index) => ({
               ip: `${index}--192.168.0.x`,
               source: `${index}_QQ`,

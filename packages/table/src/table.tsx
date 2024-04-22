@@ -285,7 +285,6 @@ export default defineComponent({
           throttleDelay={120}
           scrollEvent={true}
           rowKey={props.rowKey}
-          scrollbar={{ enabled: true, keepStruct: true }}
           enabled={props.virtualEnabled}
           keepAlive={true}
         >
