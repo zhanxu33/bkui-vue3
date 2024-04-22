@@ -93,7 +93,7 @@ export default defineComponent({
     }));
 
     const refRoot = ref(null);
-    const { init, scrollTo } = useScrollbar(refRoot);
+    const { init, scrollTo } = useScrollbar(refRoot, props);
 
     const refVirtualSection = ref(null);
     let instance = null;
@@ -134,8 +134,14 @@ export default defineComponent({
 
     onMounted(() => {
       instance = new VisibleRender(binding, refRoot.value);
-      init(instance.executeThrottledRender.bind(instance));
-      instance.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
+
+      if (props.scrollbar?.enabled) {
+        init(instance.executeThrottledRender.bind(instance));
+        instance.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
+        return;
+      }
+
+      instance.install();
     });
 
     onUnmounted(() => {
@@ -195,12 +201,19 @@ export default defineComponent({
       return (props.list || []).map((item: any, index) => ({ ...item, $index: index }));
     });
 
+    const getOffsetTop = () => {
+      if (props.scrollbar?.enabled && props.scrollbar?.keepStruct) {
+        return 0;
+      }
+
+      return pagination.scrollTop + props.scrollOffsetTop;
+    };
+
     /** 展示列表内容区域样式 */
     const innerContentStyle = computed(() =>
       props.scrollPosition === 'content'
         ? {
-            // top: `${pagination.scrollTop + props.scrollOffsetTop}px`,
-            transform: `translate3d(-${pagination.translateX}px,-${pagination.translateY}px, 0)`,
+            transform: `translate3d(-${pagination.translateX}px,${getOffsetTop() - pagination.translateY}px, 0)`,
           }
         : {},
     );

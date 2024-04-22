@@ -33,7 +33,7 @@ export default (props: VirtualRenderProps, ctx) => {
   const { renderAs, contentAs } = props;
   const refRoot = ref(null);
 
-  const { init, scrollTo } = useScrollbar(refRoot);
+  const { init, scrollTo } = useScrollbar(refRoot, props);
   const contentStyle = reactive({ x: 0, y: 0 });
   const computedStyle = computed(() => ({
     ...props.contentStyle,
@@ -52,6 +52,7 @@ export default (props: VirtualRenderProps, ctx) => {
   let renderInstance = null;
   const binding = computed(() => ({
     lineHeight: props.lineHeight,
+    scrollbar: props.scrollbar,
     handleScrollCallback,
     pagination: {},
     throttleDelay: props.throttleDelay,
@@ -79,7 +80,11 @@ export default (props: VirtualRenderProps, ctx) => {
 
   onMounted(() => {
     renderInstance = new VisibleRender(binding, refRoot.value);
-    init(renderInstance.executeThrottledRender.bind(renderInstance));
+    if (props.scrollbar?.enabled) {
+      init(renderInstance.executeThrottledRender.bind(renderInstance));
+      return;
+    }
+    renderInstance.install();
   });
 
   onUnmounted(() => {

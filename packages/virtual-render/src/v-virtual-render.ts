@@ -115,7 +115,7 @@ export class VisibleRender {
     if (onlyScroll) {
       const elScrollTop = e.offset?.y;
       const elScrollLeft = e.offset?.x ?? 0;
-      const bottom = this.wrapper.scrollHeight - this.wrapper.offsetHeight - this.wrapper.scrollTop;
+      const bottom = this.wrapper.scrollHeight - this.wrapper.offsetHeight - elScrollTop;
       handleScrollCallback(e, null, null, elScrollTop, elScrollTop, elScrollLeft, {
         bottom: bottom >= 0 ? bottom : 0,
         scrollbar: e,
@@ -134,20 +134,43 @@ export class VisibleRender {
   }
 
   public executeThrottledRender(e) {
-    throttle(this.render.bind(this), this.delay)(e);
+    throttle(this.render.bind(this), this.delay)(this.getEvent(e));
   }
 
   public install() {
-    // this.wrapper?.addEventListener('scroll', this.executeThrottledRender.bind(this));
+    this.wrapper?.addEventListener('scroll', this.executeThrottledRender.bind(this));
   }
 
   public uninstall() {
-    // this.wrapper?.removeListener?.('scroll', this.executeThrottledRender.bind(this));
+    this.wrapper?.removeListener?.('scroll', this.executeThrottledRender.bind(this));
   }
 
   public setBinding(binding) {
     this.binding = binding;
   }
+
+  private getEvent = (event: Event | any) => {
+    const { scrollbar = { enabled: false, keepStruct: true } } = this.binding.value;
+    if (scrollbar.enabled) {
+      return event;
+    }
+
+    if (event?.offset) {
+      return {
+        offset: event?.offset,
+      };
+    }
+
+    const elScrollTop = (event.target as HTMLElement).scrollTop;
+    const elScrollLeft = (event.target as HTMLElement).scrollLeft;
+
+    return {
+      offset: {
+        x: elScrollLeft,
+        y: elScrollTop,
+      },
+    };
+  };
 }
 
 let instance: VisibleRender = null;

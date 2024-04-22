@@ -24,21 +24,29 @@
  * IN THE SOFTWARE.
  */
 import Scrollbar from 'bk-smooth-scrollbar';
-import { Ref, ref } from 'vue';
+import { Ref } from 'vue';
 
-export default (target: Ref<HTMLElement>) => {
-  const instance = ref(null);
+import { VirtualRenderProps } from './props';
+
+export default (target: Ref<HTMLElement>, props: VirtualRenderProps) => {
+  let instance = null;
+  const scrollbar = Scrollbar.SmoothScrollbar;
 
   const init = (scrollFn?) => {
-    instance.value = Scrollbar.SmoothScrollbar.init(target.value, {
+    instance = scrollbar.init(target.value, {
       delegateTo: target.value,
-      createNewContent: false,
+      keepStruct: props.scrollbar?.keepStruct ?? false,
     });
-    instance.value.addListener(scrollFn);
+    instance.addListener(scrollFn);
   };
 
   const scrollTo = (x, y) => {
-    instance.value?.scrollTo(x, y, { createNewContent: false });
+    if (props.scrollbar?.enabled) {
+      instance.scrollTo(x, y, 100, { keepStruct: props.scrollbar?.keepStruct ?? false });
+      return;
+    }
+
+    target.value.scrollTo(x, y);
   };
 
   return {
