@@ -48,6 +48,7 @@ import { usePrefix } from '@bkui-vue/config-provider';
 
 import { type VirtualRenderProps, virtualRenderProps } from './props';
 import useFixTop from './use-fix-top';
+import useScrollbar from './use-scrollbar';
 import useTagRender from './use-tag-render';
 import virtualRender, { computedVirtualIndex, VisibleRender } from './v-virtual-render';
 
@@ -92,6 +93,9 @@ export default defineComponent({
     }));
 
     const refRoot = ref(null);
+    const { init, scrollTo } = useScrollbar(refRoot, props);
+
+    const refVirtualSection = ref(null);
     let instance = null;
     const pagination = reactive({
       startIndex: 0,
@@ -130,6 +134,13 @@ export default defineComponent({
 
     onMounted(() => {
       instance = new VisibleRender(binding, refRoot.value);
+
+      if (props.scrollbar?.enabled) {
+        init(instance.executeThrottledRender.bind(instance));
+        instance.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
+        return;
+      }
+
       instance.install();
     });
 
@@ -190,12 +201,19 @@ export default defineComponent({
       return (props.list || []).map((item: any, index) => ({ ...item, $index: index }));
     });
 
+    const getOffsetTop = () => {
+      if (props.scrollbar?.enabled && props.scrollbar?.keepStruct) {
+        return 0;
+      }
+
+      return pagination.scrollTop + props.scrollOffsetTop;
+    };
+
     /** 展示列表内容区域样式 */
     const innerContentStyle = computed(() =>
       props.scrollPosition === 'content'
         ? {
-            top: `${pagination.scrollTop + props.scrollOffsetTop}px`,
-            transform: `translateY(-${pagination.translateY}px)`,
+            transform: `translate3d(-${pagination.translateX}px,${getOffsetTop() - pagination.translateY}px, 0)`,
           }
         : {},
     );
@@ -246,9 +264,10 @@ export default defineComponent({
     const reset = () => {
       handleChangeListConfig();
       afterListDataReset();
+      instance?.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
     };
 
-    const { scrollTo, fixToTop } = useFixTop(props, refRoot);
+    const { fixToTop } = useFixTop(props, scrollTo);
 
     watch(
       () => [props.lineHeight, props.height, props.list, props.maxHeight],
@@ -257,6 +276,7 @@ export default defineComponent({
         handleChangeListConfig();
         nextTick(() => {
           afterListDataReset();
+          instance?.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
         });
       },
       { deep: true, immediate: true },
@@ -296,6 +316,7 @@ export default defineComponent({
           ),
           ctx.slots.afterContent?.() ?? '',
           h('div', {
+            ref: refVirtualSection,
             class: [resolveClassName('virtual-section')],
             style: innerStyle.value,
           }),
