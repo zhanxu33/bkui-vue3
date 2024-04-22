@@ -30,7 +30,6 @@
   const handleDefault1 = () => {
     instance = InfoBox({
       title: '确认要删除？',
-      quickClose: false,
       confirmFn() {},
     });
   };

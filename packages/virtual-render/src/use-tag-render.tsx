@@ -23,41 +23,29 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, onUnmounted, ref } from 'vue';
 
 import { VirtualRenderProps } from './props';
 import useFixTop from './use-fix-top';
-import useScrollbar from './use-scrollbar';
 import { VisibleRender } from './v-virtual-render';
 export default (props: VirtualRenderProps, ctx) => {
   const { renderAs, contentAs } = props;
-  const refRoot = ref(null);
-
-  const { init, scrollTo } = useScrollbar(refRoot, props);
-  const contentStyle = reactive({ x: 0, y: 0 });
-  const computedStyle = computed(() => ({
-    ...props.contentStyle,
-    transform: `translate3d(${-contentStyle.x}px, ${-contentStyle.y}px, 0)`,
-  }));
 
   /** 指令触发Scroll事件，计算当前startIndex & endIndex & scrollTop & translateY */
   const handleScrollCallback = (event, _startIndex, _endIndex, _scrollTop, translateY, scrollLeft, pos) => {
-    const { scrollbar } = pos;
-    if (scrollbar?.offset) {
-      Object.assign(contentStyle, scrollbar?.offset ?? {});
-    }
     ctx.emit('content-scroll', [event, { translateY, translateX: scrollLeft, pos }]);
   };
 
-  let renderInstance = null;
+  let instance = null;
   const binding = computed(() => ({
     lineHeight: props.lineHeight,
-    scrollbar: props.scrollbar,
     handleScrollCallback,
     pagination: {},
     throttleDelay: props.throttleDelay,
     onlyScroll: props.scrollEvent,
   }));
+
+  const refRoot = ref(null);
 
   /** 虚拟渲染外层容器样式 */
   const wrapperStyle = computed(() => {
@@ -71,7 +59,7 @@ export default (props: VirtualRenderProps, ctx) => {
     };
   });
 
-  const { fixToTop } = useFixTop(props, scrollTo);
+  const { scrollTo, fixToTop } = useFixTop(props, refRoot);
 
   ctx.expose({
     scrollTo,
@@ -79,16 +67,12 @@ export default (props: VirtualRenderProps, ctx) => {
   });
 
   onMounted(() => {
-    renderInstance = new VisibleRender(binding, refRoot.value);
-    if (props.scrollbar?.enabled) {
-      init(renderInstance.executeThrottledRender.bind(renderInstance));
-      return;
-    }
-    renderInstance.install();
+    instance = new VisibleRender(binding, refRoot.value);
+    instance.install();
   });
 
   onUnmounted(() => {
-    renderInstance?.uninstall();
+    instance?.uninstall();
   });
 
   return {
@@ -107,7 +91,7 @@ export default (props: VirtualRenderProps, ctx) => {
             contentAs,
             {
               class: props.contentClassName,
-              style: computedStyle.value,
+              style: props.contentStyle,
             },
             [
               ctx.slots.default?.({
