@@ -24,7 +24,7 @@
  * IN THE SOFTWARE.
  */
 
-import { defineComponent } from 'vue';
+import { defineComponent, ref } from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
 import Modal from '@bkui-vue/modal';
@@ -54,20 +54,17 @@ export default defineComponent({
   emits: ['closed', 'update:isShow', 'shown', 'hidden', 'animation-end'],
 
   setup(props, { slots, emit }) {
+    const refRoot = ref(null);
+
     const handleClose = async () => {
       // 这里无需处理 beforeClose，在 modal 中会处理
-      // let shouldClose = true;
-      // if (typeof props.beforeClose === 'function') {
-      //   shouldClose = await props.beforeClose();
-      // }
-      // if (shouldClose) {
       emit('update:isShow', false);
       emit('closed');
       setTimeout(() => {
         // 有动画，推迟发布事件
         emit('animation-end');
-      }, 250);
-      // }
+        refRoot.value?.close?.();
+      }, props.hiddenDelay);
     };
     const handleShown = () => {
       // 有动画，推迟发布事件
@@ -85,47 +82,44 @@ export default defineComponent({
     const { resolveClassName } = usePrefix();
 
     return () => {
-      const dialogSlot = {
+      const modelSlot = {
         header: () => (
           <>
             <div class={`${resolveClassName('sideslider-header')}`}>
               <div
                 class={`${resolveClassName('sideslider-close')} ${props.direction}`}
-                onClick={() => {
-                  handleClose();
-                }}
-              ></div>
+                onClick={() => handleClose()}
+              />
               <div class={`${resolveClassName('sideslider-title')} ${props.direction}`}>
                 {slots.header?.() ?? props.title}
               </div>
             </div>
           </>
         ),
-        default: () => slots.default?.() ?? 'Content',
-        footer: () => {
-          if (slots.footer) {
-            return <div class={`${resolveClassName('sideslider-footer')}`}>{slots.footer()}</div>;
-          }
-
-          return null;
-        },
+        default: () => <div class={`${resolveClassName('sideslider-content')}`}>{slots.default?.()}</div>,
       };
-      const className = resolveClassName('sideslider-wrapper');
-      const bodyClass = props.scrollable ? 'scroll-able' : '';
-      const maxHeight = slots.footer ? 'calc(100vh - 106px)' : 'calc(100vh - 52px)';
+      if (slots.footer) {
+        Object.assign(modelSlot, {
+          footer: () => {
+            return <div class={`${resolveClassName('sideslider-footer')}`}>{slots.footer()}</div>;
+          },
+        });
+      }
 
       return (
         <Modal
+          ref={refRoot}
           {...props}
-          class={className}
-          maxHeight={maxHeight}
-          extCls={props.extCls}
-          bodyClass={bodyClass}
+          class={{
+            [resolveClassName('sideslider')]: true,
+            [resolveClassName('sideslider-wrapper')]: true,
+          }}
+          closeIcon={false}
           onHidden={handleHidden}
           onShown={handleShown}
           onClose={handleClose}
         >
-          {dialogSlot}
+          {modelSlot}
         </Modal>
       );
     };

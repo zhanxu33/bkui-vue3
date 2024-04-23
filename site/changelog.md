@@ -1,6 +1,37 @@
 ## 更新日志
 
 
+### 1.0.3-beta.47
+
+* **[feat]**:
+    - feat(table & modal): table row-key计算逻辑调整 & modal unmounted处理逻辑调整 & modal hidden delay设置 & table column node context获取逻辑判定
+
+
+### 1.0.3-beta.46
+
+* **[feat]**:
+    - bugfix(dialog): 样式修复
+
+
+### 1.0.3-beta.45
+
+* **[feat]**:
+    - feat(Timeline):Timeline组件的tag、content属性应支持VNode
+
+
+### 1.0.3-beta.43
+
+* **[feat]**:
+    - feat(table & modal): table row-key计算逻辑调整 & modal unmounted处理逻辑调整 & modal hidden delay设置 & table column node context获取逻辑判定
+
+
+### 1.0.3-beta.42
+
+* **[feat]**:
+    - bugfix(dialog): 样式修复
+    - fix: 修复Dialog在shadowDom下表现异常
+
+
 ### 1.0.3-beta.41
 
 * **[feat]**:
