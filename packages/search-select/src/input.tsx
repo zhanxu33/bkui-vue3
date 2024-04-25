@@ -32,6 +32,7 @@ import { debounce, random } from '@bkui-vue/shared';
 
 import SearchSelectMenu from './menu';
 import {
+  DeleteBehavior,
   GetMenuListFunc,
   ICommonItem,
   IMenuFooterItem,
@@ -71,6 +72,7 @@ export default defineComponent({
     getMenuList: Function as PropType<GetMenuListFunc>,
     validateValues: Function as PropType<ValidateValuesFunc>,
     valueBehavior: String as PropType<ValueBehavior>,
+    deleteBehavior: String as PropType<DeleteBehavior>,
   },
   emits: ['focus', 'add', 'delete'],
   setup(props, { emit, expose }) {
@@ -223,9 +225,10 @@ export default defineComponent({
           return;
         }
         keyword.value = formattedText
-          .split(/(\s|\||,|、|\/|\n\r|\n)/gm)
+          .split(/(\||,|、|\/|\n\r|\n)/gm)
           .filter(v => !!v.trim())
-          .join(valueLoagic.value);
+          .filter(v => !/^(\||,|、|\/|\n\r|\n)$/.test(v))
+          .join(` ${valueLoagic.value} `);
         inputRef.value.innerText = keyword.value;
         setInputFocus();
         debounceSetMenuList();
@@ -326,8 +329,8 @@ export default defineComponent({
         return;
       }
       if (usingItem.value?.values.length) {
-        // if (hasSelectAllContent) {
-        // }
+        console.info(props.deleteBehavior, '==========');
+        if (props.deleteBehavior === DeleteBehavior.CHAR) return;
         event.preventDefault();
         const selection = window.getSelection();
         if (selection?.rangeCount > 0) {
@@ -352,6 +355,7 @@ export default defineComponent({
     }
     async function handleSelectItem(item: ICommonItem, type?: SearchItemType) {
       // 快捷选中
+      debugger;
       if (item.value?.id) {
         if ((props.valueBehavior === ValueBehavior.NEEDKEY && item.value) || !props.validateValues) {
           const seleted = new SelectedItem({ ...item, id: item.realId ?? item.id }, type);
@@ -390,11 +394,15 @@ export default defineComponent({
         setSelectedItem();
         return;
       }
-      usingItem.value?.addValue(item);
-      keyword.value = '';
+      if (usingItem.value) {
+        usingItem.value.addValue(item);
+        nextTick(deleteInputTextNode);
+      }
       const res = await validateUsingItemValues(item);
       if (!res) return;
-      if (!usingItem.value.multiple) setSelectedItem();
+      if (!usingItem.value.multiple) {
+        setSelectedItem();
+      }
       if (props.valueBehavior === ValueBehavior.NEEDKEY && usingItem.value?.multiple) {
         setInputFocus();
       }
@@ -571,6 +579,17 @@ export default defineComponent({
       }
       return undefined;
     }
+    function deleteInputTextNode() {
+      if (keyword.value?.length) {
+        keyword.value = '';
+        const nodes = Array.from(inputRef.value.childNodes);
+        nodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+            inputRef.value.removeChild(node);
+          }
+        });
+      }
+    }
     function inputFocusForWrapper() {
       inputRef.value?.focus();
     }
@@ -620,6 +639,7 @@ export default defineComponent({
       inputFocusForWrapper,
       inputEnterForWrapper,
       inputClearForWrapper,
+      deleteInputTextNode,
       t,
     };
   },

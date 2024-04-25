@@ -32,6 +32,7 @@ import PropsBox from '../../components/props-box';
 import { IPropsTableItem } from '../../typings';
 
 import BaseDemo from './base-demo.vue';
+import DeleteBehaviorDemo from './delete-behavior.vue';
 import MenuDemo from './menu-demo.vue';
 import PlaceholderDemo from './placeholder-demo.vue';
 import RemoteDemo from './remote-demo.vue';
@@ -100,6 +101,13 @@ const propsJson: IPropsTableItem[] = [
     default: 'all',
     desc: '配置纯文本是否可以生成value (all: 可以，need-key: 需要key值)',
     optional: ['all', 'need-key'],
+  },
+  {
+    name: 'delete-behavior',
+    type: 'String',
+    default: 'delete-value',
+    desc: '配置按下delete键时是否删除整个value 配置为 delete-char 则删除当前字符 delete-value 则删除当前光标所在的整个value字符',
+    optional: ['delete-char', 'delete-value'],
   },
   {
     name: 'placeholder',
@@ -288,9 +296,19 @@ export default defineComponent({
           subtitle='改变配置 valueBehevior 值为 need-key  来做到存文本不可生成 value tag'
           desc='valueBehevior 行为'
           componentName='search-select'
-          demoName='menu-demo'
+          demoName='value-behavior'
         >
           <ValueBehaviorDemo />
+        </DemoBox>
+
+        <DemoBox
+          title='delete按键行为'
+          subtitle='deleteBehevior有两个选项 delete-value(默认)、delete-char'
+          desc='配置 deleteBehevior 属性定义delete键交互行为'
+          componentName='search-select'
+          demoName='delete-behavior'
+        >
+          <DeleteBehaviorDemo />
         </DemoBox>
         <PropsBox propsData={propsJson} />
         <PropsBox

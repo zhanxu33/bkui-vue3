@@ -37,6 +37,10 @@ export enum ValueBehavior {
   ALL = 'all',
   NEEDKEY = 'need-key',
 }
+export enum DeleteBehavior {
+  CHAR = 'delete-char',
+  VALUE = 'delete-value',
+}
 export type GetMenuListFunc = (item: ISearchItem, keyword: string) => Promise<ISearchItem[]>;
 export type ValidateValuesFunc = (item: ISearchItem, values: ICommonItem[]) => Promise<string | true>;
 export type MenuSlotParams = {
@@ -189,7 +193,7 @@ export class SelectedItem {
     if (!list?.length) return [];
     const findChildByName = (name: string) => this.children.find(item => item.name === name);
     if (!this.multiple) {
-      const val = list.join(this.logical).trim();
+      const val = list.join(` ${this.logical} `).trim();
       const item = findChildByName(val);
       return [
         {
@@ -214,8 +218,9 @@ export class SelectedItem {
   addValues(str: string, mergeValues = true) {
     const list = this.str2Values(
       str
-        .split(/(\s|\||,|、|\/|\n\r|\n)/gm)
+        .split(/(\||,|、|\/|\n\r|\n)/gm)
         .filter(v => !!v.trim())
+        .filter(v => !/^(\||,|、|\/|\n\r|\n)$/.test(v))
         .concat(this.values.map(item => (mergeValues ? item.name : '')))
         .filter(v => !!v.trim())
         .join(this.logical),
