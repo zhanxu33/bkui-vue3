@@ -32,7 +32,7 @@ import PropsBox from '../../components/props-box';
 import { IPropsTableItem } from '../../typings';
 
 import BaseDemo from './base-demo.vue';
-import DeleteBehaviorDemo from './delete-behavior.vue';
+import ComprehensiveUseDemo from './comprehensive-use.vue';
 import MenuDemo from './menu-demo.vue';
 import PlaceholderDemo from './placeholder-demo.vue';
 import RemoteDemo from './remote-demo.vue';
@@ -103,7 +103,7 @@ const propsJson: IPropsTableItem[] = [
     optional: ['all', 'need-key'],
   },
   {
-    name: 'delete-behavior',
+    name: 'comprehensive-use',
     type: 'String',
     default: 'delete-value',
     desc: '配置按下delete键时是否删除整个value 配置为 delete-char 则删除当前字符 delete-value 则删除当前光标所在的整个value字符',
@@ -302,13 +302,13 @@ export default defineComponent({
         </DemoBox>
 
         <DemoBox
-          title='delete按键行为'
-          subtitle='deleteBehevior有两个选项 delete-value(默认)、delete-char'
-          desc='配置 deleteBehevior 属性定义delete键交互行为'
+          title='综合使用'
+          subtitle='综合使用示例'
+          desc='综合使用示例'
           componentName='search-select'
-          demoName='delete-behavior'
+          demoName='comprehensive-use'
         >
-          <DeleteBehaviorDemo />
+          <ComprehensiveUseDemo />
         </DemoBox>
         <PropsBox propsData={propsJson} />
         <PropsBox
