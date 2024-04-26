@@ -329,7 +329,6 @@ export default defineComponent({
         return;
       }
       if (usingItem.value?.values.length) {
-        console.info(props.deleteBehavior, '==========');
         if (props.deleteBehavior === DeleteBehavior.CHAR) return;
         event.preventDefault();
         const selection = window.getSelection();
@@ -355,7 +354,6 @@ export default defineComponent({
     }
     async function handleSelectItem(item: ICommonItem, type?: SearchItemType) {
       // 快捷选中
-      debugger;
       if (item.value?.id) {
         if ((props.valueBehavior === ValueBehavior.NEEDKEY && item.value) || !props.validateValues) {
           const seleted = new SelectedItem({ ...item, id: item.realId ?? item.id }, type);

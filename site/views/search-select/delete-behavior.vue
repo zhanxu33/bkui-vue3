@@ -25,6 +25,14 @@ function generateRandomIPs(count) {
   return ipList;
 }
 const ipList = generateRandomIPs(20);
+function generateRandomValues(count) {
+  const arrayCopy = ipList.slice();
+  for (let i = arrayCopy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arrayCopy[i], arrayCopy[j]] = [arrayCopy[j], arrayCopy[i]];
+  }
+  return arrayCopy.slice(0, count);
+}
 const data = shallowRef([
   {
     name: 'IP地址',
@@ -71,8 +79,8 @@ const data = shallowRef([
     ],
   },
 ]);
-const value = ref([{ id: '2', name: '实例业务', values: [{ id: '2-1', name: '王者荣耀' }] }]);
-const value2 = ref([{ id: '2', name: '实例业务', values: [{ id: '2-1', name: '王者荣耀' }] }]);
+const value = ref([{ name: 'IP地址', id: '3', values: generateRandomValues(6) }]);
+const value2 = ref([{ name: 'IP地址', id: '3', values: generateRandomValues(6) }]);
 </script>
 <style lang="less">
 .delete-behavior-demo {
