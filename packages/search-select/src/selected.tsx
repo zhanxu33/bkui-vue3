@@ -29,7 +29,6 @@ import { Error } from '@bkui-vue/icon';
 
 import SearchSelectInput from './input';
 import {
-  DeleteBehavior,
   GetMenuListFunc,
   ICommonItem,
   ISearchItem,
@@ -62,7 +61,6 @@ export default defineComponent({
     getMenuList: Function as PropType<GetMenuListFunc>,
     validateValues: Function as PropType<ValidateValuesFunc>,
     valueBehavior: String as PropType<ValueBehavior>,
-    deleteBehavior: String as PropType<DeleteBehavior>,
   },
   emits: ['delete'],
   setup(_props, { emit }) {
@@ -127,7 +125,6 @@ export default defineComponent({
             getMenuList={this.getMenuList}
             validateValues={this.validateValues}
             valueBehavior={this.valueBehavior}
-            deleteBehavior={this.deleteBehavior}
             onAdd={v => this.handleAddSelected(v, index)}
             onFocus={this.handleInputFocus}
           />

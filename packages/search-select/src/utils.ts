@@ -83,6 +83,8 @@ export interface ISearchValue extends Omit<ICommonItem, 'disabled' | 'value'> {
   type?: SearchItemType;
   values?: Omit<ICommonItem, 'disabled' | 'logical'>[];
 }
+export const ValueSplitRegex = /(\||,|、|\/|\r\n|\n)/gm;
+export const ValueSplitTestRegex = /^(\||,|、|\/|\r\n|\n)$/;
 
 export interface ISearchItem {
   id: string;
@@ -216,16 +218,11 @@ export class SelectedItem {
     });
   }
   addValues(str: string, mergeValues = true) {
-    const list = this.str2Values(
-      str
-        .split(/(\||,|、|\/|\n\r|\n)/gm)
-        .filter(v => !!v.trim())
-        .filter(v => !/^(\||,|、|\/|\n\r|\n)$/.test(v))
-        .concat(this.values.map(item => (mergeValues ? item.name : '')))
-        .filter(v => !!v.trim())
-        .join(this.logical),
-    );
-    this.values = list;
+    const valuesFromStr = str.split(ValueSplitRegex).filter(v => v.trim() && !ValueSplitTestRegex.test(v));
+    const currentValues = mergeValues ? this.values.map(item => item.name) : [];
+    const combinedValues = [...valuesFromStr, ...currentValues];
+    const logicalString = combinedValues.filter(v => v.trim()).join(this.logical);
+    this.values = this.str2Values(logicalString);
   }
   getValue(str: string) {
     return this.values.find(item => item.id === str) || this.values.find(item => item.name === str);

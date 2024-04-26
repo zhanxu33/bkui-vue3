@@ -103,13 +103,13 @@ export const SearchSelectProps = {
       return [ValueBehavior.ALL, ValueBehavior.NEEDKEY].includes(v);
     },
   },
-  deleteBehavior: {
-    type: String as PropType<`${DeleteBehavior}`>,
-    default: DeleteBehavior.CHAR,
-    validator(v: DeleteBehavior) {
-      return [DeleteBehavior.CHAR, DeleteBehavior.VALUE].includes(v);
-    },
-  },
+  // deleteBehavior: {
+  //   type: String as PropType<`${DeleteBehavior}`>,
+  //   default: DeleteBehavior.CHAR,
+  //   validator(v: DeleteBehavior) {
+  //     return [DeleteBehavior.CHAR, DeleteBehavior.VALUE].includes(v);
+  //   },
+  // },
 };
 export default defineComponent({
   name: 'SearchSelect',
@@ -377,7 +377,6 @@ export default defineComponent({
               getMenuList={this.getMenuList}
               validateValues={this.validateValues}
               valueBehavior={this.valueBehavior as ValueBehavior}
-              deleteBehavior={this.deleteBehavior as DeleteBehavior}
               onDelete={this.handleDeleteSelected}
               v-slots={{ ...menuSlots }}
             />
@@ -393,7 +392,6 @@ export default defineComponent({
                 getMenuList={this.getMenuList}
                 validateValues={this.validateValues}
                 valueBehavior={this.valueBehavior as ValueBehavior}
-                deleteBehavior={this.deleteBehavior as DeleteBehavior}
                 onAdd={this.handleAddSelected}
                 onDelete={this.handleDeleteSelected}
                 onFocus={this.handleInputFocus}
