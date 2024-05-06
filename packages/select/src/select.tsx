@@ -920,6 +920,7 @@ export default defineComponent({
             placeholder={this.localPlaceholder}
             filterable={this.isInput}
             disabled={this.isDisabled}
+            behavior={this.behavior}
             onRemove={this.handleDeleteTag}
             collapseTags={this.isCollapseTags}
             onEnter={this.handleCreateCustomOption}
