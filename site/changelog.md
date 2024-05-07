@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 1.0.3-beta.63
+
+* **[feat]**:
+    - bugfix(radio|checkbox): prop 同时支持 Boolean 和 String 时默认值解析不正确
+
+
 ### 1.0.3-beta.61
 
 * **[feat]**:
