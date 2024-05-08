@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 1.0.3-beta.65
+
+* **[feat]**:
+    - bugfix(form): 验证规则配置为 pattern 全局匹配时，多次执行 pattern.test 需要重置 lastIndex
+
+
 ### 1.0.3-beta.64
 
 * **[feat]**:
