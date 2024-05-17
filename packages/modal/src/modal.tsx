@@ -233,10 +233,7 @@ export default defineComponent({
     return (
       <div
         ref='refRoot'
-        class={{
-          [this.resolveClassName('modal-ctx')]: true,
-          'is-show': this.visible,
-        }}
+        class={[this.resolveClassName('modal-ctx'), this.visible ? 'is-show' : '', this.extCls ?? '']}
         style={{ zIndex: this.zIndex }}
       >
         {this.showMask && (

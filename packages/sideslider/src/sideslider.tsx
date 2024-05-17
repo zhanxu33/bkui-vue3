@@ -114,6 +114,7 @@ export default defineComponent({
             [resolveClassName('sideslider')]: true,
             [resolveClassName('sideslider-wrapper')]: true,
           }}
+          extCls={props.extCls}
           closeIcon={false}
           onHidden={handleHidden}
           onShown={handleShown}
