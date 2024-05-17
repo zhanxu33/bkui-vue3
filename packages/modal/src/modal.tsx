@@ -185,7 +185,7 @@ export default defineComponent({
           <div
             ref={rootRef}
             {...attrs}
-            class={resolveClassName('modal')}
+            class={[resolveClassName('modal'), props.extCls || '']}
           >
             {props.showMask && (
               <Transition name={mask.getMaskCount() > 0 ? 'fadein' : ''}>

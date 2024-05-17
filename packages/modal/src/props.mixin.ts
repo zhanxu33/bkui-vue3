@@ -51,4 +51,5 @@ export const propsMixin = {
   beforeClose: PropTypes.custom(() => true),
   left: PropTypes.string,
   top: PropTypes.string,
+  extCls: PropTypes.string,
 };
