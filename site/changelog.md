@@ -1,5 +1,18 @@
 ## 更新日志
 
+### 2.0.1-beta.5
+
+* **[feat]**:
+    - bugfix(dialog): 去掉多余的font-size 设置
+    - feat(table): 支持click + click范围选择
+
+
+### 2.0.1-beta.4
+
+* **[feat]**:
+    - feat: datepicker 支持年份范围选择
+
+
 ### 2.0.1-beta.3
 
 * **[feat]**:
