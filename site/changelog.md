@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.3
+
+* **[feat]**:
+    - feature(select): select options高度支持自定义
+
+
 ### 2.0.1-beta.2
 
 * **[feat]**:
