@@ -1,5 +1,12 @@
 ## 更新日志
 
+### 2.0.1-beta.7
+
+* **[feat]**:
+    - rate 组件样式合并为一份文件
+    - 修复 TimePicker `injection "Symbol(time-picker)" not found` 警告信息
+
+
 ### 2.0.1-beta.6
 
 * **[feat]**:

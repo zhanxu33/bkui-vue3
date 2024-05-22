@@ -53,7 +53,7 @@ import type { DatePickerPanelType, SelectionModeType } from './interface';
 import TimePanel from './panel/time';
 import TimeRangePanel from './panel/time-range';
 import { datePickerProps, timePanelProps, timePickerProps } from './props';
-import { datePickerKey, extractTime, formatDate, isAllEmptyArr, parseDate } from './utils';
+import { extractTime, formatDate, isAllEmptyArr, parseDate, timePickerKey } from './utils';
 
 export default defineComponent({
   name: 'TimePicker',
@@ -216,9 +216,9 @@ export default defineComponent({
     const allowCrossDayProp = computed(() => (panel.value === 'RangeTimePickerPanel' ? props.allowCrossDay : false));
 
     const inputRef = ref(null);
-    const inputFocus = () => {
-      inputRef?.value?.focus();
-    };
+    // const inputFocus = () => {
+    //   inputRef?.value?.focus();
+    // };
 
     const { proxy } = getCurrentInstance();
 
@@ -299,10 +299,15 @@ export default defineComponent({
       }
 
       // this.$on('focus-input', () => this.focus())
-      provide(datePickerKey, {
-        props,
-        focus: () => inputFocus(),
-      });
+      // provide(datePickerKey, {
+      //   props,
+      //   focus: () => inputFocus(),
+      // });
+    });
+
+    provide(timePickerKey, {
+      panelDate: state.focusedDate,
+      parentName: proxy.$options.name,
     });
 
     const pickerPanelRef = ref(null);
