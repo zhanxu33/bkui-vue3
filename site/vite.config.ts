@@ -24,11 +24,10 @@
  * IN THE SOFTWARE.
  */
 
-import { resolve } from 'path';
-import { defineConfig } from 'vite';
-
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
+import { resolve } from 'path';
+import { defineConfig } from 'vite';
 
 import md from './vite-md';
 const base = process.env.PUBLIC_PATH || '/';

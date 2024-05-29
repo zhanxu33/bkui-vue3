@@ -33,7 +33,6 @@ import { EMIT_EVENTS } from '../events';
 import { Column } from '../props';
 import { ITableResponse } from '../use-attributes';
 import { getNextSortType, getSortFn, isRowSelectEnable, resolveHeadConfig, resolvePropVal } from '../utils';
-
 import HeadFilter from './head-filter';
 import HeadSort from './head-sort';
 
@@ -100,7 +99,7 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
     handleColumnHeadClick(index, column);
   };
 
-  const renderCheckboxColumn = (row: any, index: number | null, isAll = false) => {
+  const renderCheckboxColumn = (row: any, index: null | number, isAll = false) => {
     const handleChecked = value => {
       if (isAll) {
         tableResp.setRowSelectionAll(value);
@@ -119,10 +118,10 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
 
     return (
       <Checkbox
-        onChange={handleChecked}
         disabled={!isEnable}
-        modelValue={isChecked}
         indeterminate={indeterminate as boolean}
+        modelValue={isChecked}
+        onChange={handleChecked}
       />
     );
   };
@@ -139,7 +138,7 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
      * @param sortFn 排序函数
      * @param type 排序类型
      */
-    const handleSortClick = (sortFn: (a, b) => number | boolean, type: string) => {
+    const handleSortClick = (sortFn: (a, b) => boolean | number, type: string) => {
       const fn = (a, b) => getSortFnByColumn(column, sortFn, a, b, type);
       tableResp.setColumnAttribute(column, COLUMN_ATTRIBUTE.COL_SORT_TYPE, type);
       tableResp.setColumnAttribute(column, COLUMN_ATTRIBUTE.COL_SORT_FN, fn);
@@ -151,11 +150,11 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
     // 如果是独立的，则只高亮当前排序
     return (
       <HeadSort
+        active={active.value}
         column={column as Column}
         defaultSort={active.value ? nextSort.value : SORT_OPTION.NULL}
-        onChange={handleSortClick}
-        active={active.value}
         sortValFormat={props.sortValFormat}
+        onChange={handleSortClick}
       />
     );
   };
@@ -174,8 +173,8 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
 
     return (
       <HeadFilter
-        column={column as Column}
         height={props.headHeight}
+        column={column as Column}
         onChange={handleFilterChange}
         onFilterSave={filterSave}
       />
@@ -226,13 +225,13 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
     return (
       <TableCell
         class={headClass}
-        title={showTitle}
-        observerResize={props.observerResize}
-        resizerWay={props.resizerWay}
-        isHead={true}
         column={column as Column}
-        parentSetting={props.showOverflowTooltip}
         headExplain={resolvePropVal(column.explain, 'head', [column])}
+        isHead={true}
+        observerResize={props.observerResize}
+        parentSetting={props.showOverflowTooltip}
+        resizerWay={props.resizerWay}
+        title={showTitle}
       >
         {cells}
       </TableCell>
@@ -242,11 +241,11 @@ export default (props, context: SetupContext<any>, column: Column, tableResp: IT
   const getTH = (classList, style, index) => {
     return (
       <th
-        colspan={1}
-        rowspan={1}
-        data-id={tableResp.getColumnId(column)}
-        class={classList}
         style={style}
+        class={classList}
+        colspan={1}
+        data-id={tableResp.getColumnId(column)}
+        rowspan={1}
         onClick={() => handleColCellClick(index)}
         {...resolveEventListener(column)}
       >

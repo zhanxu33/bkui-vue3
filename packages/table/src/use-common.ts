@@ -158,10 +158,10 @@ export const useClass = (
 
   /** 表格外层容器样式 */
   const contentStyle: {
-    display: string | boolean;
-    minHeight: string | number;
-    height: string | number;
-    maxHeight: string | number;
+    display: boolean | string;
+    minHeight: number | string;
+    height: number | string;
+    maxHeight: number | string;
   } = reactive({
     display: '',
     minHeight: '',

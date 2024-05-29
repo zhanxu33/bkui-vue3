@@ -23,10 +23,10 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { v4 as uuidv4 } from 'uuid';
 import { reactive, watch } from 'vue';
 
 import { useLocale } from '@bkui-vue/config-provider';
+import { v4 as uuidv4 } from 'uuid';
 
 import {
   CHECK_ALL_OBJ,
@@ -282,7 +282,7 @@ const tableSchemaResponse = (props: TablePropTypes) => {
    */
   const setAllColumnAttribute = (
     attributeName: string | string[],
-    value: string | number | boolean | ((...args: any[]) => boolean | number | void | string),
+    value: ((...args: any[]) => boolean | number | string | void) | boolean | number | string,
   ) => {
     const attrNames = Array.isArray(attributeName) ? attributeName : [attributeName];
     const values = Array.isArray(value) ? value : [value];
@@ -386,7 +386,7 @@ const tableSchemaResponse = (props: TablePropTypes) => {
   const setColumnAttribute = (
     col: Column,
     attrName: string,
-    attrValue: ((...args) => boolean | number | void | string) | string | boolean | number,
+    attrValue: ((...args) => boolean | number | string | void) | boolean | number | string,
   ) => {
     const target = formatData.columnSchema.get(col);
     if (target && Object.prototype.hasOwnProperty.call(target, attrName)) {
@@ -518,7 +518,7 @@ const tableSchemaResponse = (props: TablePropTypes) => {
    * @param attrName
    * @param attrValue
    */
-  const setRowAttribute = (item: any, attrName: string, attrValue: string | boolean | number) => {
+  const setRowAttribute = (item: any, attrName: string, attrValue: boolean | number | string) => {
     const row = getRawData(item);
     const target = formatData.dataSchema.get(row);
     if (target && Object.prototype.hasOwnProperty.call(target, attrName)) {
@@ -561,7 +561,7 @@ const tableSchemaResponse = (props: TablePropTypes) => {
     setRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_EXPAND, isExpand);
   };
 
-  const getRowAttribute = (item: any | IEmptyObject, attrName: string) => {
+  const getRowAttribute = (item: IEmptyObject | any, attrName: string) => {
     const row = getRawData(item);
     return formatData.dataSchema.get(row)?.[attrName];
   };

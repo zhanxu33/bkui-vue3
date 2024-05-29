@@ -87,8 +87,8 @@ export default defineComponent({
       if (!showText || textInside) return null;
       return (
         <span
-          class='progress-text'
           style={typeof formatPercent === 'string' ? titleStyle : undefined}
+          class='progress-text'
         >
           {this.$slots.default ? this.$slots.default() : formatPercent}
         </span>

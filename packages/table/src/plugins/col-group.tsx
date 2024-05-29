@@ -50,8 +50,8 @@ export default defineComponent({
           const width = `${resolveWidth(getColumnReactWidth(column))}`.replace(/px$/i, '');
           return (
             <col
-              class={colCls}
               width={width}
+              class={colCls}
             ></col>
           );
         })}

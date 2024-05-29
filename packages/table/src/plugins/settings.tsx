@@ -206,11 +206,11 @@ export default defineComponent({
     return () =>
       props.settings ? (
         <Popover
-          trigger={localSettings.value.trigger ?? ('manual' as any)}
-          placement='bottom-end'
           ref={refSetting}
-          arrow={true}
           extCls={localSettings.value.extCls}
+          arrow={true}
+          placement='bottom-end'
+          trigger={localSettings.value.trigger ?? ('manual' as any)}
           {...{ theme }}
         >
           {{
@@ -249,8 +249,8 @@ export default defineComponent({
                         onClick={handleCheckAllClick}
                       >
                         <Checkbox
-                          label={t.value.setting.fields.selectAll}
                           indeterminate={Boolean(indeterminate.value)}
+                          label={t.value.setting.fields.selectAll}
                           modelValue={checkedFields.value.length > 0}
                         >
                           {t.value.setting.fields.selectAll}
@@ -266,8 +266,8 @@ export default defineComponent({
                       <div class='field-item'>
                         <Checkbox
                           checked={checkedFields.value.includes(resolvedColVal(item, index))}
-                          label={resolvedColVal(item, index)}
                           disabled={isItemReadonly(item, index)}
+                          label={resolvedColVal(item, index)}
                         >
                           {resolvePropVal(item, ['name', 'label'], [item, index])}
                         </Checkbox>
@@ -285,8 +285,8 @@ export default defineComponent({
                 </div>
                 <div class='setting-footer'>
                   <Button
-                    theme='primary'
                     style={buttonStyle}
+                    theme='primary'
                     onClick={handleSaveClick}
                   >
                     {t.value.setting.options.ok}

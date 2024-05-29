@@ -30,12 +30,11 @@ import { createApp } from 'vue';
 // import { zhCn } from '../lib/locale';
 import bkuiVue from '../packages/bkui-vue/index';
 import zhCn from '../packages/locale/src/lang/zh-cn';
-
+import '../packages/styles/src/index';
 import App from './app';
 import router from './router';
 
 import './reset.less';
-import '../packages/styles/src/index';
 const app = createApp(App);
 app.use(bkuiVue, {
   locale: zhCn,

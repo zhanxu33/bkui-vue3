@@ -25,9 +25,9 @@
  */
 // import '@bkui-vue/styles';
 
-export { default } from './preset';
 export * from './components';
+export * from './hooks';
+export { default } from './preset';
+export * from '@bkui-vue/config-provider';
 export * from '@bkui-vue/directives';
 export * as plugins from '@bkui-vue/plugins';
-export * from '@bkui-vue/config-provider';
-export * from './hooks';

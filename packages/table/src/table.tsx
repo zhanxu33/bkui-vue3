@@ -246,65 +246,65 @@ export default defineComponent({
 
     return () => (
       <div
-        class={tableClass.value}
-        style={wrapperStyle.value}
         ref={root}
+        style={wrapperStyle.value}
+        class={tableClass.value}
       >
         {
           // @ts-ignore:next-line
           <div
-            class={headClass}
-            style={headStyle.value}
             ref={head}
+            style={headStyle.value}
+            class={headClass}
           >
             {renderTableHeadSchema()}
             <div
-              class='col-resize-drag'
               style={resizeHeadColStyle.value}
+              class='col-resize-drag'
             ></div>
           </div>
         }
         <VirtualRender
           ref={refVirtualRender}
-          lineHeight={tableSchema.formatData.settings.height}
           height={contentStyle.height}
           class={tableBodyClass.value}
-          wrapperStyle={contentStyle}
+          lineHeight={tableSchema.formatData.settings.height}
           list={tableSchema.pageData}
+          wrapperStyle={contentStyle}
           {...scrollClass.value}
+          autoIndex={false}
           contentClassName={tableBodyContentClass.value}
-          onContentScroll={handleScrollChanged}
-          throttleDelay={120}
-          scrollEvent={true}
-          rowKey={props.rowKey}
-          scrollbar={{ enabled: true }}
           enabled={props.virtualEnabled}
           keepAlive={true}
-          autoIndex={false}
+          rowKey={props.rowKey}
+          scrollEvent={true}
+          scrollbar={{ enabled: true }}
+          throttleDelay={120}
+          onContentScroll={handleScrollChanged}
         >
           {{
             beforeContent: () => renderPrepend(),
             default: (scope: any) => renderTableBodySchema(scope.data),
             afterSection: () => [
               <div
-                class={resizeColumnClass}
                 style={resizeColumnStyle.value}
+                class={resizeColumnClass}
               ></div>,
             ],
           }}
         </VirtualRender>
         {/* @ts-ignore:next-line */}
         <div
-          class={fixedWrapperClass}
           style={fixedContainerStyle.value}
+          class={fixedWrapperClass}
         >
           {fixedColumns.map(({ isExist, className, style }) =>
             isExist ? (
               ''
             ) : (
               <div
-                class={className}
                 style={style}
+                class={className}
               ></div>
             ),
           )}
@@ -313,8 +313,8 @@ export default defineComponent({
         </div>
         {/* @ts-ignore:next-line */}
         <div
-          class={footerClass.value}
           style={footerStyle.value}
+          class={footerClass.value}
         >
           {hasFooter.value && renderTableFooter(tableSchema.localPagination.value)}
         </div>

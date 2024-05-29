@@ -119,7 +119,7 @@ export default defineComponent({
       return defaultMin;
     });
 
-    const getRegExp = (val: string | number | boolean, flags = 'ig') =>
+    const getRegExp = (val: boolean | number | string, flags = 'ig') =>
       new RegExp(`${val}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
 
     const defaultFilterFn = (checked: string[], row: any) => {
@@ -134,8 +134,7 @@ export default defineComponent({
 
     const filterFn =
       typeof (filter.value as IFilterShape).filterFn === 'function'
-        ? // eslint-disable-next-line max-len
-          (checked: string[], row: any, index: number, data: any[]) =>
+        ? (checked: string[], row: any, index: number, data: any[]) =>
             (filter.value as IFilterShape).filterFn(checked, row, props.column, index, data)
         : (checked: string[], row: any) => (checked.length ? defaultFilterFn(checked, row) : true);
 
@@ -167,7 +166,7 @@ export default defineComponent({
       }
     };
 
-    const resolveBtnOption = (opt: string | boolean, defText: string) => {
+    const resolveBtnOption = (opt: boolean | string, defText: string) => {
       const disabled = opt === 'disabled' || opt === false;
       const text = typeof opt === 'string' ? opt : defText;
       return { disabled, text };
@@ -183,9 +182,9 @@ export default defineComponent({
 
       return (
         <Button
-          theme='primary'
-          size='small'
           style='width: 56px; margin-right: 8px;'
+          size='small'
+          theme='primary'
           onClick={handleBtnSaveClick}
         >
           {text}
@@ -202,8 +201,8 @@ export default defineComponent({
       return (
         <Button
           style='width: 56px;'
-          size='small'
           disabled={state.checked.length === 0}
+          size='small'
           onClick={handleBtnResetClick}
         >
           {text}
@@ -228,13 +227,13 @@ export default defineComponent({
       if (scope.data.length) {
         return scope.data.map((item: any) => (
           <div
-            class='list-item'
             key={item.value}
+            class='list-item'
           >
             <Checkbox
-              label={item.value}
-              immediateEmitChange={false}
               checked={state.checked.includes(item.value)}
+              immediateEmitChange={false}
+              label={item.value}
               modelValue={state.checked.includes(item.value)}
               onChange={val => handleValueChange(val, item)}
             >
@@ -249,15 +248,15 @@ export default defineComponent({
 
     return () => (
       <Popover
-        trigger='click'
+        arrow={false}
         isShow={state.isOpen}
+        offset={0}
         placement='bottom-start'
         renderType={RenderType.SHOWN}
-        arrow={false}
-        offset={0}
+        trigger='click'
         {...{ theme }}
-        onAfterShow={() => handlePopShow(true)}
         onAfterHidden={() => handlePopShow(false)}
+        onAfterShow={() => handlePopShow(true)}
       >
         {{
           default: () => <Funnel class={headClass.value} />,
@@ -268,15 +267,15 @@ export default defineComponent({
               </div>
               <BkCheckboxGroup class='content-list'>
                 <VirtualRender
-                  maxHeight={maxHeight.value}
-                  minHeight={minHeight.value}
+                  ref={refVirtualRender}
                   height={height.value}
+                  className='content-items'
                   lineHeight={32}
                   list={localData.value}
-                  throttleDelay={0}
+                  maxHeight={maxHeight.value}
+                  minHeight={minHeight.value}
                   scrollEvent={true}
-                  ref={refVirtualRender}
-                  className='content-items'
+                  throttleDelay={0}
                 >
                   {{
                     default: renderFilterList,

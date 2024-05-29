@@ -30,7 +30,7 @@ import { usePrefix } from '@bkui-vue/config-provider';
 import Loading, { BkLoadingMode, BkLoadingSize } from '@bkui-vue/loading';
 import { classes, ElementType, PropTypes } from '@bkui-vue/shared';
 
-type IButtonNativeType = PropType<'button' | 'submit' | 'reset'>;
+type IButtonNativeType = PropType<'button' | 'reset' | 'submit'>;
 const btnSizes = ['', 'small', 'large'] as const;
 const buttonProps = {
   theme: PropTypes.theme(),
@@ -120,20 +120,20 @@ export default defineComponent({
 
     return () => (
       <button
-        title={props.title}
-        disabled={props.disabled}
         class={btnCls.value}
+        disabled={props.disabled}
+        title={props.title}
         type={props.nativeType}
         onClick={handleClick}
-        onMouseover={handleMouseOver}
         onMouseleave={handleMouseout}
+        onMouseover={handleMouseOver}
       >
         {props.loading && (
           <Loading
-            loading
             class={`${btnClsPrefix}-loading`}
             mode={props.loadingMode}
             size={loadingSize.value}
+            loading
             {...(loadingTheme.value
               ? {
                   theme: loadingTheme.value,

@@ -23,9 +23,10 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+import { computed, type Ref, ref } from 'vue';
+
 import isElement from 'lodash/isElement';
 import throttle from 'lodash/throttle';
-import { computed, type Ref, ref } from 'vue';
 
 import { COLUMN_ATTRIBUTE } from '../const';
 import { Column } from '../props';
@@ -37,9 +38,9 @@ export default (tableResp: ITableResponse, immediate = true, head: Ref<HTMLEleme
 
   const pluginName = 'HeadColumnResize';
   const enum EVENTS {
+    MOUSE_DOWN = 'onMousedown',
     MOUSE_MOVE = 'onMousemove',
     MOUSE_OUT = 'onMouseout',
-    MOUSE_DOWN = 'onMousedown',
   }
   let isInDragSection = false;
   let isMouseDown = false;

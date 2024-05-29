@@ -24,7 +24,6 @@
  * IN THE SOFTWARE.
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { computed, CSSProperties, nextTick, SetupContext, unref } from 'vue';
 
 import Checkbox from '@bkui-vue/checkbox';
@@ -32,6 +31,7 @@ import { useLocale } from '@bkui-vue/config-provider';
 import { DownShape, GragFill, RightShape } from '@bkui-vue/icon';
 import Pagination from '@bkui-vue/pagination';
 import { classes } from '@bkui-vue/shared';
+import { v4 as uuidv4 } from 'uuid';
 
 import TableCell from './components/table-cell';
 import TableRow from './components/table-row';
@@ -112,8 +112,8 @@ export default (
       props.settings ? (
         <Settings
           class='table-head-settings'
-          settings={props.settings}
           columns={columns.value as Column[]}
+          settings={props.settings}
           onChange={handleSettingsChanged}
         >
           {context.slots.setting?.()}
@@ -148,9 +148,9 @@ export default (
       return (
         context.slots.empty?.() ?? (
           <BodyEmpty
+            emptyText={localEmptyText.value}
             filterList={rows}
             list={props.data}
-            emptyText={localEmptyText.value}
           />
         )
       );
@@ -174,8 +174,8 @@ export default (
         style='width: 100%;'
         {...options}
         modelValue={options.current}
-        onLimitChange={limit => handlePageLimitChange(limit)}
         onChange={current => handlePageChange(current)}
+        onLimitChange={limit => handlePageLimitChange(limit)}
       />
     );
   };
@@ -333,16 +333,16 @@ export default (
     return [
       <TableRow key={rowId}>
         <tr
+          key={rowId}
           // @ts-ignore
           style={rowStyle}
           class={rowClass}
-          key={rowId}
           data-row-index={rowIndex}
+          draggable={!!props.rowDraggable}
           onClick={e => handleRowClick(e, row, rowIndex, rows)}
           onDblclick={e => handleRowDblClick(e, row, rowIndex, rows)}
           onMouseenter={e => handleRowEnter(e, row, rowIndex, rows)}
           onMouseleave={e => handleRowLeave(e, row, rowIndex, rows)}
-          draggable={!!props.rowDraggable}
           {...dragEvents}
         >
           {filterColGroups.value.map((column: Column, index: number) => {
@@ -395,11 +395,11 @@ export default (
               const cellKey = `${rowId}_${index}_cell`;
               return (
                 <td
-                  class={cellClass}
+                  key={columnKey}
                   style={cellStyle}
+                  class={cellClass}
                   colspan={colspan}
                   rowspan={rowspan}
-                  key={columnKey}
                   onClick={event => handleEmit(event, EMIT_EVENTS.CELL_CLICK)}
                   onDblclick={event => handleEmit(event, EMIT_EVENTS.CELL_DBL_CLICK)}
                 >
@@ -407,9 +407,9 @@ export default (
                     key={cellKey}
                     class={tdCtxClass}
                     column={column}
-                    row={row}
-                    parentSetting={props.showOverflowTooltip}
                     observerResize={props.observerResize}
+                    parentSetting={props.showOverflowTooltip}
+                    row={row}
                   >
                     {renderCell(row, column, rowIndex, rows, isChild)}
                   </TableCell>
@@ -510,7 +510,7 @@ export default (
     return (column.render as Function)({ cell, data, row, column, index, rows });
   };
 
-  const renderCheckboxColumn = (row: any, index: number | null, isAll = false) => {
+  const renderCheckboxColumn = (row: any, index: null | number, isAll = false) => {
     const handleChecked = (value: boolean, event: Event) => {
       event.stopImmediatePropagation();
       event.preventDefault();
@@ -570,11 +570,11 @@ export default (
 
     return (
       <Checkbox
-        onChange={handleChecked}
-        disabled={!isEnable}
-        modelValue={isChecked}
-        indeterminate={indeterminate as boolean}
         beforeChange={beforeRowChange}
+        disabled={!isEnable}
+        indeterminate={indeterminate as boolean}
+        modelValue={isChecked}
+        onChange={handleChecked}
       />
     );
   };
@@ -607,8 +607,8 @@ export default (
     const fontSize = props.rowDraggable?.fontSize ?? '14px';
     const fontIcon = props.rowDraggable?.icon ?? (
       <GragFill
-        class='drag-cell'
         style={`'--font-size: ${fontSize};'`}
+        class='drag-cell'
       ></GragFill>
     );
 
@@ -686,14 +686,14 @@ export default (
             // active: isColActive(index),
           });
 
-          const width: string | number = `${resolveWidth(tableResp.getColumnOrderWidth(column))}`.replace(/px$/i, '');
+          const width: number | string = `${resolveWidth(tableResp.getColumnOrderWidth(column))}`.replace(/px$/i, '');
 
           const minWidth = tableResp.getColumnAttribute(column, COLUMN_ATTRIBUTE.COL_MIN_WIDTH);
           return (
             <col
-              class={colCls}
-              width={width}
               style={{ minWidth: resolveNumberOrStringToPix(minWidth as string, 'auto') }}
+              width={width}
+              class={colCls}
             ></col>
           );
         })}
