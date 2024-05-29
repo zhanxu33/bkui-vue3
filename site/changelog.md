@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.12
+
+* **[feat]**:
+    - bugfix: 修复fixed column border-color transparent
+
+
 ### 2.0.1-beta.11
 
 * **[feat]**:
