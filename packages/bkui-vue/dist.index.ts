@@ -24,8 +24,5 @@
  * IN THE SOFTWARE.
  */
 import '@bkui-vue/styles';
-
-export * from './components';
-export { default } from './preset';
-export * from '@bkui-vue/config-provider';
-export * from '@bkui-vue/directives';
+export { default } from './index';
+export * from './index';
