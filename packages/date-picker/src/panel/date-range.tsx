@@ -234,7 +234,7 @@ export default defineComponent({
               Math.floor(state.rightPanelDate.getFullYear() / 10) * 10)
         ) {
           // changePanelDate(otherPanel, type, 1);
-          changePanelDate(otherPanel, type, state.currentView === 'year' ? 10 : 1);
+          changePanelDate(otherPanel, type, state.currentView === 'year' ? 10 : 1, false);
         }
         if (
           panel === 'right' &&
@@ -243,7 +243,7 @@ export default defineComponent({
               Math.floor(state.rightPanelDate.getFullYear() / 10) * 10)
         ) {
           // changePanelDate(otherPanel, type, -1);
-          changePanelDate(otherPanel, type, state.currentView === 'year' ? -10 : -1);
+          changePanelDate(otherPanel, type, state.currentView === 'year' ? -10 : -1, false);
         }
       } else {
         const otherPanel = panel === 'left' ? 'right' : 'left';
