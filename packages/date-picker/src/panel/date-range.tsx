@@ -227,23 +227,29 @@ export default defineComponent({
 
       if (props.splitPanels) {
         const otherPanel = panel === 'left' ? 'right' : 'left';
-        if (
-          panel === 'left' &&
-          (state.leftPanelDate >= state.rightPanelDate ||
-            Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
-              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10)
-        ) {
-          // changePanelDate(otherPanel, type, 1);
-          changePanelDate(otherPanel, type, state.currentView === 'year' ? 10 : 1, false);
+        if (panel === 'left' && state.leftPanelDate >= state.rightPanelDate) {
+          if (state.currentView === 'year') {
+            if (
+              Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
+              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10
+            ) {
+              changePanelDate(otherPanel, type, 10);
+            }
+          } else {
+            changePanelDate(otherPanel, type, 1);
+          }
         }
-        if (
-          panel === 'right' &&
-          (state.rightPanelDate <= state.leftPanelDate ||
-            Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
-              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10)
-        ) {
-          // changePanelDate(otherPanel, type, -1);
-          changePanelDate(otherPanel, type, state.currentView === 'year' ? -10 : -1, false);
+        if (panel === 'right' && state.rightPanelDate <= state.leftPanelDate) {
+          if (state.currentView === 'year') {
+            if (
+              Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
+              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10
+            ) {
+              changePanelDate(otherPanel, type, -10);
+            }
+          } else {
+            changePanelDate(otherPanel, type, -1);
+          }
         }
       } else {
         const otherPanel = panel === 'left' ? 'right' : 'left';
