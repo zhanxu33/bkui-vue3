@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.16
+
+* **[feat]**:
+    - bugfix(datetimepicker): 选择下一年bug
+
+
 ### 2.0.1-beta.15
 
 * **[feat]**:
