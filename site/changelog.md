@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.19
+
+* **[feat]**:
+    - bugfix(select): 修复select虚拟滚动底部空白问题 & 修改虚拟滚动 preloadItemCount 逻辑
+
+
 ### 2.0.1-beta.18
 
 * **[feat]**:
