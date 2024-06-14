@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.22
+
+* **[feat]**:
+    - bugfix(radio|checkbox): beforeChange问题修复
+
+
 ### 2.0.1-beta.21
 
 * **[feat]**:
