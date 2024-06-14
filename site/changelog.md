@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.23
+
+* **[feat]**:
+    - feature(select): suffix icon 支持自定义
+
+
 ### 2.0.1-beta.22
 
 * **[feat]**:
