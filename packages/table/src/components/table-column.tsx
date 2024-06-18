@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { defineComponent, ExtractPropTypes, inject, onMounted, onUnmounted, onUpdated, reactive } from 'vue';
+import { defineComponent, ExtractPropTypes, inject, onUnmounted, toRaw, watch } from 'vue';
 
 import { PropTypes } from '@bkui-vue/shared';
 
@@ -41,6 +41,7 @@ import {
   StringNumberType,
   TableAlign,
 } from '../props';
+import { isEqual } from 'lodash';
 
 const TableColumnProp = {
   label: LabelFunctionStringType,
@@ -68,27 +69,23 @@ export type ITableColumn = Partial<ExtractPropTypes<typeof TableColumnProp>>;
 export default defineComponent({
   name: 'TableColumn',
   props: TableColumnProp,
-  setup(props: ITableColumn) {
+  setup(props: ITableColumn, { slots }) {
     const initTableColumns = inject(PROVIDE_KEY_INIT_COL, () => {});
-    const column = reactive(Object.assign({}, props, { field: props.prop || props.field }));
 
-    onMounted(() => {
-      initTableColumns();
-    });
-
-    onUpdated(() => {
-      initTableColumns();
-    });
+    watch(
+      () => [props],
+      (oldVal, newVal) => {
+        if (!isEqual(toRaw(oldVal?.[0]), toRaw(newVal?.[0] ?? {}))) {
+          initTableColumns();
+        }
+      },
+      { immediate: true, deep: true },
+    );
 
     onUnmounted(() => {
       initTableColumns();
     });
 
-    return {
-      column,
-    };
-  },
-  render() {
-    return <>{this.$slots.default?.({ row: {} })}</>;
+    return () => slots.default?.({ row: {} });
   },
 });

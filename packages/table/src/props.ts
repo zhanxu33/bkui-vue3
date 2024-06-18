@@ -109,6 +109,7 @@ export const fixedType = string<`${FixedEnum}`>();
 export type IOverflowTooltipOption = {
   content: ((col: Column, row: any) => string) | string;
   disabled?: ((col: Column, row: any) => boolean) | boolean;
+  allowHtml?: boolean;
   watchCellResize?: boolean;
   mode?: `${OverflowModeEnum}`;
   popoverOption?: any;
@@ -221,15 +222,16 @@ export type LabelFunctionString =
   | number
   | string;
 export const LabelFunctionStringType = toType<LabelFunctionString>('LabelFunctionStringType', {});
+export type HeadRenderArgs = {
+  cell?: any;
+  data?: any[];
+  row?: any;
+  column: Column;
+  index: number;
+  rows?: any[];
+};
 
-export type RenderFunctionString = ({
-  cell,
-  data,
-  row,
-  column,
-  index,
-  rows,
-}) => JSX.Element | boolean | number | string;
+export type RenderFunctionString = (args: HeadRenderArgs) => JSX.Element | boolean | number | string;
 export const RenderFunctionStringType = toType<RenderFunctionString>('RenderFunctionStringType', {});
 
 export type SpanFunctionString = (({ column, colIndex, row, rowIndex }) => number) | number;
@@ -351,6 +353,12 @@ export enum IColSortBehavior {
   interdependent = 'interdependent',
 }
 
+export type FixedBottomOption = {
+  position: 'absolute' | 'relative';
+  height: number;
+  loading?: boolean;
+};
+
 export const tableProps = {
   /**
    * 渲染列表
@@ -389,9 +397,9 @@ export const tableProps = {
 
   /**
    * 设置表格最小高度
-   * 默认：300
+   * 默认：LINE_HEIGHT * 4
    */
-  minHeight: StringNumberType(LINE_HEIGHT * 2),
+  minHeight: StringNumberType(LINE_HEIGHT * 3),
 
   /**
    * 设置表格最d大高度
@@ -403,7 +411,7 @@ export const tableProps = {
    * 行高，可以为固定数值类型
    * 可以是函数，返回当前行的高度，返回值为数值类型
    */
-  rowHeight: RowHeightFunctionNumberType.def(LINE_HEIGHT),
+  rowHeight: RowHeightFunctionNumberType,
 
   /**
    * Thead行高，可以为固定数值类型
@@ -629,4 +637,16 @@ export const tableProps = {
    * 是否支持shift键多行选择
    */
   shiftMultiChecked: PropTypes.bool.def(false),
+
+  /**
+   * 启用Scrollbar
+   */
+  scrollbar: PropTypes.bool.def(true),
+
+  /**
+   * 固定在底部的配置项
+   */
+  fixedBottom: toType<FixedBottomOption>('FixedBottomOption', {
+    default: { position: 'relative', height: LINE_HEIGHT },
+  }).def(null),
 };
