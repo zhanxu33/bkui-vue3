@@ -42,7 +42,7 @@ export default () => {
     return toRaw(prop);
   };
 
-  const copyProps = (props: { [key: string]: any } | ITableColumn) => {
+  const copyProps = (props: { [key: string]: Record<string, object> } | ITableColumn) => {
     return Object.keys(props ?? {}).reduce((result, key) => {
       const target = key.replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
       return Object.assign(result, { [target]: getPropRawData(props[key]) });
@@ -93,6 +93,10 @@ export default () => {
       return node();
     }
 
+    // if (Array.isArray(node?.subTree)) {
+    //   node.subTree.forEach(resolveChildNode);
+    // }
+
     return;
   };
 
@@ -100,9 +104,9 @@ export default () => {
     columns.length = 0;
     columnIndex = 0;
 
-    const GhostBody = children.find(node => (node.type as any)?.name === 'GhostBody');
-    if (GhostBody) {
-      ((GhostBody.children as { [key: string]: any })?.default?.() ?? []).forEach(resolveChildNode);
+    const ghostBody = children.find(node => (node.type as any)?.name === 'GhostBody');
+    if (ghostBody) {
+      ((ghostBody.children as { [key: string]: any })?.default?.() ?? []).forEach(resolveChildNode);
     }
 
     columns.sort((col1, col2) => col1.index - col2.index);
