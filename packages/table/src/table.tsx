@@ -28,7 +28,7 @@ import { computed, defineComponent, getCurrentInstance, nextTick, provide, ref, 
 
 import { isElement } from 'lodash';
 
-import { COLUMN_ATTRIBUTE, PROVIDE_KEY_INIT_COL, TABLE_ROW_ATTRIBUTE } from './const';
+import { COLUMN_ATTRIBUTE, PROVIDE_KEY_INIT_COL, SCROLLY_WIDTH, TABLE_ROW_ATTRIBUTE } from './const';
 import { EMIT_EVENT_TYPES } from './events';
 import useColumnResize from './hooks/use-column-resize';
 import useColumnTemplate from './hooks/use-column-template';
@@ -96,7 +96,7 @@ export default defineComponent({
     const instance = getCurrentInstance();
     const initTableColumns = () => {
       const children = instance.subTree?.children ?? [];
-      columns.debounceUpdateColumns(resolveColumns(children as any));
+      columns.debounceUpdateColumns(resolveColumns(children));
     };
 
     provide(PROVIDE_KEY_INIT_COL, initTableColumns);
@@ -108,7 +108,7 @@ export default defineComponent({
      * 计算每一列的实际宽度
      */
     const computedColumnRect = () => {
-      const width = refRoot.value?.offsetWidth ?? 0;
+      const width = refRoot.value?.offsetWidth - (props.scrollbar ? 1 : SCROLLY_WIDTH) ?? 0;
       columns.resolveColsCalcWidth(width);
       resolveFixedColumnStyle();
     };
@@ -120,7 +120,7 @@ export default defineComponent({
     /**
      * table 渲染行
      */
-    const getRenderRowList = (list: any[]) => {
+    const getRenderRowList = (list: Record<string, object>[]) => {
       if (!pagination.isShowPagination.value || props.remotePagination) {
         return list;
       }
@@ -188,24 +188,34 @@ export default defineComponent({
       });
     };
 
-    useObserverResize(refRoot, () => {
-      if ((props.height === '100%' || props.virtualEnabled) && isElement(refRoot.value)) {
-        if (isResizeBodyHeight.value) {
-          setTimeout(() => {
-            isResizeBodyHeight.value = false;
-          });
-          return;
-        }
-        const tableHeight = refRoot.value.offsetHeight;
-        isResizeBodyHeight.value = true;
+    const observerResizing = ref(false);
+    let observerResizingTimer = null;
 
-        setBodyHeight(tableHeight);
+    useObserverResize(refRoot, () => {
+      if (!observerResizing.value) {
+        observerResizing.value = true;
+        if ((props.height === '100%' || props.virtualEnabled) && isElement(refRoot.value)) {
+          if (isResizeBodyHeight.value) {
+            setTimeout(() => {
+              isResizeBodyHeight.value = false;
+            });
+            return;
+          }
+          const tableHeight = refRoot.value.offsetHeight;
+          isResizeBodyHeight.value = true;
+          setBodyHeight(tableHeight);
+          setOffsetRight();
+        }
+        computedColumnRect();
         setOffsetRight();
+        refBody.value?.scrollTo(0, 0);
+        return;
       }
 
-      computedColumnRect();
-      refBody.value?.scrollTo(0, 0);
-      setOffsetRight();
+      observerResizingTimer && clearTimeout(observerResizingTimer);
+      observerResizingTimer = setTimeout(() => {
+        observerResizing.value = false;
+      });
     });
 
     watch(
@@ -245,11 +255,8 @@ export default defineComponent({
       () => [pagination.options.count, pagination.options.limit, pagination.options.current, props.data],
       () => {
         setTableData();
-        nextTick(() => {
-          refBody.value?.scrollTo(0, 1);
-        });
       },
-      { immediate: true },
+      { immediate: true, deep: true },
     );
 
     ctx.expose({

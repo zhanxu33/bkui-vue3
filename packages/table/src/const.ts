@@ -106,7 +106,7 @@ export const COLUMN_ATTRIBUTE = {
 /**
  * Y 轴滚动条宽度
  */
-export const SCROLLY_WIDTH = 0;
+export const SCROLLY_WIDTH = 8;
 
 /**
  * 默认行高
@@ -171,7 +171,7 @@ export const SORT_OPTIONS = [SORT_OPTION.ASC, SORT_OPTION.DESC, SORT_OPTION.NULL
  */
 export const COL_MIN_WIDTH = 80;
 
-export type IEmptyObject = {};
+export type IEmptyObject = Record<string, never>;
 
 /**
  * 全选对象
