@@ -30,12 +30,12 @@ import { classes, throttle } from '@bkui-vue/shared';
 import VirtualRender from '@bkui-vue/virtual-render';
 import { debounce } from 'lodash';
 
-import { DEF_COLOR, IHeadColor, LINE_HEIGHT } from '../const';
+import GhostBody from '../components/ghost-body';
+import { DEF_COLOR, IHeadColor, LINE_HEIGHT, SCROLLY_WIDTH } from '../const';
 import { EMIT_EVENTS } from '../events';
-import { TablePropTypes } from '../props';
+import { Column, TablePropTypes } from '../props';
 import { resolveHeadConfig, resolveNumberOrStringToPix, resolvePropBorderToClassStr, resolvePropVal } from '../utils';
 import useScrollLoading from './use-scroll-loading';
-import GhostBody from '../components/ghost-body';
 
 export default (props: TablePropTypes, ctx) => {
   const refRoot: Ref<HTMLElement> = ref(null);
@@ -128,10 +128,12 @@ export default (props: TablePropTypes, ctx) => {
   const headStyle = computed(() => ({
     '--row-height': `${headHeight.value}px`,
     '--background-color': DEF_COLOR[props.thead?.color ?? IHeadColor.DEF1],
+    paddingRight: props.scrollbar ? null : `${SCROLLY_WIDTH}px`,
   }));
 
   const bodyClass = {
     [resolveClassName('table-body')]: true,
+    ['is-bk-scrollbar']: props.scrollbar,
   };
 
   const footerClass = computed(() =>
@@ -233,10 +235,20 @@ export default (props: TablePropTypes, ctx) => {
     lineHeight.value = val;
   };
 
-  const handleScrollChanged = (args: any[]) => {
+  const handleScrollChanged = (
+    args: ({ translateX: number; translateY: number; pos: Record<string, number> } | Record<string, number> | number)[],
+  ) => {
     preBottom.value = layout.bottom ?? 0;
     const pagination = args[1];
-    const { translateX, translateY, pos = {} } = pagination;
+    const {
+      translateX,
+      translateY,
+      pos = {},
+    } = pagination as {
+      translateX: number;
+      translateY: number;
+      pos: Record<string, number>;
+    };
     setTranslateX(translateX);
     setTranslateY(translateY);
     setOffsetRight();
@@ -301,16 +313,16 @@ export default (props: TablePropTypes, ctx) => {
         enabled={props.virtualEnabled}
         lineHeight={lineHeight.value}
         list={list}
+        maxHeight={bodyMaxHeight.value}
         rowKey={props.rowKey}
         scrollEvent={true}
         scrollbar={{ enabled: props.scrollbar }}
-        maxHeight={bodyMaxHeight.value}
         throttleDelay={120}
         onContentScroll={handleScrollChanged}
       >
         {{
           beforeContent: () => renderPrepend(),
-          default: (scope: any) => childrend?.(scope?.data ?? []),
+          default: (scope: Record<string, object>) => childrend?.(scope?.data ?? []),
           afterSection: () => [
             <div class={resizeColumnClass}></div>,
             <div class={fixedWrapperClass}>{fixedRows?.()}</div>,
@@ -332,7 +344,7 @@ export default (props: TablePropTypes, ctx) => {
     );
   };
 
-  const setFixedColumns = (values: any[]) => {
+  const setFixedColumns = (values: Column[]) => {
     fixedColumns.length = 0;
     fixedColumns.push(...values);
   };
