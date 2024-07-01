@@ -56,7 +56,7 @@ const slotColumnMap = {
 
 const propsJson: IPropsTableItem[] = [
   {
-    name: 'modelValue / v-model',
+    name: 'model-value / v-model',
     type: 'any',
     default: '',
     desc: '绑定值',
