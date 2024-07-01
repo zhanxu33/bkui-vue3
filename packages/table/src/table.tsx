@@ -26,7 +26,7 @@
 
 import { computed, defineComponent, getCurrentInstance, nextTick, provide, ref, SetupContext, watch } from 'vue';
 
-import { isElement } from 'lodash';
+import { debounce, isElement } from 'lodash';
 
 import { COLUMN_ATTRIBUTE, PROVIDE_KEY_INIT_COL, SCROLLY_WIDTH, TABLE_ROW_ATTRIBUTE } from './const';
 import { EMIT_EVENT_TYPES } from './events';
@@ -62,6 +62,7 @@ export default defineComponent({
       setFootHeight,
       setDragOffsetX,
       setOffsetRight,
+      setHeaderRowCount,
       refBody,
       refRoot,
     } = useLayout(props, ctx);
@@ -96,7 +97,9 @@ export default defineComponent({
     const instance = getCurrentInstance();
     const initTableColumns = () => {
       const children = instance.subTree?.children ?? [];
-      columns.debounceUpdateColumns(resolveColumns(children));
+      columns.debounceUpdateColumns(resolveColumns(children), () => {
+        setHeaderRowCount(columns.columnGroup.length);
+      });
     };
 
     provide(PROVIDE_KEY_INIT_COL, initTableColumns);
@@ -174,7 +177,7 @@ export default defineComponent({
       }
     };
 
-    const setTableData = () => {
+    const setTableData = debounce(() => {
       const filterOrderList = getFilterAndSortList();
       if (!props.remotePagination) {
         pagination.setPagination({ count: filterOrderList.length });
@@ -185,8 +188,9 @@ export default defineComponent({
 
       nextTick(() => {
         setOffsetRight();
+        refBody.value?.scrollTo(0, 0);
       });
-    };
+    }, 64);
 
     const observerResizing = ref(false);
     let observerResizingTimer = null;
@@ -219,6 +223,16 @@ export default defineComponent({
     });
 
     watch(
+      () => [props.columns],
+      () => {
+        columns.debounceUpdateColumns(props.columns, () => {
+          setHeaderRowCount(columns.columnGroup.length);
+        });
+      },
+      { immediate: true },
+    );
+
+    watch(
       () => [dragOffsetX.value],
       () => {
         setDragOffsetX(dragOffsetX.value);
@@ -236,9 +250,7 @@ export default defineComponent({
     watch(
       () => [columns.sortColumns, columns.filterColumns],
       () => {
-        nextTick(() => {
-          setTableData();
-        });
+        setTableData();
       },
       { deep: true },
     );
@@ -252,17 +264,29 @@ export default defineComponent({
     );
 
     watch(
-      () => [pagination.options.count, pagination.options.limit, pagination.options.current, props.data],
+      () => [props.data],
       () => {
+        rows.setTableRowList(props.data);
         setTableData();
       },
       { immediate: true, deep: true },
     );
 
+    watch(
+      () => [pagination.options.count, pagination.options.limit, pagination.options.current],
+      () => {
+        setTableData();
+      },
+      { immediate: true },
+    );
+
     ctx.expose({
       setRowExpand: rows.setRowExpand,
       setAllRowExpand: rows.setAllRowExpand,
-      clearSelection: rows.clearSelection,
+      clearSelection: () => {
+        rows.clearSelection();
+        columns.clearSelectionAll();
+      },
       toggleAllSelection: rows.toggleAllSelection,
       toggleRowSelection: rows.toggleRowSelection,
       getSelection: rows.getRowSelection,
