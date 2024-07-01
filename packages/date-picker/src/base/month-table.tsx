@@ -24,13 +24,14 @@
  * IN THE SOFTWARE.
  */
 
-import type { ExtractPropTypes } from 'vue';
 import { computed, defineComponent, PropType } from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
 
+import { clearHours, isInRange } from '../utils';
+
 import type { DatePickerValueType } from '../interface';
-import { clearHours } from '../utils';
+import type { ExtractPropTypes } from 'vue';
 
 const monthTableProps = {
   tableDate: {
@@ -75,13 +76,15 @@ export type MonthTableProps = Readonly<ExtractPropTypes<typeof monthTableProps>>
 export default defineComponent({
   name: 'MonthTable',
   props: monthTableProps,
-  emits: ['pick', 'pick-click', 'change-range'],
+  emits: ['pick', 'pick-click', 'changeRange'],
   setup(props, { emit }) {
     const dates = computed(() => {
       const { selectionMode, modelValue, rangeState } = props;
       const rangeSelecting = selectionMode === 'range' && rangeState.selecting;
       return rangeSelecting ? [rangeState.from] : modelValue;
     });
+
+    const isRange = props.selectionMode === 'range';
 
     const cells = computed(() => {
       const cells = [];
@@ -97,15 +100,26 @@ export default defineComponent({
         .map(date => clearHours(new Date(date.getFullYear(), date.getMonth(), 1)));
       const focusedDate = clearHours(new Date(props.focusedDate.getFullYear(), props.focusedDate.getMonth(), 1));
 
+      const [minDay, maxDay] = (dates.value as any[]).map(clearHours);
+      const rangeStart = props.rangeState.from && clearHours(props.rangeState.from);
+      const rangeEnd = props.rangeState.to && clearHours(props.rangeState.to);
+
+      const now = new Date();
+      const currentMonth = clearHours(new Date(now.getFullYear(), now.getMonth(), 1));
+
       for (let i = 0; i < 12; i++) {
         const cell = JSON.parse(JSON.stringify(cellTmpl));
         cell.date = new Date(tableYear, i, 1);
         cell.text = tCell(i + 1);
         const day = clearHours(cell.date);
-        cell.disabled =
-          typeof props.disabledDate === 'function' && props.disabledDate(cell.date) && props.selectionMode === 'month';
+        const time = cell.date && clearHours(cell.date);
+        cell.disabled = typeof props.disabledDate === 'function' && props.disabledDate(cell.date);
         cell.selected = selectedDays.includes(day);
+        cell.range = isRange && isInRange(time, rangeStart, rangeEnd);
+        cell.start = isRange && time === minDay;
+        cell.end = isRange && time === maxDay;
         cell.focused = day === focusedDate;
+        cell.isCurrentMonth = day === currentMonth;
         cells.push(cell);
       }
 
@@ -121,8 +135,15 @@ export default defineComponent({
       {
         [resolveClassName('date-picker-cells-cell-selected')]: cell.selected,
         [resolveClassName('date-picker-cells-cell-disabled')]: cell.disabled,
+        [resolveClassName('date-picker-cells-cell-today')]: cell.isCurrentMonth,
         [resolveClassName('date-picker-cells-cell-range')]: cell.range && !cell.start && !cell.end,
       },
+
+      // resolveClassName('date-picker-cells-cell'),
+      // {
+      //   [resolveClassName('date-picker-cells-cell-today')]: cell.type === 'today',
+      //   [resolveClassName('date-picker-cells-cell-range')]: cell.range && !cell.start && !cell.end,
+      // },
     ];
 
     const handleClick = cell => {
@@ -143,7 +164,7 @@ export default defineComponent({
         return;
       }
       const newDate = cell.date;
-      emit('change-range', newDate);
+      emit('changeRange', newDate);
     };
 
     return {

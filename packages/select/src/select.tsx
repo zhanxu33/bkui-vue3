@@ -1,5 +1,3 @@
-/* eslint-disable vue/no-reserved-component-names */
-
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -26,18 +24,15 @@
  * IN THE SOFTWARE.
  */
 
-import isEqual from 'lodash/isEqual';
-import merge from 'lodash/merge';
-import { PopoverPropTypes } from 'popover/src/props';
 import { computed, defineComponent, onMounted, PropType, provide, reactive, ref, toRefs, watch } from 'vue';
 
 import Checkbox from '@bkui-vue/checkbox';
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
-import { AngleUp, Close, Search, TextAll } from '@bkui-vue/icon';
+import { AngleDown, Close, Search, TextAll } from '@bkui-vue/icon';
 import Input from '@bkui-vue/input';
 import Loading from '@bkui-vue/loading';
-import Popover from '@bkui-vue/popover';
+import Popover, { PopoverPropTypes } from '@bkui-vue/popover';
 import {
   classes,
   InputBehaviorType,
@@ -49,6 +44,8 @@ import {
   useFormItem,
 } from '@bkui-vue/shared';
 import VirtualRender from '@bkui-vue/virtual-render';
+import isEqual from 'lodash/isEqual';
+import merge from 'lodash/merge';
 
 import { isInViewPort, selectKey, toLowerCase, useHover, usePopover, useRegistry, useRemoteSearch } from './common';
 import Option from './option';
@@ -70,7 +67,8 @@ export default defineComponent({
     loading: PropTypes.bool.def(false),
     filterable: PropTypes.bool.def(true), // 是否支持搜索
     remoteMethod: PropTypes.func,
-    scrollHeight: PropTypes.number.def(200),
+    scrollHeight: PropTypes.number.def(204), // 最大高度
+    minHeight: PropTypes.number, // 最小高度
     showAll: PropTypes.bool.def(false), // 全部
     allOptionId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]), // 全部选项ID
     showSelectAll: PropTypes.bool.def(false), // 全选
@@ -100,6 +98,7 @@ export default defineComponent({
     enableVirtualRender: PropTypes.bool.def(false), // 是否开启虚拟滚动（List模式下才会生效）
     allowEmptyValues: PropTypes.array.def([]), // 允许的空值作为options选项
     autoFocus: PropTypes.bool.def(false), // 挂载的时候是否自动聚焦输入框
+    disableFocusBehavior: PropTypes.bool.def(false), // 禁用自动聚焦行为
     keepSearchValue: PropTypes.bool.def(false), // 隐藏popover时是否保留搜索内容,
     prefix: PropTypes.string,
     selectedStyle: SelectedType(),
@@ -155,8 +154,10 @@ export default defineComponent({
       filterOption,
       searchWithPinyin,
       highlightKeyword,
+      disableFocusBehavior,
     } = toRefs(props);
 
+    const virtualRenderRef = ref(null);
     const localNoDataText = computed(() => {
       if (props.noDataText === undefined) {
         return t.value.noData;
@@ -201,7 +202,6 @@ export default defineComponent({
     const contentRef = ref<HTMLElement>();
     const searchRef = ref<HTMLElement>();
     const selectTagInputRef = ref<SelectTagInputType>();
-    const virtualRenderRef = ref();
     const popoverRef = ref();
     const optionsMap = ref<Map<any, OptionInstanceType>>(new Map());
     const options = computed(() =>
@@ -244,8 +244,8 @@ export default defineComponent({
       popoverRef.value?.updatePopover(null, popoverConfig.value);
     });
 
-    // 虚拟滚动模式下搜索后的值
-    const virtualList = computed(() =>
+    // list模式下搜索后的值
+    const filterList = computed(() =>
       isRemoteSearch.value
         ? list.value
         : list.value.filter(item => {
@@ -300,12 +300,20 @@ export default defineComponent({
     const isShowAll = computed(() => multiple.value && showAll.value);
     // 虚拟滚动高度 12 上下边距，32 显示全选时的高度
     const virtualHeight = computed(() => scrollHeight.value - 12 - (isShowSelectAll.value ? 32 : 0));
+    const virtualLineHeight = ref(32);
+    // 是否启用虚拟滚动(如果配置了启用，但是数据小于滚动高度则不开启)
+    const isEnableVirtualRender = computed(() => {
+      if (enableVirtualRender.value) return filterList.value.length * virtualLineHeight.value > virtualHeight.value;
+      return false;
+    });
+    // 预加载滚动数据
+    const preloadItemCount = computed(() => Math.ceil(virtualHeight.value / virtualLineHeight.value));
     // 当前空状态时显示文案
     const curContentText = computed(() => {
       if (searchLoading.value) {
         return localLoadingText.value;
       }
-      if (isSearchEmpty.value || (list.value.length && !virtualList.value.length)) {
+      if (isSearchEmpty.value || (list.value.length && !filterList.value.length)) {
         return localNoMatchText.value;
       }
       if (isOptionsEmpty.value) {
@@ -378,10 +386,11 @@ export default defineComponent({
     });
     // 滚动到当前选中的options中
     const scrollActiveOptionIntoView = () => {
+      if (isEnableVirtualRender.value) return;
       const optionsDom = contentRef.value?.querySelectorAll?.('.is-selected');
       optionsDom?.[0]?.scrollIntoView({
         block: 'center',
-        behavior: 'smooth',
+        // behavior: 'smooth',
       });
     };
 
@@ -398,9 +407,11 @@ export default defineComponent({
     // 默认搜索方法
     const defaultSearchMethod = (searchValue: string, optionName: string, filterData: Record<string, any> = {}) => {
       if (hasFilterOptionFunc.value) {
+        // 是否配置了单个options过滤
         return !!filterOption.value(searchValue, { ...filterData });
       }
       if (searchWithPinyin.value) {
+        // 是否配置了拼音过滤
         const pinyinList = pinyin.parse(optionName).map(v => {
           if (v.type === 2) {
             return v.target.toLowerCase();
@@ -462,7 +473,7 @@ export default defineComponent({
       customOptionName.value = value;
     };
     // allow create(创建自定义选项)
-    const handleCreateCustomOption = (val: string | number, e: KeyboardEvent) => {
+    const handleCreateCustomOption = (val: number | string, e: KeyboardEvent) => {
       const value = String(val);
       if (!allowCreate.value || !value) return;
 
@@ -536,6 +547,7 @@ export default defineComponent({
     };
     // 聚焦输入框
     const focusInput = () => {
+      if (disableFocusBehavior.value) return;
       setTimeout(() => {
         if (!inputSearch.value && !allowCreate.value) {
           searchRef.value?.focus();
@@ -673,7 +685,7 @@ export default defineComponent({
     };
     // 处理键盘事件
     const handleDocumentKeydown = (e: KeyboardEvent) => {
-      if (!isPopoverShow.value || enableVirtualRender.value) return;
+      if (!isPopoverShow.value || isEnableVirtualRender.value) return;
 
       const availableOptions = options.value.filter(option => !option.disabled && option.visible);
       const index = availableOptions.findIndex(option => option.optionID === activeOptionValue.value);
@@ -727,12 +739,6 @@ export default defineComponent({
       hidePopover();
       handleBlur();
     };
-    const handlePopoverShow = () => {
-      setTimeout(() => {
-        // 虚拟滚动首次未更新问题
-        enableVirtualRender.value && virtualRenderRef.value?.reset?.();
-      });
-    };
 
     provide(
       selectKey,
@@ -761,6 +767,10 @@ export default defineComponent({
       });
     });
 
+    const handlePopoverShown = () => {
+      virtualRenderRef.value?.scrollTo(0, 1);
+    };
+
     return {
       t,
       selected,
@@ -776,7 +786,6 @@ export default defineComponent({
       contentRef,
       searchRef,
       selectTagInputRef,
-      virtualRenderRef,
       popoverRef,
       searchLoading,
       isOptionsEmpty,
@@ -791,7 +800,7 @@ export default defineComponent({
       isShowAll,
       isShowSelectAll,
       virtualHeight,
-      virtualList,
+      filterList,
       isCollapseTags,
       popoverConfig,
       isAllSelected,
@@ -813,13 +822,17 @@ export default defineComponent({
       handleDeleteTag,
       handleInputChange,
       handleSelectedAllOptionMouseEnter,
-      handlePopoverShow,
       localLoadingText,
       localPlaceholder,
       localSearchPlaceholder,
       localSelectAllText,
       resolveClassName,
       handleCreateCustomOption,
+      handlePopoverShown,
+      virtualLineHeight,
+      isEnableVirtualRender,
+      preloadItemCount,
+      virtualRenderRef,
     };
   },
   render() {
@@ -832,16 +845,16 @@ export default defineComponent({
       [this.size]: true,
       [this.behavior]: true,
     });
-
+    // 右侧ICON
     const suffixIcon = () => {
       if (this.loading) {
         return (
           <Loading
-            loading={true}
-            theme='primary'
             class='spinner'
+            loading={true}
             mode='spin'
             size='mini'
+            theme='primary'
           />
         );
       }
@@ -853,7 +866,11 @@ export default defineComponent({
           />
         );
       }
-      return <AngleUp class='angle-up' />;
+      return this.$slots?.suffix ? (
+        <span class='angle-down'>{this.$slots?.suffix?.()}</span>
+      ) : (
+        <AngleDown class='angle-down' />
+      );
     };
 
     const renderPrefix = () => {
@@ -873,14 +890,14 @@ export default defineComponent({
       return (
         <li
           class={this.resolveClassName('select-option')}
-          onMouseenter={this.handleSelectedAllOptionMouseEnter}
           onClick={this.toggleSelectAll}
+          onMouseenter={this.handleSelectedAllOptionMouseEnter}
         >
           {this.selectedStyle === 'checkbox' && (
             <Checkbox
               class={this.resolveClassName('select-checkbox')}
-              modelValue={this.isAllSelected}
               indeterminate={!this.isAllSelected && !!this.selected.length && !this.isAll}
+              modelValue={this.isAllSelected}
             />
           )}
           {this.t.selectAll}
@@ -905,44 +922,45 @@ export default defineComponent({
         </div>
       );
     };
-
+    // 默认trigger输入框渲染
     const renderTriggerInput = () => {
       if (this.multipleMode === 'tag') {
         return (
           <SelectTagInput
             ref='selectTagInputRef'
             v-model={this.customOptionName}
-            selected={this.selected}
-            tagTheme={this.tagTheme}
-            placeholder={this.localPlaceholder}
-            filterable={this.isInput}
-            disabled={this.isDisabled}
-            onRemove={this.handleDeleteTag}
-            collapseTags={this.isCollapseTags}
-            onEnter={this.handleCreateCustomOption}
             v-slots={{
               prefix: renderPrefix(),
               default: this.$slots?.tag && (() => this.$slots?.tag({ selected: this.selected })),
               suffix: () => suffixIcon(),
             }}
+            behavior={this.behavior}
+            collapseTags={this.isCollapseTags}
+            disabled={this.isDisabled}
+            filterable={this.isInput}
+            placeholder={this.localPlaceholder}
+            selected={this.selected}
+            tagTheme={this.tagTheme}
+            onEnter={this.handleCreateCustomOption}
+            onRemove={this.handleDeleteTag}
           />
         );
       }
       return (
         <Input
           ref='inputRef'
-          type='text'
+          behavior={this.behavior}
+          disabled={this.isDisabled}
           modelValue={this.isInput ? this.customOptionName : this.selectedLabel.join(',')}
           placeholder={this.isInput ? this.selectedLabel.join(',') || this.localPlaceholder : this.localPlaceholder}
           readonly={!this.isInput}
           selectReadonly={true}
-          disabled={this.isDisabled}
-          behavior={this.behavior}
           size={this.size}
-          withValidate={false}
           stopPropagation={false}
-          onInput={this.handleInputChange}
+          type='text'
+          withValidate={false}
           onEnter={this.handleCreateCustomOption}
+          onInput={this.handleInputChange}
           {...(this.prefix ? { prefix: this.prefix } : null)}
           v-slots={{
             ...(typeof this.$slots?.prefix === 'function' ? { prefix: () => this.$slots?.prefix?.() } : null),
@@ -951,11 +969,12 @@ export default defineComponent({
         />
       );
     };
+    // 渲染trigger
     const renderSelectTrigger = () => (
       <div
-        class={this.resolveClassName('select-trigger')}
-        style={{ height: this.autoHeight && this.collapseTags ? '32px' : '' }}
         ref='triggerRef'
+        style={{ height: this.autoHeight && this.collapseTags ? '32px' : '' }}
+        class={this.resolveClassName('select-trigger')}
         onClick={this.handleTogglePopover}
         onMouseenter={this.setHover}
         onMouseleave={this.cancelHover}
@@ -963,24 +982,61 @@ export default defineComponent({
         {this.$slots?.trigger?.({ selected: this.selected }) || renderTriggerInput()}
       </div>
     );
+    // 渲染列表模式
+    const renderList = () => {
+      return this.isEnableVirtualRender ? (
+        <VirtualRender
+          ref='virtualRenderRef'
+          height={this.virtualHeight}
+          lineHeight={this.virtualLineHeight}
+          list={this.filterList}
+          preloadItemCount={this.preloadItemCount}
+          scrollbar={{ enabled: true, size: 'small' }}
+        >
+          {{
+            default: ({ data }) => {
+              const optionRender = this.$slots?.optionRender || this.$slots?.virtualScrollRender;
+              return data.map(item => (
+                <Option
+                  id={item[this.idKey]}
+                  key={item[this.idKey]}
+                  v-slots={typeof optionRender === 'function' ? { default: () => optionRender({ item }) } : null}
+                  name={item[this.displayKey]}
+                />
+              ));
+            },
+          }}
+        </VirtualRender>
+      ) : (
+        this.filterList.map(item => (
+          <Option
+            id={item[this.idKey]}
+            key={item[this.idKey]}
+            v-slots={this.$slots?.optionRender ? { default: () => this.$slots?.optionRender?.({ item }) } : null}
+            name={item[this.displayKey]}
+          />
+        ))
+      );
+    };
+    // 渲染内容
     const renderSelectContent = () => (
       <div
-        class={this.resolveClassName('select-content-wrapper')}
         ref='contentRef'
+        class={this.resolveClassName('select-content-wrapper')}
       >
         {renderAll()}
         {this.filterable && !this.inputSearch && (
           <div class={this.resolveClassName('select-search-wrapper')}>
             <Search
-              class='icon-search'
               width={16}
               height={16}
+              class='icon-search'
             />
             <input
               ref='searchRef'
               class={this.resolveClassName('select-search-input')}
-              placeholder={this.localSearchPlaceholder}
               v-model={this.searchValue}
+              placeholder={this.localSearchPlaceholder}
             />
           </div>
         )}
@@ -989,10 +1045,10 @@ export default defineComponent({
             {this.searchLoading && (
               <Loading
                 class='mr5'
-                theme='primary'
                 loading={true}
                 mode='spin'
                 size='mini'
+                theme='primary'
               />
             )}
             <span>{this.curContentText}</span>
@@ -1000,59 +1056,23 @@ export default defineComponent({
         )}
         <div class={this.resolveClassName('select-content')}>
           <div
-            class={this.enableVirtualRender ? '' : this.resolveClassName('select-dropdown')}
-            style={{ maxHeight: `${this.scrollHeight}px` }}
+            style={{ maxHeight: `${this.scrollHeight}px`, minHeight: `${this.minHeight}px` }}
+            class={this.isEnableVirtualRender ? '' : this.resolveClassName('select-dropdown')}
             onScroll={this.handleScroll}
           >
-            <ul
-              class={this.resolveClassName('select-options')}
-              v-show={this.isShowSelectContent}
-            >
+            <ul class={this.resolveClassName('select-options')}>
               {renderSelectAll()}
-              {this.enableVirtualRender ? (
-                <VirtualRender
-                  list={this.virtualList}
-                  height={this.virtualHeight}
-                  lineHeight={32}
-                  ref='virtualRenderRef'
-                >
-                  {{
-                    default: ({ data }) => {
-                      const optionRender = this.$slots?.optionRender || this.$slots?.virtualScrollRender;
-                      return data.map(item => (
-                        <Option
-                          key={item[this.idKey]}
-                          id={item[this.idKey]}
-                          name={item[this.displayKey]}
-                          v-slots={
-                            typeof optionRender === 'function' ? { default: () => optionRender({ item }) } : null
-                          }
-                        />
-                      ));
-                    },
-                  }}
-                </VirtualRender>
-              ) : (
-                this.list.map(item => (
-                  <Option
-                    id={item[this.idKey]}
-                    name={item[this.displayKey]}
-                    v-slots={
-                      this.$slots?.optionRender ? { default: () => this.$slots?.optionRender?.({ item }) } : null
-                    }
-                  />
-                ))
-              )}
+              {renderList()}
               {this.$slots?.default?.()}
               {this.scrollLoading && (
                 <li class={this.resolveClassName('select-options-loading')}>
                   <Loading
                     class='spinner mr5'
-                    theme='primary'
                     loading={true}
                     mode='spin'
                     size='mini'
-                  ></Loading>
+                    theme='primary'
+                  />
                   <span>{this.localLoadingText}</span>
                 </li>
               )}
@@ -1069,14 +1089,14 @@ export default defineComponent({
       <div class={selectClass}>
         <Popover
           {...this.popoverConfig}
-          onClickoutside={this.handleClickOutside}
-          onAfterShow={this.handlePopoverShow}
           ref='popoverRef'
           v-slots={{
             default: () => renderSelectTrigger(),
             content: () => renderSelectContent(),
           }}
-        ></Popover>
+          onAfterShow={this.handlePopoverShown}
+          onClickoutside={this.handleClickOutside}
+        />
       </div>
     );
   },

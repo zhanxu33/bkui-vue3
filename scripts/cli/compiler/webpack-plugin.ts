@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -28,7 +29,7 @@ import { resolve } from 'path';
 import webpack from 'webpack';
 
 import { capitalize, hasStyleComponentList } from './babel-plugin';
-import { PRESET_URL } from './helpers';
+import { PRESET_URL, replaceEnvVars } from './helpers';
 export default class RemoveWildcardImportsPlugin {
   apply(compiler: webpack.Compiler): void {
     compiler.hooks.emit.tap('RemoveWildcardImportsPlugin', compilation => {
@@ -44,18 +45,24 @@ export default class RemoveWildcardImportsPlugin {
             if (hasStyleComponentList.includes(capitalize(componentName))) {
               newSource = `import "./${componentName}.less";\n${newSource}`;
             }
+            // icon的按需加载特殊处理
+            if (filename.includes('icon/index')) {
+              const url = resolve(PRESET_URL, './icon/src/index.jsx');
+              const source = readFileSync(url, 'utf-8');
+              newSource = source.replace(/\.\.\/icons\//gm, './');
+            }
             newSource = `import "../styles/reset.css";\n${newSource}`;
           } else if (compFilename === undefined) {
             const url = resolve(PRESET_URL, `./bkui-vue/${filename}`);
             const source = readFileSync(url, 'utf-8');
             newSource = source.replace(/@bkui-vue\//gm, './');
+            newSource = replaceEnvVars(newSource);
           }
           if (newSource !== sourceString) {
-            // compilation.assets[filename] = new Source()
             compilation.assets[filename] = {
               source: () => newSource,
               size: () => newSource.length,
-            } as any;
+            } as webpack.Compilation['assets'][number];
           }
         }
       });

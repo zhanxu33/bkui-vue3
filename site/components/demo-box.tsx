@@ -23,11 +23,11 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import ClipboardJS from 'clipboard';
 import { computed, defineComponent, getCurrentInstance, onBeforeMount, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { Code, Copy, DataShape } from '@bkui-vue/icon';
 import BkMessage from '@bkui-vue/message';
+import ClipboardJS from 'clipboard';
 
 import BoxIcon from './box-icon';
 import CodeBox from './code-box';
@@ -71,6 +71,10 @@ export default defineComponent({
       type: Object,
       default: () => ({}),
     },
+    showTools: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['click'],
   setup(props) {
@@ -111,20 +115,24 @@ export default defineComponent({
       optionData.value = JSON.stringify(props.optionData, null, 4);
     });
     onMounted(() => {
-      const copyInstance = new ClipboardJS((getCurrentInstance().refs.copyBtn as any).$el, {
-        text: () => activeCode.value,
-      });
-      ['success', 'error'].forEach(theme => {
-        copyInstance.on(theme, () =>
-          BkMessage({
-            theme,
-            message: theme === 'success' ? '复制成功' : '复制失败',
-          }),
-        );
-      });
+      if (props.showTools) {
+        const copyInstance = new ClipboardJS((getCurrentInstance().refs.copyBtn as any).$el, {
+          text: () => activeCode.value,
+        });
+        ['success', 'error'].forEach(theme => {
+          copyInstance.on(theme, () =>
+            BkMessage({
+              theme,
+              message: theme === 'success' ? '复制成功' : '复制失败',
+            }),
+          );
+        });
+      }
     });
     onBeforeUnmount(() => {
-      copyInstance?.destroy();
+      if (props.showTools) {
+        copyInstance?.destroy();
+      }
     });
     return {
       showCode,
@@ -142,49 +150,53 @@ export default defineComponent({
   render() {
     return (
       <CommonBox
-        title={this.title}
         subtitle={this.subtitle}
+        title={this.title}
       >
         {[
           <div class='example-box'>
             {this.$slots.default?.()}
             {/* <div ref='preview'/> */}
           </div>,
-          <div class='example-tools'>
-            {this.desc}
-            <BoxIcon
-              tips='执行'
-              style={{ marginLeft: 'auto' }}
-            >
-              <Stackblitz
-                code={this.activeCode}
-                style={{ width: '100%', height: '100%', textAlign: 'center', lineHeight: '23px' }}
-              />
-            </BoxIcon>
-            <BoxIcon
-              tips='代码'
-              onClick={this.handleShowCodeChange}
-              active={this.showCode}
-            >
-              <Code />
-            </BoxIcon>
-            <BoxIcon
-              tips='配置数据'
-              onClick={this.handleOptionDataShow}
-              active={this.showConfigData}
-            >
-              <DataShape />
-            </BoxIcon>
-            <BoxIcon
-              tips='copy'
-              ref='copyBtn'
-            >
-              <Copy />
-            </BoxIcon>
-          </div>,
+          [
+            this.showTools && (
+              <div class='example-tools'>
+                {this.desc}
+                <BoxIcon
+                  style={{ marginLeft: 'auto' }}
+                  tips='执行'
+                >
+                  <Stackblitz
+                    style={{ width: '100%', height: '100%', textAlign: 'center', lineHeight: '23px' }}
+                    code={this.activeCode}
+                  />
+                </BoxIcon>
+                <BoxIcon
+                  active={this.showCode}
+                  tips='代码'
+                  onClick={this.handleShowCodeChange}
+                >
+                  <Code />
+                </BoxIcon>
+                <BoxIcon
+                  active={this.showConfigData}
+                  tips='配置数据'
+                  onClick={this.handleOptionDataShow}
+                >
+                  <DataShape />
+                </BoxIcon>
+                <BoxIcon
+                  ref='copyBtn'
+                  tips='copy'
+                >
+                  <Copy />
+                </BoxIcon>
+              </div>
+            ),
+          ],
           <div
-            class='eample-code'
             style={{ display: this.showCode || this.showConfigData ? 'block' : 'none' }}
+            class='eample-code'
           >
             <CodeBox
               code={this.activeCode}

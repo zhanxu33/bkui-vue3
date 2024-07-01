@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -25,9 +26,6 @@
  */
 
 // import type { Placement } from '@popperjs/core';
-// import { bkZIndexManager, BKPopover, IBKPopover } from '@bkui-vue/shared';
-import { toDate } from 'date-fns';
-import type { ExtractPropTypes } from 'vue';
 import {
   computed,
   defineComponent,
@@ -43,9 +41,16 @@ import {
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { AngleDoubleLeft, AngleDoubleRight, AngleLeft, AngleRight } from '@bkui-vue/icon';
+// import { bkZIndexManager, BKPopover, IBKPopover } from '@bkui-vue/shared';
+import { toDate } from 'date-fns';
 
 import Confirm from '../base/confirm';
 import DateTable from '../base/date-table';
+import MonthTable from '../base/month-table';
+import YearTable from '../base/year-table';
+import { formatDateLabels, iconBtnCls, initTime, timePickerKey } from '../utils';
+import TimeRange from './time-range';
+
 import type {
   DatePickerShortcutsType,
   DatePickerValueType,
@@ -53,9 +58,7 @@ import type {
   PickerTypeType,
   SelectionModeType,
 } from '../interface';
-import { formatDateLabels, iconBtnCls, initTime, timePickerKey } from '../utils';
-
-import TimeRange from './time-range';
+import type { ExtractPropTypes } from 'vue';
 // import MonthTable from '../base/month-table';
 // import YearTable from '../base/year-table';
 
@@ -69,7 +72,9 @@ const dateRangePanelProps = {
     validator(value) {
       const validList: PickerTypeType[] = [
         'year',
+        'yearrange',
         'month',
+        'monthrange',
         'date',
         'daterange',
         'datetime',
@@ -137,7 +142,7 @@ const dateRangePanelProps = {
     default: 'yyyy-MM-dd',
   },
   timePickerOptions: {
-    type: Object as PropType<Record<string, any>>,
+    type: Object as PropType<Record<string, unknown>>,
     default: () => ({}),
   },
   shortcutSelectedIndex: {
@@ -157,12 +162,21 @@ export default defineComponent({
     const [minDate, maxDate] = (props.modelValue as any).map(date => date || initTime());
     const leftPanelDate = props.startDate ? props.startDate : minDate;
 
+    let rightPanelDate;
+    if (props.type === 'monthrange') {
+      rightPanelDate = new Date(leftPanelDate.getFullYear() + 1, leftPanelDate.getMonth(), 1);
+    } else if (props.type === 'yearrange') {
+      rightPanelDate = new Date(leftPanelDate.getFullYear() + 10, leftPanelDate.getMonth(), 1);
+    } else {
+      rightPanelDate = new Date(leftPanelDate.getFullYear(), leftPanelDate.getMonth() + 1, 1);
+    }
+
     const state = reactive({
       currentView: props.selectionMode || 'date',
       leftPickerTable: `${props.selectionMode}-table`,
       rightPickerTable: `${props.selectionMode}-table`,
       leftPanelDate,
-      rightPanelDate: new Date(leftPanelDate.getFullYear(), leftPanelDate.getMonth() + 1, 1),
+      rightPanelDate,
       rangeState: { from: props.modelValue[0], to: props.modelValue[1], selecting: minDate && !maxDate },
       // 判断 range 中，第一次选的时间是否晚于当前时间
       upToNowEnable: false,
@@ -214,10 +228,28 @@ export default defineComponent({
       if (props.splitPanels) {
         const otherPanel = panel === 'left' ? 'right' : 'left';
         if (panel === 'left' && state.leftPanelDate >= state.rightPanelDate) {
-          changePanelDate(otherPanel, type, 1);
+          if (state.currentView === 'year') {
+            if (
+              Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
+              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10
+            ) {
+              changePanelDate(otherPanel, type, 10);
+            }
+          } else {
+            changePanelDate(otherPanel, type, 1);
+          }
         }
         if (panel === 'right' && state.rightPanelDate <= state.leftPanelDate) {
-          changePanelDate(otherPanel, type, -1);
+          if (state.currentView === 'year') {
+            if (
+              Math.floor(state.leftPanelDate.getFullYear() / 10) * 10 ===
+              Math.floor(state.rightPanelDate.getFullYear() / 10) * 10
+            ) {
+              changePanelDate(otherPanel, type, -10);
+            }
+          } else {
+            changePanelDate(otherPanel, type, -1);
+          }
         }
       } else {
         const otherPanel = panel === 'left' ? 'right' : 'left';
@@ -396,7 +428,16 @@ export default defineComponent({
 
     function setPanelDates(leftPanelDate) {
       state.leftPanelDate = leftPanelDate;
-      const rightPanelDate = new Date(leftPanelDate.getFullYear(), leftPanelDate.getMonth() + 1, 1);
+      // const rightPanelDate = new Date(leftPanelDate.getFullYear(), leftPanelDate.getMonth() + 1, 1);
+      let rightPanelDate;
+      if (props.type === 'monthrange') {
+        rightPanelDate = new Date(leftPanelDate.getFullYear() + 1, leftPanelDate.getMonth(), 1);
+      } else if (props.type === 'yearrange') {
+        rightPanelDate = new Date(leftPanelDate.getFullYear() + 10, leftPanelDate.getMonth(), 1);
+      } else {
+        rightPanelDate = new Date(leftPanelDate.getFullYear(), leftPanelDate.getMonth() + 1, 1);
+      }
+
       const splitRightPanelDate = state.dates[1] ? state.dates[1].getTime() : state.dates[1];
       state.rightPanelDate = props.splitPanels
         ? new Date(Math.max(splitRightPanelDate, rightPanelDate.getTime()))
@@ -602,9 +643,9 @@ export default defineComponent({
         >
           {/* left panel */}
           <div
+            style='width: 261px;'
             class={[this.resolveClassName('picker-panel-content'), this.resolveClassName('picker-panel-content-left')]}
             v-show={!this.isTime}
-            style='width: 261px;'
           >
             <div
               class={this.resolveClassName('date-picker-header')}
@@ -621,8 +662,8 @@ export default defineComponent({
               {this.leftPickerTable === 'date-table' ? (
                 <span
                   class={iconBtnCls('prev')}
-                  onClick={() => this.prevMonth('left')}
                   v-show={this.currentView === 'date'}
+                  onClick={() => this.prevMonth('left')}
                 >
                   <AngleLeft style={{ fontSize: '20px', lineHeight: 1, verticalAlign: 'text-bottom' }}></AngleLeft>
                 </span>
@@ -636,7 +677,11 @@ export default defineComponent({
                     v-show={this.leftShowLabelFirst}
                     onClick={() => this.leftDatePanelLabel.labels[0].handler}
                   >
-                    {this.leftDatePanelLabel.labels[0].label}
+                    {this.type === 'yearrange'
+                      ? `${Math.floor(this.leftDatePanelLabel.labels[0].label / 10) * 10} - ${
+                          Math.ceil(this.leftDatePanelLabel.labels[0].label / 10) * 10 - 1
+                        }`
+                      : this.leftDatePanelLabel.labels[0].label}
                   </span>
                   {this.leftDatePanelView === 'date' ? ` ${this.leftDatePanelLabel.separator} ` : ' '}
                   <span
@@ -650,7 +695,10 @@ export default defineComponent({
               ) : (
                 ''
               )}
-              {this.splitPanels || this.leftPickerTable !== 'date-table' ? (
+              {this.splitPanels ||
+              (this.leftPickerTable !== 'date-table' &&
+                this.leftPickerTable !== 'month-table' &&
+                this.leftPickerTable !== 'year-table') ? (
                 <span
                   class={iconBtnCls('next', '-double')}
                   onClick={() => this.nextYear('left')}
@@ -665,8 +713,8 @@ export default defineComponent({
               {this.splitPanels || this.leftPickerTable === 'date-table' ? (
                 <span
                   class={iconBtnCls('next')}
-                  onClick={() => this.nextMonth('left')}
                   v-show={this.currentView === 'date'}
+                  onClick={() => this.nextMonth('left')}
                 >
                   <AngleRight style={{ fontSize: '20px', lineHeight: 1, verticalAlign: 'text-bottom' }}></AngleRight>
                 </span>
@@ -680,12 +728,38 @@ export default defineComponent({
                     case 'date-table':
                       return (
                         <DateTable
+                          disabledDate={this.disabledDate}
+                          focusedDate={this.focusedDate}
+                          modelValue={(this.preSelecting.left ? [this.dates[0]] : this.dates) as any}
+                          rangeState={this.rangeState}
                           selectionMode='range'
                           tableDate={this.leftPanelDate as Date}
+                          onChangeRange={this.handleChangeRange}
+                          onPick={this.panelPickerHandlers.left}
+                        />
+                      );
+                    case 'month-table':
+                      return (
+                        <MonthTable
                           disabledDate={this.disabledDate}
-                          rangeState={this.rangeState}
-                          modelValue={(this.preSelecting.left ? [this.dates[0]] : this.dates) as any}
                           focusedDate={this.focusedDate}
+                          modelValue={(this.preSelecting.left ? [this.dates[0]] : this.dates) as any}
+                          rangeState={this.rangeState}
+                          selectionMode='range'
+                          tableDate={this.leftPanelDate as Date}
+                          onChangeRange={this.handleChangeRange}
+                          onPick={this.panelPickerHandlers.left}
+                        />
+                      );
+                    case 'year-table':
+                      return (
+                        <YearTable
+                          disabledDate={this.disabledDate}
+                          focusedDate={this.focusedDate}
+                          modelValue={(this.preSelecting.left ? [this.dates[0]] : this.dates) as any}
+                          rangeState={this.rangeState}
+                          selectionMode='range'
+                          tableDate={this.leftPanelDate as Date}
                           onChangeRange={this.handleChangeRange}
                           onPick={this.panelPickerHandlers.left}
                         />
@@ -698,15 +772,18 @@ export default defineComponent({
           </div>
           {/* right panel */}
           <div
+            style='width: 261px;'
             class={[this.resolveClassName('picker-panel-content'), this.resolveClassName('picker-panel-content-right')]}
             v-show={!this.isTime}
-            style='width: 261px;'
           >
             <div
               class={this.resolveClassName('date-picker-header')}
               v-show={this.currentView !== 'time'}
             >
-              {this.splitPanels || this.rightPickerTable !== 'date-table' ? (
+              {this.splitPanels ||
+              (this.rightPickerTable !== 'date-table' &&
+                this.rightPickerTable !== 'month-table' &&
+                this.rightPickerTable !== 'year-table') ? (
                 <span
                   class={iconBtnCls('prev', '-double')}
                   onClick={() => this.prevYear('right')}
@@ -721,8 +798,8 @@ export default defineComponent({
               {this.splitPanels && this.rightPickerTable === 'date-table' ? (
                 <span
                   class={iconBtnCls('prev', '-double')}
-                  onClick={() => this.prevMonth('right')}
                   v-show={this.currentView === 'date'}
+                  onClick={() => this.prevMonth('right')}
                 >
                   <AngleLeft style={{ fontSize: '20px', lineHeight: 1, verticalAlign: 'text-bottom' }}></AngleLeft>
                 </span>
@@ -736,7 +813,12 @@ export default defineComponent({
                     v-show={this.rightShowLabelFirst}
                     onClick={() => this.rightDatePanelLabel.labels[0].handler}
                   >
-                    {this.rightDatePanelLabel.labels[0].label}
+                    {this.type === 'yearrange'
+                      ? `${Math.floor(this.rightDatePanelLabel.labels[0].label / 10) * 10} - ${
+                          Math.ceil(this.rightDatePanelLabel.labels[0].label / 10) * 10 - 1
+                        }`
+                      : this.rightDatePanelLabel.labels[0].label}
+                    {/* {this.rightDatePanelLabel.labels[0].label} */}
                   </span>
                   {this.rightDatePanelView === 'date' ? ` ${this.rightDatePanelLabel.separator} ` : ' '}
                   <span
@@ -776,8 +858,8 @@ export default defineComponent({
               {this.rightPickerTable === 'date-table' ? (
                 <span
                   class={iconBtnCls('next')}
-                  onClick={() => this.nextMonth('right')}
                   v-show={this.currentView === 'date'}
+                  onClick={() => this.nextMonth('right')}
                 >
                   <AngleRight style={{ fontSize: '20px', lineHeight: 1, verticalAlign: 'text-bottom' }}></AngleRight>
                 </span>
@@ -791,14 +873,44 @@ export default defineComponent({
                     case 'date-table':
                       return (
                         <DateTable
-                          selectionMode='range'
-                          tableDate={this.rightPanelDate as Date}
-                          disabledDate={this.disabledDate}
-                          rangeState={this.rangeState}
                           modelValue={
                             (this.preSelecting.right ? [this.dates[(this.dates as any).length - 1]] : this.dates) as any
                           }
+                          disabledDate={this.disabledDate}
                           focusedDate={this.focusedDate}
+                          rangeState={this.rangeState}
+                          selectionMode='range'
+                          tableDate={this.rightPanelDate as Date}
+                          onChangeRange={this.handleChangeRange}
+                          onPick={this.panelPickerHandlers.right}
+                        />
+                      );
+                    case 'month-table':
+                      return (
+                        <MonthTable
+                          modelValue={
+                            (this.preSelecting.right ? [this.dates[(this.dates as any).length - 1]] : this.dates) as any
+                          }
+                          disabledDate={this.disabledDate}
+                          focusedDate={this.focusedDate}
+                          rangeState={this.rangeState}
+                          selectionMode='range'
+                          tableDate={this.rightPanelDate as Date}
+                          onChangeRange={this.handleChangeRange}
+                          onPick={this.panelPickerHandlers.right}
+                        />
+                      );
+                    case 'year-table':
+                      return (
+                        <YearTable
+                          modelValue={
+                            (this.preSelecting.right ? [this.dates[(this.dates as any).length - 1]] : this.dates) as any
+                          }
+                          disabledDate={this.disabledDate}
+                          focusedDate={this.focusedDate}
+                          rangeState={this.rangeState}
+                          selectionMode='range'
+                          tableDate={this.rightPanelDate as Date}
                           onChangeRange={this.handleChangeRange}
                           onPick={this.panelPickerHandlers.right}
                         />
@@ -813,14 +925,15 @@ export default defineComponent({
           {this.isTime ? (
             <TimeRange
               ref='timePickerRef'
+              allowCrossDay={!!this.timePickerOptions.allowCrossDay}
+              disabledDate={this.disabledDate}
+              format={this.format}
               selectionMode={this.selectionMode}
               value={this.dates as any}
-              format={this.format}
-              disabledDate={this.disabledDate}
               // v-bind={this.timePickerOptions}
               onPick={this.handleRangePick}
-              onPick-click={this.handlePickClick}
               onPick-clear={this.handlePickClear}
+              onPick-click={this.handlePickClick}
               onPick-success={this.handlePickSuccess}
               onPick-toggle-time={this.handleToggleTime}
             />
@@ -844,14 +957,14 @@ export default defineComponent({
           } */}
           {this.confirm ? (
             <Confirm
+              v-slots={this.$slots}
               clearable={this.clearable}
+              isTime={this.isTime}
               showTime={this.showTime}
               timeDisabled={this.timeDisabled}
-              isTime={this.isTime}
-              onPick-toggle-time={this.handleToggleTime}
               onPick-clear={this.handlePickClear}
               onPick-success={this.handlePickSuccess}
-              v-slots={this.$slots}
+              onPick-toggle-time={this.handleToggleTime}
             ></Confirm>
           ) : (
             ''

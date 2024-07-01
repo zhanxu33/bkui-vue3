@@ -27,7 +27,7 @@
 import { computed, defineComponent, PropType, ref, toRefs } from 'vue';
 
 import Button from '@bkui-vue/button';
-import { useLocale } from '@bkui-vue/config-provider';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { Del, Plus, Upload } from '@bkui-vue/icon';
 import Progress from '@bkui-vue/progress';
 import { classes } from '@bkui-vue/shared';
@@ -45,13 +45,16 @@ export default defineComponent({
     file: {
       type: Object as PropType<UploadFile>,
     },
+    selectChange: uploadProps.selectChange,
   },
   emits: ['change', 'remove'],
   setup(props, { slots, emit }) {
     const t = useLocale('upload');
+    const { resolveClassName } = usePrefix();
+
     const { theme, disabled, file, multiple, accept } = toRefs(props);
 
-    const classBlock = `${CLASS_PREFIX}-trigger`;
+    const classBlock = `${resolveClassName(CLASS_PREFIX)}-trigger`;
 
     const isButton = computed<boolean>(() => theme.value === EThemes.BUTTON);
     const isDrag = computed<boolean>(() => theme.value === EThemes.DRAGGABLE);
@@ -83,6 +86,9 @@ export default defineComponent({
     };
 
     const handleFileChange = (e: Event) => {
+      if (props.selectChange && props.selectChange?.(e) === false) {
+        return false;
+      }
       const { files } = e.target as HTMLInputElement;
       emit('change', Array.from(files));
     };
@@ -124,36 +130,13 @@ export default defineComponent({
         e.preventDefault();
         dragover.value = false;
 
-        const files = Array.from(e.dataTransfer.files);
-
-        if (!acceptTypes.value) {
-          emit('change', files);
-          return;
+        if (props.selectChange && props.selectChange?.(e) === false) {
+          return false;
         }
 
-        const filesFiltered = files.filter(file => {
-          const { type, name } = file;
-          const extension = name.includes('.') ? `.${name.split('.').pop()}` : '';
-          const baseType = type.replace(/\/.*$/, '');
-          return acceptTypes.value
-            .split(',')
-            .map(type => type.trim())
-            .filter(type => type)
-            .some(acceptedType => {
-              if (acceptedType.startsWith('.')) {
-                return extension === acceptedType;
-              }
-              if (/\/\*$/.test(acceptedType)) {
-                return baseType === acceptedType.replace(/\/\*$/, '');
-              }
-              if (/^[^/]+\/[^/]+$/.test(acceptedType)) {
-                return type === acceptedType;
-              }
-              return false;
-            });
-        });
+        const files = Array.from(e.dataTransfer.files);
 
-        emit('change', filesFiltered);
+        emit('change', files);
       };
       const handleDragover = (e: DragEvent) => {
         e.preventDefault();
@@ -170,9 +153,9 @@ export default defineComponent({
       return (
         <div
           class={classNames}
-          onDrop={handleDrop}
-          onDragover={handleDragover}
           onDragleave={handleDragleave}
+          onDragover={handleDragover}
+          onDrop={handleDrop}
         >
           {slots.default ? (
             slots.default()
@@ -206,21 +189,21 @@ export default defineComponent({
 
     const SinglePicture = (file: UploadFile) => [
       <img
-        v-show={file.status !== 'uploading'}
-        src={file.url}
         class={`${classBlock}__picture-thumbnail`}
+        v-show={file.status !== 'uploading'}
         alt=''
+        src={file.url}
       />,
       <>
         {file.status === 'uploading' && (
           <Progress
-            class={`${classBlock}__picture-progress`}
-            type='circle'
-            color='#3a84ff'
-            bgColor='#333'
             width={50}
-            titleStyle={{ color: '#fff' }}
+            class={`${classBlock}__picture-progress`}
+            bgColor='#333'
+            color='#3a84ff'
             percent={file.percentage}
+            titleStyle={{ color: '#fff' }}
+            type='circle'
           />
         )}
       </>,
@@ -269,12 +252,12 @@ export default defineComponent({
         <input
           ref={inputEl}
           class={`${classBlock}__input-file`}
-          tabindex='-1'
-          onChange={handleFileChange}
           accept={acceptTypes.value}
-          multiple={multiple.value}
           disabled={disabled.value}
+          multiple={multiple.value}
+          tabindex='-1'
           type='file'
+          onChange={handleFileChange}
         />
       </div>
     );

@@ -26,6 +26,7 @@
 
 import { computed, defineComponent, onBeforeUnmount, shallowRef } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { classes } from '@bkui-vue/shared';
 
 import uploadProps from './props';
@@ -50,17 +51,19 @@ export default defineComponent({
   props: uploadProps,
   emits: ['exceed', 'progress', 'success', 'error', 'delete', 'done'],
   setup(props, { slots, emit, expose }) {
-    const requests = shallowRef<Record<string, XMLHttpRequest | Promise<unknown>>>({});
+    const { resolveClassName } = usePrefix();
+
+    const requests = shallowRef<Record<string, Promise<unknown> | XMLHttpRequest>>({});
 
     const isPhotowall = computed<boolean>(() => props.theme === EThemes.PICTURE);
     const isSinglePhoto = computed<boolean>(() => isPhotowall.value && !props.multiple);
 
     const classNames = computed(() =>
       classes({
-        [CLASS_PREFIX]: true,
-        [`${CLASS_PREFIX}--${props.theme}`]: true,
-        [`${CLASS_PREFIX}--disabled`]: props.disabled,
-        [`${CLASS_PREFIX}--single-picture`]: isSinglePhoto.value,
+        [`${resolveClassName(CLASS_PREFIX)}`]: true,
+        [`${resolveClassName(CLASS_PREFIX)}--${props.theme}`]: true,
+        [`${resolveClassName(CLASS_PREFIX)}--disabled`]: props.disabled,
+        [`${resolveClassName(CLASS_PREFIX)}--single-picture`]: isSinglePhoto.value,
         [props.extCls]: props.extCls ?? false,
       }),
     );
@@ -70,6 +73,7 @@ export default defineComponent({
       multiple: props.multiple,
       disabled: props.disabled,
       accept: props.accept,
+      selectChange: props.selectChange,
     }));
 
     function onRemove(file: UploadFile, fileList: UploadFiles) {
@@ -88,9 +92,14 @@ export default defineComponent({
       }
 
       // limit检查
-      if (props.limit && fileList.value.length + files.length > props.limit) {
+      if (props.limit > 1 && fileList.value.length + files.length > props.limit) {
         emit('exceed', files, fileList.value);
         return;
+      }
+
+      // 限制1个时使用替换方式，将之前的列表清空
+      if (!props.multiple && props.limit === 1) {
+        fileList.value = [];
       }
 
       let sendFiles = files;
@@ -241,12 +250,12 @@ export default defineComponent({
             onChange={handleFiles}
           />
         )}
-        {slots.tip ? slots.tip() : props.tip && <div class={`${CLASS_PREFIX}__tip`}>{props.tip}</div>}
+        {slots.tip ? slots.tip() : props.tip && <div class={`${resolveClassName(CLASS_PREFIX)}__tip`}>{props.tip}</div>}
         <UploadList
-          files={fileList.value}
-          theme={props.theme}
           disabled={props.disabled}
+          files={fileList.value}
           multiple={props.multiple}
+          theme={props.theme}
           onRemove={handleRemove}
           onRetry={handleRetry}
         >
@@ -255,8 +264,8 @@ export default defineComponent({
               isPhotowall.value && (
                 <UploadTrigger
                   {...triggerProps.value}
-                  file={file}
                   v-slots={slots}
+                  file={file}
                   onChange={handleFiles}
                   onRemove={handleRemove}
                 />

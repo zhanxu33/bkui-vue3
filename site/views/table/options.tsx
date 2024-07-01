@@ -59,7 +59,7 @@ export const DATA_TABLE = [
     ],
   },
   {
-    ip: '192.168.0.2',
+    ip: '192.168.0.26',
     source: '微信',
     status: '正常',
     priority: 3,
@@ -68,7 +68,7 @@ export const DATA_TABLE = [
     percent: '10.01%',
   },
   {
-    ip: '192.168.0.3',
+    ip: '192.168.0.37',
     source: 'QQ',
     status: '创建中',
     priority: 2,
@@ -77,7 +77,7 @@ export const DATA_TABLE = [
     percent: '50%',
   },
   {
-    ip: '192.168.0.3',
+    ip: '192.168.0.38',
     source: 'QQ',
     status: '创建中',
     priority: 6,
@@ -86,7 +86,7 @@ export const DATA_TABLE = [
     percent: '1%',
   },
   {
-    ip: '192.168.0.3',
+    ip: '192.168.0.39',
     source: 'QQ',
     status: '创建中',
     priority: 5,
@@ -106,15 +106,24 @@ export const DATA_COLUMNS = [
   {
     label: '序号',
     type: 'index',
-    width: 50,
+    width: 350,
     minWidth: 80,
-    sort: {
-      value: 'desc',
+    sort: true,
+    showOverflowTooltip: {
+      mode: 'static',
+      content: '这是个静态的提示，限制最大宽度为200px，测试一下是否生效，长度不够，数字来凑，哈哈哈',
+      popoverOption: {
+        maxWidth: 250,
+      },
     },
     className: () => 'custom-class',
   },
   {
-    label: '名称/内网IP',
+    label: () => (
+      <div>
+        <i>H</i>名称/内网IP
+      </div>
+    ),
     field: 'ip',
     width: 100,
     showOverflowTooltip: {
@@ -133,7 +142,7 @@ export const DATA_COLUMNS = [
     width: 80,
     filter: {
       list: new Array(20).fill('').map((_, index) => ({ text: `${index}_QQ`, value: `${index}_QQ` })),
-      checked: ['QQ'],
+      checked: [],
     },
   },
   {
@@ -145,6 +154,13 @@ export const DATA_COLUMNS = [
     label: '优先级',
     field: 'priority',
     sort: true,
+    filter: {
+      list: [
+        { text: '1', value: 1 },
+        { text: '2', value: 2 },
+        { text: '3', value: 3 },
+      ],
+    },
   },
   {
     label: '完成度',
@@ -219,6 +235,11 @@ export const DATA_COLUMNS1 = [...DATA_COLUMNS2];
  */
 export const DATA_EXPAND_COLUMNS = [
   {
+    type: 'selection',
+    width: 20,
+    minWidth: 20,
+  },
+  {
     type: 'expand',
     width: 140,
     minWidth: 30,
@@ -275,7 +296,15 @@ export const DATA_FIX_COLUMNS = [
   {
     label: '来源',
     field: 'source',
-    filter: true,
+    fixed: true,
+    filter: {
+      list: [
+        { text: '1_QQ', value: '1_QQ' },
+        { text: '2_QQ', value: '2_QQ' },
+        { text: 'QQ', value: 'QQ' },
+      ],
+      match: 'fuzzy',
+    },
     minWidth: 280,
   },
   {
@@ -296,7 +325,9 @@ export const DATA_FIX_COLUMNS = [
   },
   {
     label: '操作',
-    render: ({ data }) => <bk-input v-model={data.status}></bk-input>,
+    render: ({ data }) => {
+      return <bk-input v-model={data.status}></bk-input>;
+    },
     width: 180,
     fixed: 'right',
   },

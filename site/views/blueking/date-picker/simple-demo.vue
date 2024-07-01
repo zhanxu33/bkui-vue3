@@ -9,6 +9,6 @@
 
   import DatePicker from '@blueking/date-picker';
 
-  import '@blueking/date-picker/dist/vue3-light.css';
+  import '@blueking/date-picker/vue3/vue3.css';
   const value = ref(['now', 'now+1w']);
 </script>

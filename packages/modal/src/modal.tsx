@@ -24,153 +24,83 @@
  * IN THE SOFTWARE.
  */
 
-import { computed, defineComponent, nextTick, ref, Transition, watch } from 'vue';
+import {
+  computed,
+  defineComponent,
+  type ExtractPropTypes,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  Teleport,
+  Transition,
+  useAttrs,
+  useSlots,
+  watch,
+} from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
-import { bkZIndexManager, isElement, isPromise, mask } from '@bkui-vue/shared';
+import { bkZIndexManager } from '@bkui-vue/shared';
 
+import { useContentResize } from './hooks';
+import { mask } from './mask';
 import { propsMixin } from './props.mixin';
+
+export type ModalProps = Readonly<ExtractPropTypes<typeof propsMixin>>;
 
 export default defineComponent({
   name: 'Modal',
   props: {
     ...propsMixin,
   },
-  emits: ['quick-close', 'quickClose', 'hidden', 'shown', 'close'],
+  emits: ['quick-close', 'hidden', 'shown', 'close'],
   setup(props, ctx) {
-    const visible = ref(false);
-    const zIndex = ref(props.zIndex);
-    const refRoot = ref<HTMLElement>();
-    const refMask = ref<HTMLElement>();
-    const backgroundColor = ref('rgba(0,0,0,0.6)');
-    let closeTimer;
-    const dialogWidth = computed(() => {
-      return /^\d+\.?\d*$/.test(`${props.width}`) ? `${props.width}px` : props.width;
-    });
-    const dialogHeight = computed(() => {
-      return /^\d+\.?\d*$/.test(`${props.height}`) ? `${props.height}px` : props.height;
-    });
+    const slots = useSlots();
+    const attrs = useAttrs();
+    const { resolveClassName } = usePrefix();
 
-    const compStyle = computed(() => {
+    const rootRef = ref<HTMLElement>();
+    const maskRef = ref<HTMLElement>();
+    const resizeTargetRef = ref<HTMLElement>();
+
+    const localShow = ref(props.isShow);
+    const zIndex = ref(props.zIndex);
+    const initRendered = ref(false);
+
+    const { contentStyles, isContentScroll } = useContentResize(rootRef, resizeTargetRef, props);
+
+    const modalWrapperStyles = computed(() => {
       return {
-        width: dialogWidth.value,
-        height: dialogHeight.value,
-        minHeigth: `${200}px`,
-        display: visible.value ? 'inherit' : 'none',
-        zIndex: zIndex.value || 'inherit',
+        zIndex: zIndex.value,
+        width: /^\d+\.?\d*$/.test(`${props.width}`) ? `${props.width}px` : props.width,
         left: props.left,
         top: props.top,
-        [props.direction]: 0,
       };
     });
-    const enableTeleport = ref(!!props.transfer);
-    const teleportTo = ref<string | HTMLElement>('body');
-
-    const resolveTransfer = () => {
-      if (props.transfer) {
-        if (typeof props.transfer === 'boolean') {
-          teleportTo.value = 'body';
-          return;
-        }
-
-        teleportTo.value = props.transfer;
-      }
-    };
-
-    resolveTransfer();
-    const { resolveClassName } = usePrefix();
-    const resolveClosetModal = () => {
-      if (enableTeleport.value) {
-        if (typeof teleportTo.value === 'string') {
-          const target = document.querySelector(teleportTo.value as string);
-          target?.appendChild(refRoot.value);
-          return;
-        }
-
-        if (isElement(teleportTo.value)) {
-          (teleportTo.value as HTMLElement).appendChild(refRoot.value);
-          return;
-        }
-      }
-
-      const className = `.${resolveClassName('modal-ctx')}`;
-      const parentNode = refRoot.value?.parentElement?.closest(className);
-      if (parentNode) {
-        enableTeleport.value = true;
-        teleportTo.value = 'body';
-        const target = document.querySelector(teleportTo.value);
-        target?.appendChild(refRoot.value);
-      }
-    };
-
-    const fullscreenStyle = computed(() => {
-      return {
-        width: `${100}%`,
-        height: `${100}%`,
-      };
-    });
-
-    const closeModal = () => {
-      mask.hideMask({
-        el: refRoot.value,
-        mask: refMask.value,
-        showMask: props.showMask,
-        backgroundColor: backgroundColor.value,
-      });
-
-      closeTimer = setTimeout(() => {
-        // 直接设为false会失去离开的动画效果，这里延迟设置
-        ctx.emit('hidden'); // 为false直接触发hidden事件，在上层有200ms的延时
-        if (enableTeleport.value) {
-          refRoot.value?.remove();
-        }
-      }, 250);
-    };
 
     watch(
       () => props.isShow,
-      val => {
-        if (val) {
-          closeTimer && clearTimeout(closeTimer);
-          closeTimer = null;
-          if (!props.zIndex) {
-            zIndex.value = bkZIndexManager.getModalNextIndex();
-          }
-          visible.value = true;
-          nextTick(() => {
+      () => {
+        if (props.isShow) {
+          initRendered.value = true;
+          setTimeout(() => {
+            zIndex.value = props.zIndex || bkZIndexManager.getModalNextIndex();
+            props.showMask && mask.showMask(maskRef.value);
             ctx.emit('shown');
-            resolveClosetModal();
-            mask.showMask({
-              el: refRoot.value,
-              mask: refMask.value,
-              showMask: props.showMask,
-              backgroundColor: backgroundColor.value,
-            });
+            localShow.value = true;
           });
-          return;
+        } else if (initRendered.value) {
+          props.showMask && mask.hideMask(maskRef.value);
+          ctx.emit('hidden');
+          localShow.value = false;
         }
-
-        visible.value = false;
-        closeModal();
       },
-      { immediate: true },
+      {
+        immediate: true,
+      },
     );
 
-    const handleBeforeClose = async callbackFn => {
-      if (typeof props.beforeClose === 'function') {
-        let shouldClose = true;
-        const execRet = props.beforeClose();
-        if (isPromise(execRet)) {
-          shouldClose = await execRet;
-        } else {
-          shouldClose = execRet;
-        }
-        if (shouldClose !== true) {
-          return;
-        }
-      }
-
-      callbackFn?.();
+    const handleClose = () => {
+      ctx.emit('close');
     };
 
     const handleClickOutSide = (e: MouseEvent) => {
@@ -179,72 +109,124 @@ export default defineComponent({
       e.preventDefault();
 
       if (props.quickClose) {
-        handleBeforeClose(() => {
-          ctx.emit('close');
-          ctx.emit('quick-close');
-          ctx.emit('quickClose');
-        });
+        ctx.emit('quick-close');
+        ctx.emit('close');
       }
     };
 
-    return {
-      visible,
-      compStyle,
-      fullscreenStyle,
-      handleClickOutSide,
-      refRoot,
-      refMask,
-      showMask: props.showMask,
+    // 按 esc 关闭弹框
+    const handleEscClose = e => {
+      if (props.isShow && props.escClose) {
+        if (e.keyCode === 27) {
+          handleClose();
+        }
+      }
     };
-  },
-  render() {
-    const { resolveClassName } = usePrefix();
-    const maxHeight = this.maxHeight ? { maxHeight: this.maxHeight } : {};
-    const bodyClass = `${resolveClassName('modal-body')} ${this.animateType === 'slide' ? this.direction : ''}`;
-    return (
-      <div
-        ref='refRoot'
-        class={[resolveClassName('modal-ctx'), this.visible ? '--show' : '--hide']}
-        style={{ zIndex: this.compStyle.zIndex }}
-      >
-        {this.showMask ? (
-          <div
-            ref='refMask'
-            class={[resolveClassName('modal-ctx-mask'), this.visible ? '--show' : '--hide']}
-            onClick={this.handleClickOutSide}
-            style={{ zIndex: this.compStyle.zIndex }}
-          ></div>
-        ) : (
-          ''
-        )}
 
-        <div
-          class={[resolveClassName('modal-wrapper'), this.extCls ?? '', this.size, this.fullscreen ? 'fullscreen' : '']}
-          style={[this.compStyle, this.fullscreen ? this.fullscreenStyle : '']}
-        >
-          <Transition name={this.animateType}>
-            {this.visible ? (
-              <div class={bodyClass}>
-                <div class={resolveClassName('modal-header')}>{this.$slots.header?.() ?? ''}</div>
-                <div
-                  class={resolveClassName('modal-content')}
-                  style={[this.dialogType === 'show' ? 'padding-bottom: 20px' : '', { ...maxHeight }]}
-                >
-                  {this.$slots.default?.() ?? ''}
-                </div>
-                {this.dialogType === 'show' ? (
-                  ''
-                ) : (
-                  <div class={resolveClassName('modal-footer')}>{this.$slots.footer?.() ?? ''}</div>
-                )}
-                {this.closeIcon && <div class={resolveClassName('modal-close')}>{this.$slots.close?.() ?? ''}</div>}
-              </div>
-            ) : (
-              ''
-            )}
+    onMounted(() => {
+      addEventListener('keydown', handleEscClose);
+    });
+
+    onBeforeUnmount(() => {
+      removeEventListener('keydown', handleEscClose);
+      mask.destroyMask(maskRef.value);
+      ctx.emit('hidden');
+    });
+
+    return () => {
+      if (!initRendered.value) {
+        return null;
+      }
+
+      const renderMask = () => {
+        if (!props.showMask) {
+          return null;
+        }
+        return (
+          <Transition name={mask.getMaskCount() > 0 ? 'fadein' : ''}>
+            <div
+              ref={maskRef}
+              style={{
+                zIndex: zIndex.value,
+              }}
+              class={{
+                [resolveClassName('modal-mask')]: true,
+              }}
+              v-show={localShow.value}
+              onClick={handleClickOutSide}
+            />
           </Transition>
-        </div>
-      </div>
-    );
+        );
+      };
+
+      const renderContent = () => {
+        // v-if 模式渲染，如果 isShow 为 false 销毁 DOM
+        if (props.renderDirective === 'if' && !localShow.value) {
+          return null;
+        }
+        return (
+          <div
+            style={{
+              backgroundColor: props.backgroundColor,
+            }}
+            class={resolveClassName('modal-body')}
+          >
+            <div class={resolveClassName('modal-header')}>{slots.header?.()}</div>
+            <div
+              style={contentStyles.value}
+              class={resolveClassName('modal-content')}
+            >
+              <div style='position: relative; display: inline-block; width: 100%;'>
+                {slots.default?.()}
+                <div
+                  ref={resizeTargetRef}
+                  style='position: absolute; top: 0; bottom: 0;'
+                />
+              </div>
+            </div>
+            <div
+              class={{
+                [resolveClassName('modal-footer')]: true,
+                'is-fixed': isContentScroll.value,
+              }}
+            >
+              {slots.footer?.()}
+            </div>
+            {props.closeIcon && (
+              <div
+                class={resolveClassName('modal-close')}
+                onClick={handleClose}
+              >
+                {slots.close?.()}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      return (
+        <Teleport
+          disabled={!props.transfer}
+          to='body'
+        >
+          <div
+            ref={rootRef}
+            {...attrs}
+            class={[resolveClassName('modal'), props.extCls || '']}
+          >
+            {renderMask()}
+            <Transition name={`modal-${props.animateType}`}>
+              <div
+                style={modalWrapperStyles.value}
+                class={resolveClassName('modal-wrapper')}
+                v-show={localShow.value}
+              >
+                {renderContent()}
+              </div>
+            </Transition>
+          </div>
+        </Teleport>
+      );
+    };
   },
 });

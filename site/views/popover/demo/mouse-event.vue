@@ -1,21 +1,11 @@
 <template>
-  <bk-button
-    @click="handlePopMsgBtn"
-  >
-    点击初始化Popover
-  </bk-button>
-  <bk-button @click="handleShowPop">
-    show
-  </bk-button>
-  <bk-button @click="handleShowPop">
-    show 2
-  </bk-button>
-  <bk-button @click="handleHidePop">
-    hide
-  </bk-button>
+  <bk-button @click="handlePopMsgBtn"> 点击初始化Popover </bk-button>
+  <bk-button @click="handleShowPop"> show </bk-button>
+  <bk-button @click="handleShowPop"> show 2 </bk-button>
+  <bk-button @click="handleHidePop"> hide </bk-button>
   <div
     ref="refContentTable"
-    style="width: 400px;"
+    style="width: 400px; display: none"
   >
     <content-table />
   </div>
@@ -40,25 +30,19 @@
     },
     methods: {
       handlePopMsgBtn(e) {
-        this.popInstance?.close();
-        this.popInstance = $bkPopover({
-          target: e,
-          content: this.$refs.refContentTable,
-        });
-
-        this.popInstance?.show();
+        if (!this.popInstance) {
+          this.popInstance = $bkPopover({
+            target: e,
+            content: this.$refs.refContentTable.children[0],
+          });
+        }
       },
       handleShowPop(e) {
-        this.popInstance?.update(e);
-        this.popInstance?.show();
+        this.popInstance?.show(e);
       },
       handleHidePop() {
         this.popInstance?.hide();
       },
-      // handleMouseMove(e) {
-      //   this.popInstance?.update(e);
-      // },
     },
   });
 </script>
-

@@ -29,8 +29,8 @@ import { toType } from 'vue-types';
 import { bkEllipsisInstance } from '@bkui-vue/directives';
 import { hasOverflowEllipsis, isElement, PropTypes } from '@bkui-vue/shared';
 
-import { IColumnType, IOverflowTooltipPropType, ResizerWay } from '../props';
-import { observerResize, resolvePropVal } from '../utils';
+import { Column, IColumnType, IOverflowTooltipOption, IOverflowTooltipPropType, ResizerWay } from '../props';
+import { observerResize, resolveNumberOrStringToPix, resolvePropVal } from '../utils';
 // import
 export default defineComponent({
   name: 'TableCell',
@@ -53,23 +53,31 @@ export default defineComponent({
 
     const cellStyle = computed(() => ({
       textAlign: props.column.textAlign as any,
+      minWidth: resolveNumberOrStringToPix(props.column.minWidth, null),
     }));
 
     const resolveSetting = () => {
       if (/boolean|object/.test(typeof props.column.showOverflowTooltip) && props.column.showOverflowTooltip !== null) {
+        const {
+          content = '',
+          mode = undefined,
+          popoverOption = {},
+        } = props.column.showOverflowTooltip as IOverflowTooltipOption;
         const result = {
           showOverflowTooltip: {
-            content: '',
+            content,
             disabled: !props.column.showOverflowTooltip,
-            mode: undefined,
+            mode,
             resizerWay: undefined,
             watchCellResize: undefined,
-            popoverOption: {},
+            popoverOption,
+            allowHtml: false,
           },
         };
         if (props.parentSetting !== null && typeof props.parentSetting === 'object') {
-          Object.assign(result.showOverflowTooltip, props.parentSetting);
-          Object.assign(result.showOverflowTooltip, { disabled: !props.column.showOverflowTooltip });
+          Object.assign(result.showOverflowTooltip, props.parentSetting, {
+            disabled: !props.column.showOverflowTooltip,
+          });
 
           if (typeof props.column.showOverflowTooltip === 'object') {
             Object.assign(result.showOverflowTooltip, props.column.showOverflowTooltip);
@@ -82,13 +90,24 @@ export default defineComponent({
       return { showOverflowTooltip: props.parentSetting };
     };
 
-    const { showOverflowTooltip = false } = resolveSetting();
     let bkEllipsisIns = null;
 
+    const getContentValue = (allowHtml = false) => {
+      const target: HTMLElement = getEllipsisTarget();
+      if (allowHtml) {
+        return target?.cloneNode?.(true) ?? '';
+      }
+
+      return target?.innerText ?? '';
+    };
+
     const resolveTooltipOption = () => {
-      let disabled = true;
+      const { showOverflowTooltip = false } = resolveSetting();
+
+      let disabled: ((col: Column, row: any) => boolean) | boolean = true;
       let { resizerWay } = props;
-      let content = () => refRoot.value.innerText;
+      const defaultContent = getContentValue((showOverflowTooltip as any).allowHtml);
+      let content: any = () => defaultContent;
       let popoverOption = {};
       let mode = 'auto';
       let watchCellResize = true;
@@ -97,16 +116,16 @@ export default defineComponent({
       }
 
       if (typeof showOverflowTooltip === 'object') {
-        disabled = (showOverflowTooltip as any).disabled;
-        popoverOption = (showOverflowTooltip as any).popoverOption;
-        resizerWay = (showOverflowTooltip as any).resizerWay || 'debounce';
-        content = () => (showOverflowTooltip as any).content || refRoot.value.innerText;
-        if (typeof (showOverflowTooltip as any).content === 'function') {
-          content = () => (showOverflowTooltip as any).content(props.column, props.row);
+        disabled = showOverflowTooltip.disabled;
+        popoverOption = showOverflowTooltip.popoverOption;
+        resizerWay = showOverflowTooltip.resizerWay || 'debounce';
+        content = () => showOverflowTooltip.content || defaultContent;
+        if (typeof showOverflowTooltip.content === 'function') {
+          content = () => (showOverflowTooltip.content as (col, row) => string)(props.column, props.row);
         }
 
-        watchCellResize = (showOverflowTooltip as any).watchCellResize;
-        mode = (showOverflowTooltip as any).mode || 'auto';
+        watchCellResize = showOverflowTooltip.watchCellResize;
+        mode = showOverflowTooltip.mode || 'auto';
       }
 
       if (typeof disabled === 'function') {
@@ -121,14 +140,15 @@ export default defineComponent({
         mode = 'static';
 
         if (typeof props.column.explain === 'object') {
-          content = () => resolvePropVal(props.column.explain, 'content', [props.column, props.row]);
+          content = () =>
+            resolvePropVal(props.column.explain as Record<string, unknown>, 'content', [props.column, props.row]);
         }
       }
 
       if (props.isHead) {
-        disabled = !((props.column?.showOverflowTooltip as any)?.showHead ?? true);
+        disabled = !((props.column?.showOverflowTooltip as IOverflowTooltipOption)?.showHead ?? true);
         mode = 'auto';
-        content = () => getEllipsisTarget()?.innerHTML;
+        content = () => getEllipsisTarget()?.cloneNode?.(true) ?? '';
 
         if (props.headExplain) {
           mode = 'static';
@@ -210,9 +230,9 @@ export default defineComponent({
     const hasExplain = props.headExplain || props.column.explain;
     return () => (
       <div
-        class={['cell', props.column.type, hasExplain ? 'explain' : '']}
-        style={cellStyle.value}
         ref={refRoot}
+        style={cellStyle.value}
+        class={['cell', props.column.type, hasExplain ? 'explain' : '']}
       >
         {slots.default?.()}
       </div>

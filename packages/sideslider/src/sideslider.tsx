@@ -24,19 +24,23 @@
  * IN THE SOFTWARE.
  */
 
-import { defineComponent } from 'vue';
+import { defineComponent, getCurrentInstance, useAttrs, useSlots } from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
-import Modal from '@bkui-vue/modal';
+import { AngleLeft, AngleRight } from '@bkui-vue/icon';
+import Modal, { propsMixin } from '@bkui-vue/modal';
+import { PropTypes } from '@bkui-vue/shared';
+import cloneDeep from 'lodash/cloneDeep';
 
-const { propsMixin } = Modal;
-const sliderPops = Object.assign({}, propsMixin);
-sliderPops.width.default = '400';
-sliderPops.height.default = '100%';
+const sliderProps = cloneDeep(propsMixin);
+sliderProps.width.default = '400';
+
 export default defineComponent({
   name: 'Sideslider',
+  inheritAttrs: false,
   props: {
-    ...sliderPops,
+    ...sliderProps,
+    title: PropTypes.string.def(''),
     direction: {
       type: String,
       default: 'right',
@@ -53,78 +57,87 @@ export default defineComponent({
 
   emits: ['closed', 'update:isShow', 'shown', 'hidden', 'animation-end'],
 
-  setup(props, { slots, emit }) {
-    const handleClose = async () => {
-      // 这里无需处理 beforeClose，在 modal 中会处理
-      // let shouldClose = true;
-      // if (typeof props.beforeClose === 'function') {
-      //   shouldClose = await props.beforeClose();
-      // }
-      // if (shouldClose) {
-      emit('update:isShow', false);
-      emit('closed');
-      setTimeout(() => {
-        // 有动画，推迟发布事件
-        emit('animation-end');
-      }, 250);
-      // }
-    };
-    const handleShown = () => {
-      // 有动画，推迟发布事件
-      setTimeout(() => {
-        emit('shown');
-      }, 200);
-    };
-    const handleHidden = () => {
-      // 有动画，推迟发布事件
-      setTimeout(() => {
-        emit('hidden');
-      }, 200);
-    };
-
+  setup(props, { emit }) {
+    const attrs = useAttrs();
+    const slots = useSlots();
+    const instance = getCurrentInstance();
     const { resolveClassName } = usePrefix();
 
+    const handleClose = async () => {
+      let shouldClose = true;
+      if (typeof props.beforeClose === 'function') {
+        shouldClose = await props.beforeClose();
+      }
+      if (shouldClose) {
+        emit('update:isShow', false);
+        emit('closed');
+        emit('animation-end');
+      }
+    };
+
+    const handleShown = () => {
+      emit('shown');
+    };
+
+    const handleHidden = () => {
+      emit('hidden');
+    };
+
     return () => {
-      const dialogSlot = {
+      const modelSlot = {
         header: () => (
           <>
             <div class={`${resolveClassName('sideslider-header')}`}>
               <div
-                class={`${resolveClassName('sideslider-close')} ${props.direction}`}
-                onClick={() => {
-                  handleClose();
-                }}
-              ></div>
-              <div class={`${resolveClassName('sideslider-title')} ${props.direction}`}>
-                {slots.header?.() ?? props.title}
+                class={`${resolveClassName('sideslider-close')}`}
+                onClick={handleClose}
+              >
+                {props.direction === 'left' ? <AngleLeft /> : <AngleRight />}
               </div>
+              <div class={`${resolveClassName('sideslider-title')}`}>{slots.header?.() ?? props.title}</div>
             </div>
           </>
         ),
-        default: () => slots.default?.() ?? 'Content',
-        footer: () => {
-          if (slots.footer) {
-            return <div class={`${resolveClassName('sideslider-footer')}`}>{slots.footer()}</div>;
-          }
-
-          return null;
-        },
+        default: () => <div class={`${resolveClassName('sideslider-content')}`}>{slots.default?.()}</div>,
       };
-      const className = `${resolveClassName('sideslider-wrapper')} ${props.scrollable ? 'scroll-able' : ''} ${
-        props.extCls
-      }`;
-      const maxHeight = slots.footer ? 'calc(100vh - 106px)' : 'calc(100vh - 52px)';
+
+      if (slots.footer) {
+        Object.assign(modelSlot, {
+          footer: () => {
+            return <div class={`${resolveClassName('sideslider-footer')}`}>{slots.footer()}</div>;
+          },
+        });
+      }
+
+      const inheritAttrs = { ...attrs };
+      if (instance.vnode.scopeId) {
+        inheritAttrs[instance.vnode.scopeId] = '';
+      }
 
       return (
         <Modal
-          {...props}
-          maxHeight={maxHeight}
-          class={className}
+          {...inheritAttrs}
+          width={props.width}
+          class={{
+            [resolveClassName('sideslider')]: true,
+            [`is-position-${props.direction}`]: props.direction,
+          }}
+          extCls={props.extCls}
+          animateType={props.direction}
+          backgroundColor={props.backgroundColor}
+          closeIcon={false}
+          escClose={props.escClose}
+          isShow={props.isShow}
+          quickClose={props.quickClose}
+          renderDirective={props.renderDirective}
+          showMask={props.showMask}
+          transfer={props.transfer}
+          zIndex={props.zIndex}
+          onClose={handleClose}
           onHidden={handleHidden}
           onShown={handleShown}
-          onClose={handleClose}
         >
-          {dialogSlot}
+          {modelSlot}
         </Modal>
       );
     };

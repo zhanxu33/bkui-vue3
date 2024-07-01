@@ -24,7 +24,6 @@
  * IN THE SOFTWARE.
  */
 
-import { addListener, removeListener } from 'resize-detector';
 import {
   computed,
   defineComponent,
@@ -36,15 +35,18 @@ import {
   shallowRef,
   watch,
 } from 'vue';
+import { type SlotsType } from 'vue';
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
 import { Close, ExclamationCircleShape, Search } from '@bkui-vue/icon';
 import { debounce } from '@bkui-vue/shared';
+import { addListener, removeListener } from 'resize-detector';
 
 import SearchSelectInput from './input';
 import SearchSelected from './selected';
 import {
+  // DeleteBehavior,
   GetMenuListFunc,
   ICommonItem,
   ISearchItem,
@@ -102,6 +104,13 @@ export const SearchSelectProps = {
       return [ValueBehavior.ALL, ValueBehavior.NEEDKEY].includes(v);
     },
   },
+  // deleteBehavior: {
+  //   type: String as PropType<`${DeleteBehavior}`>,
+  //   default: DeleteBehavior.CHAR,
+  //   validator(v: DeleteBehavior) {
+  //     return [DeleteBehavior.CHAR, DeleteBehavior.VALUE].includes(v);
+  //   },
+  // },
 };
 export default defineComponent({
   name: 'SearchSelect',
@@ -109,7 +118,13 @@ export default defineComponent({
     clickoutside,
   },
   props: SearchSelectProps,
-  emits: ['update:modelValue', 'search'],
+  emits: ['update:modelValue', 'search', 'selectKey'],
+  slots: Object as SlotsType<{
+    menu: MenuSlotParams;
+    prepend: void;
+    append: void;
+    validate: void;
+  }>,
   setup(props, { emit }) {
     const t = useLocale('searchSelect');
     const { resolveClassName } = usePrefix();
@@ -124,7 +139,7 @@ export default defineComponent({
     });
 
     // refs
-    const inputRef = ref<typeof SearchSelectInput>(null);
+    const inputRef = ref<InstanceType<typeof SearchSelectInput>>(null);
     const wrapRef = ref<HTMLDivElement>(null);
 
     // vars
@@ -214,6 +229,8 @@ export default defineComponent({
       onEditBlur,
       onValidate,
       editKey,
+      searchData: computed(() => props.data),
+      isClickOutside: handleInputOutside,
     });
     function onEditClick(item: SelectedItem, index: number) {
       editKey.value = `${item.id}_${index}`;
@@ -266,12 +283,13 @@ export default defineComponent({
     }
     function handleWrapClick() {
       if (!editKey.value) {
-        inputRef.value.handleInputFocus();
+        inputRef.value.inputFocusForWrapper();
       }
     }
     function handleClearAll() {
       selectedList.value = [];
       overflowIndex.value = -1;
+      inputRef.value.inputClearForWrapper();
       emit('update:modelValue', []);
     }
     function handleInputOutside(target: Node) {
@@ -303,7 +321,11 @@ export default defineComponent({
       isFocus.value = v;
     }
     function handleClickSearch(e: MouseEvent) {
+      inputRef.value.inputEnterForWrapper();
       emit('search', e);
+    }
+    function handleSelectedKey(a: any) {
+      emit('selectKey', a);
     }
     return {
       inputRef,
@@ -325,6 +347,7 @@ export default defineComponent({
       handleClickSearch,
       localConditions,
       resolveClassName,
+      handleSelectedKey,
       t,
     };
   },
@@ -342,8 +365,8 @@ export default defineComponent({
     // render
     return (
       <div
-        class={this.resolveClassName('search-select')}
         ref='wrapRef'
+        class={this.resolveClassName('search-select')}
       >
         <div
           class={{
@@ -354,36 +377,38 @@ export default defineComponent({
         >
           <div class='search-prefix'>{this.$slots.prepend?.()}</div>
           <div
-            class='search-container'
             style={{ maxHeight }}
+            class='search-container'
           >
             <SearchSelected
-              data={this.copyData}
+              v-slots={{ ...menuSlots }}
               conditions={this.localConditions}
-              selectedList={this.selectedList}
-              overflowIndex={this.overflowIndex}
+              data={this.copyData}
               getMenuList={this.getMenuList}
+              overflowIndex={this.overflowIndex}
+              selectedList={this.selectedList}
               validateValues={this.validateValues}
               valueBehavior={this.valueBehavior as ValueBehavior}
               onDelete={this.handleDeleteSelected}
-              v-slots={{ ...menuSlots }}
+              onSelectKey={this.handleSelectedKey}
             />
             <div class='search-container-input'>
               <SearchSelectInput
                 ref='inputRef'
-                data={this.copyData}
-                showInputBefore={!this.selectedList.length}
-                showCondition={showCondition}
-                conditions={this.localConditions}
-                placeholder={this.placeholder || this.t.pleaseSelect}
+                v-slots={{ ...menuSlots }}
                 clickOutside={this.handleInputOutside}
+                conditions={this.localConditions}
+                data={this.copyData}
                 getMenuList={this.getMenuList}
+                placeholder={this.placeholder || this.t.pleaseSelect}
+                showCondition={showCondition}
+                showInputBefore={!this.selectedList.length}
                 validateValues={this.validateValues}
                 valueBehavior={this.valueBehavior as ValueBehavior}
                 onAdd={this.handleAddSelected}
                 onDelete={this.handleDeleteSelected}
                 onFocus={this.handleInputFocus}
-                v-slots={{ ...menuSlots }}
+                onSelectKey={this.handleSelectedKey}
               />
             </div>
           </div>
@@ -398,8 +423,8 @@ export default defineComponent({
               this.$slots.append()
             ) : (
               <Search
-                onClick={this.handleClickSearch}
                 class={`search-nextfix-icon ${this.isFocus ? 'is-focus' : ''}`}
+                onClick={this.handleClickSearch}
               ></Search>
             )}
           </div>

@@ -24,12 +24,12 @@
  * IN THE SOFTWARE.
  */
 
+import vue from '@vitejs/plugin-vue';
+import vueJsx from '@vitejs/plugin-vue-jsx';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
-import vue from '@vitejs/plugin-vue';
-import vueJsx from '@vitejs/plugin-vue-jsx';
-
+import { ENV_MAP } from '../scripts/cli/compiler/helpers';
 import md from './vite-md';
 const base = process.env.PUBLIC_PATH || '/';
 export default defineConfig({
@@ -38,11 +38,15 @@ export default defineConfig({
     alias: [
       {
         find: /^bkui-vue$/,
-        replacement: resolve(__dirname, './node_modules/bkui-vue/lib/'),
+        replacement: resolve(__dirname, '../packages/bkui-vue/index.ts'),
       },
       {
-        find: /^bkui-vue\/lib/,
-        replacement: resolve(__dirname, './node_modules/bkui-vue/lib/'),
+        find: 'bkui-vue/lib/icon',
+        replacement: resolve(__dirname, '../packages/icon/src/index.tsx'),
+      },
+      {
+        find: 'bkui-vue/lib/directives', // 老版本构建 后面业务组件升级后去除
+        replacement: resolve(__dirname, '../packages/bkui-vue/index.ts'),
       },
       {
         find: /^@bkui-vue\/lib\/icon/,
@@ -63,15 +67,23 @@ export default defineConfig({
   ],
   server: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 8086,
     fs: {
       strict: false,
     },
   },
   build: {
     commonjsOptions: {
-      include: [/\/(node_modules)\//],
+      include: [
+        /\/(lodash|dayjs|normalize-wheel|json-formatter-js|clipboard|js-calendar|spark-md5|highlight\.js|diff2html|hogan\.js)\//,
+      ],
     },
+  },
+  define: {
+    ...ENV_MAP,
+  },
+  optimizeDeps: {
+    exclude: ['bkui-vue'],
   },
   // css: {
   //   preprocessorOptions: {

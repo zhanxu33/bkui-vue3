@@ -1,55 +1,86 @@
 @import '@bkui-vue/styles/themes/themes.less';
-.@{bk-prefix}-modal-ctx {
-  &.@{bk-prefix}-info-wrapper {
-    .@{bk-prefix}-modal-wrapper {
-      width: 440px;
 
-      &.normal {
-        width: 440px;
-      }
+.@{bk-prefix}-infobox {
+  font-size: 12px;
 
-      &.small {
-        width: 400px;
-      }
+  .@{bk-prefix}-modal-wrapper {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
 
-      .@{bk-prefix}-modal-body {
-        border-radius: 2px;
-      }
+.@{bk-prefix}-infobox-header {
+  padding-top: 24px;
+}
 
-      .@{bk-prefix}-dialog-header {
-        padding: 24px 24px 0;
+.@{bk-prefix}-infobox-type {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-        .@{bk-prefix}-dialog-title {
-          height: 27px;
-          margin: 15px 0 10px;
-        }
-      }
+.@{bk-prefix}-infobox-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 42px;
 
-      .@{bk-prefix}-modal-content {
-        height: 100%;
-        max-height: 100%;
-        min-height: 100%;
-        padding: 0 50px 10px;
-        word-break: break-all;
-        .@{bk-prefix}-info-sub-title {
-          margin-bottom: 10px;
-          text-align: center;
-          word-break: break-all;
-        }
-      }
+  &.success {
+    color: @success-color;
+  }
 
-      .@{bk-prefix}-modal-footer {
-        padding: 0 65px 33px;
-        background-color: #fff;
-        border-top: none;
+  &.warning {
+    color: @warning-color;
+  }
 
-        .@{bk-prefix}-dialog-footer {
-          button {
-            min-width: 88px;
-          }
-        }
-      }
+  &.danger {
+    color: @danger-color;
+  }
+
+  &.loading {
+    color: @primary-color;
+  }
+}
+
+.@{bk-prefix}-infobox-title {
+  padding-right: 24px;
+  padding-left: 24px;
+  margin-top: 24px;
+  font-size: 20px;
+  line-height: 32px;
+  color: #313238;
+}
+
+.@{bk-prefix}-infobox-content {
+  padding-right: 24px;
+  padding-left: 24px;
+  margin-top: 16px;
+}
+
+.@{bk-prefix}-infobox-footer {
+  display: flex;
+  padding-right: 24px;
+  padding-bottom: 24px;
+  padding-left: 24px;
+  margin-top: 24px;
+  align-content: center;
+
+  &.is-position-right {
+    justify-content: right;
+  }
+
+  &.is-position-center {
+    justify-content: center;
+  }
+
+  &.is-position-left {
+    justify-content: left;
+  }
+
+  .@{bk-prefix}-button {
+    min-width: 88px;
+    & ~ .@{bk-prefix}-button {
+      margin-left: 8px;
     }
-
   }
 }

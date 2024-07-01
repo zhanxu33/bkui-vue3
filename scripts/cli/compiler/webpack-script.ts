@@ -28,7 +28,6 @@ import webpack, { Stats } from 'webpack';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 import { ILibTaskOption, ITaskItem } from '../typings/task';
-
 import bkuiBabelPlugin from './babel-plugin';
 import { LIB_URL } from './helpers';
 // import IgnorePlugin from './ignore-not-found';
@@ -151,6 +150,10 @@ export const webpackBuildScript = async (entryList: ITaskItem[], taskOption: ILi
       'highlight.js',
       'vue-types',
       ({ request, context }, cb) => {
+        // icon 特殊处理 更适用于按需加载 icon
+        if (request?.startsWith('../icons/')) {
+          return cb(undefined, request.replace('../icons/', './'));
+        }
         if (context && request && /\/bkui-vue$/.test(context)) {
           return cb(undefined, request.replace(prefix, './'));
         }

@@ -23,7 +23,6 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import isElement from 'lodash/isElement';
 import { computed, ref, watch } from 'vue';
 
 import { bkZIndexManager } from '@bkui-vue/shared';
@@ -39,6 +38,7 @@ import {
   Placement,
   shift,
 } from '@floating-ui/dom';
+import isElement from 'lodash/isElement';
 
 import { EMIT_EVENTS } from './const';
 import { PopoverPropTypes } from './props';
@@ -325,9 +325,9 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     const delay = resolvePopoverDelay()[0];
     // 设置settimeout避免hidePopover导致显示问题
     popShowTimerId = setTimeout(() => {
-      if (popHideTimerId) {
-        clearTimeout(popHideTimerId);
-      }
+      // if (popHideTimerId) {
+      //   clearTimeout(popHideTimerId);
+      // }
       if (!props.disabled) {
         localIsShow.value = true;
       }

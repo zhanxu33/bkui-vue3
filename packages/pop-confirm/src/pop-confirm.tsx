@@ -76,32 +76,38 @@ export default defineComponent({
   },
 
   render() {
+    const titleRender = () =>
+      this.title ? (
+        <div class={`${this.resolveClassName('pop-confirm-title')}`}>
+          {this.icon ? <span class={`${this.resolveClassName('pop-confirm-icon')}`}>{this.icon}</span> : ''}
+          <span>{this.title}</span>
+        </div>
+      ) : (
+        ''
+      );
     return (
       <Popover
         ref='popoverRef'
-        isShow={this.visible}
-        trigger={this.trigger}
-        theme={this.theme}
         width={this.width}
-        onAfterShow={() => (this.visible = true)}
         extCls={`${this.resolveClassName('pop-confirm-box')}`}
+        isShow={this.visible}
+        placement={this.placement}
+        theme={this.theme}
+        trigger={this.trigger}
+        onAfterShow={() => (this.visible = true)}
       >
         {{
           default: () => this.$slots.default(),
           content: () => (
             <div class={`${this.resolveClassName('pop-confirm')}`}>
               {typeof this.$slots.content === 'function' ? (
-                this.$slots.content()
+                <>
+                  {titleRender()}
+                  {this.$slots.content()}
+                </>
               ) : (
                 <>
-                  {this.title ? (
-                    <div class={`${this.resolveClassName('pop-confirm-title')}`}>
-                      {this.icon ? <span class={`${this.resolveClassName('pop-confirm-icon')}`}>{this.icon}</span> : ''}
-                      <span>{this.title}</span>
-                    </div>
-                  ) : (
-                    ''
-                  )}
+                  {titleRender()}
                   <div class={`${this.resolveClassName('pop-confirm-content')}`}>
                     {!this.title ? this.icon : ''}
                     {this.content}
@@ -110,15 +116,15 @@ export default defineComponent({
               )}
               <div class={`${this.resolveClassName('pop-confirm-footer')}`}>
                 <Button
-                  onClick={this.ensure}
                   size='small'
                   theme='primary'
+                  onClick={this.ensure}
                 >
                   {this.confirmText || this.t.ok}
                 </Button>
                 <Button
-                  onClick={this.cancel}
                   size='small'
+                  onClick={this.cancel}
                 >
                   {this.cancelText || this.t.cancel}
                 </Button>

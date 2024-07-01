@@ -4,8 +4,8 @@
     <p>
       small
       <bk-select
-        v-model="selectedValue"
         class="bk-select"
+        v-model="selectedValue"
         size="small"
       >
         <bk-option
@@ -20,8 +20,8 @@
     <p>
       default
       <bk-select
-        v-model="selectedValue"
         class="bk-select"
+        v-model="selectedValue"
       >
         <bk-option
           v-for="(item, index) in datasource"
@@ -35,11 +35,11 @@
     <p>
       large
       <bk-select
-        v-model="selectedValue"
         class="bk-select"
+        v-model="selectedValue"
         size="large"
-        multiple
         filterable
+        multiple
       >
         <bk-option
           v-for="(item, index) in datasource"
@@ -51,31 +51,15 @@
     </p>
     <!-- simplicity small -->
     <p>
-      simplicity small
+      simplicity tag
       <bk-select
-        v-model="selectedValue"
         class="bk-select"
-        size="small"
+        v-model="selectedValue"
         behavior="simplicity"
-        multiple
+        multiple-mode="tag"
+        collapse-tags
         filterable
-      >
-        <bk-option
-          v-for="(item, index) in datasource"
-          :id="item.value"
-          :key="index"
-          :name="item.label"
-        />
-      </bk-select>
-    </p>
-    <!-- simplicity large -->
-    <p>
-      simplicity large
-      <bk-select
-        v-model="selectedValue"
-        class="bk-select"
-        size="large"
-        behavior="simplicity"
+        multiple
       >
         <bk-option
           v-for="(item, index) in datasource"
@@ -123,12 +107,12 @@
   const selectedValue = ref('running');
 </script>
 <style scoped>
-.style-demo {
-  display: flex;
-}
+  .style-demo {
+    display: flex;
+  }
 
-.bk-select {
-  width: 200px;
-  margin-right: 20px;
-}
+  .bk-select {
+    width: 200px;
+    margin-right: 20px;
+  }
 </style>

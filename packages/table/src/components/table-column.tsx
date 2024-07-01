@@ -23,13 +23,13 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { defineComponent, ExtractPropTypes, inject, reactive, unref } from 'vue';
+import { defineComponent, ExtractPropTypes, inject, onUnmounted, watch, toRaw } from 'vue';
 
 import { PropTypes } from '@bkui-vue/shared';
+import { isEqual } from 'lodash';
 
-import { BK_COLUMN_UPDATE_DEFINE, COL_MIN_WIDTH, PROVIDE_KEY_INIT_COL, PROVIDE_KEY_TB_CACHE } from '../const';
+import { COL_MIN_WIDTH, PROVIDE_KEY_INIT_COL } from '../const';
 import {
-  Column,
   columnType,
   fixedType,
   IFilterType,
@@ -69,91 +69,25 @@ export type ITableColumn = Partial<ExtractPropTypes<typeof TableColumnProp>>;
 export default defineComponent({
   name: 'TableColumn',
   props: TableColumnProp,
-  setup(props: ITableColumn) {
-    const initColumns = inject(PROVIDE_KEY_INIT_COL, (_col: Column | Column[], _rm = false) => {}, false);
-    const bkTableCache = inject(PROVIDE_KEY_TB_CACHE, { queueStack: (_, fn) => fn?.() });
-    const column = reactive(Object.assign({}, props, { field: props.prop || props.field }));
-    return {
-      initColumns,
-      bkTableCache,
-      column,
-    };
-  },
-  unmounted() {
-    this.updateColumnDefine(true);
-  },
-  mounted() {
-    this.updateColumnDefine();
-  },
-  updated() {
-    this.updateColumnDefineByParent();
-  },
-  methods: {
-    updateColumnDefine(unmounted = false) {
-      if (unmounted) {
-        this.unmountColumn();
-        return;
-      }
+  setup(props: ITableColumn, { slots }) {
+    const initTableColumns = inject(PROVIDE_KEY_INIT_COL, () => {});
+    const lastPropsVal = {};
 
-      this.updateColumnDefineByParent();
-    },
-    copyProps(props: ITableColumn) {
-      return Object.keys(props ?? {}).reduce((result, key) => {
-        const target = key.replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
-        return Object.assign(result, { [target]: props[key] });
-      }, {});
-    },
-    updateColumnDefineByParent() {
-      const fn = () => {
-        // @ts-ignore
-        const selfVnode = (this as any)._;
-        const colList = selfVnode.parent.vnode.children.default() || [];
+    watch(
+      () => [props],
+      () => {
+        if (!isEqual(lastPropsVal, toRaw(props))) {
+          initTableColumns();
+          Object.assign(lastPropsVal, toRaw(props));
+        }
+      },
+      { immediate: true, deep: true },
+    );
 
-        const sortColumns = [];
-        let index = 0;
-        const reduceColumns = nodes => {
-          if (!Array.isArray(nodes)) {
-            return;
-          }
-          nodes.forEach((node: any) => {
-            if (Array.isArray(node)) {
-              reduceColumns(node);
-              return;
-            }
+    onUnmounted(() => {
+      initTableColumns();
+    });
 
-            let skipValidateKey0 = true;
-            if (node.type?.name === 'TableColumn') {
-              skipValidateKey0 = Object.hasOwnProperty.call(node.props || {}, 'key');
-              const resolveProp = Object.assign({ index }, this.copyProps(node.props), {
-                field: node.props.prop || node.props.field,
-                render: node.children?.default,
-              });
-              sortColumns.push(unref(resolveProp));
-              index = index + 1;
-            }
-
-            if (node.children?.length && skipValidateKey0) {
-              reduceColumns(node.children);
-            }
-          });
-        };
-        reduceColumns(colList);
-        this.initColumns(sortColumns);
-      };
-
-      if (typeof this.bkTableCache.queueStack === 'function') {
-        this.bkTableCache.queueStack(BK_COLUMN_UPDATE_DEFINE, fn);
-      }
-    },
-    unmountColumn() {
-      const resolveProp = Object.assign({}, this.copyProps(this.$props), {
-        field: this.$props.prop || this.$props.field,
-        render: this.$slots.default,
-      });
-      this.initColumns(resolveProp as any, true);
-    },
-  },
-  render() {
-    return <>{this.$slots.default?.({ row: {} })}</>;
+    return () => slots.default?.({ row: {} });
   },
 });

@@ -1,4 +1,3 @@
-/* eslint-disable codecc/comment-ratio */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -732,15 +731,33 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('../views/pop-confirm/index'),
   },
-    {
-      path: '/bk/date-piker',
-      name: 'BluekingDatePicker',
-      meta: {
-        group: NavGroupMeta.Business,
-        navName: 'Date Picker 时间选择器',
-      },
-      component: () => import('../views/blueking/date-picker/index'),
+  {
+    path: '/bk/date-piker',
+    name: 'BluekingDatePicker',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Date Picker 时间选择器',
     },
+    component: () => import('../views/blueking/date-picker/index'),
+  },
+  {
+    path: '/bk/log-search',
+    name: 'BluekingLogSearch',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Log Search 日志检索',
+    },
+    component: () => import('../views/blueking/log-search/index'),
+  },
+  {
+    path: '/bk/functional-deps',
+    name: 'FunctionalDeps',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Functional Deps 功能依赖展示',
+    },
+    component: () => import('../views/blueking/functional-deps/index'),
+  },
 ];
 
 const router = createRouter({

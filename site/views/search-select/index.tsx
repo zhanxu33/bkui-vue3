@@ -30,8 +30,8 @@ import DemoBox from '../../components/demo-box';
 import DemoTitle from '../../components/demo-title';
 import PropsBox from '../../components/props-box';
 import { IPropsTableItem } from '../../typings';
-
 import BaseDemo from './base-demo.vue';
+import ComprehensiveUseDemo from './comprehensive-use.vue';
 import MenuDemo from './menu-demo.vue';
 import PlaceholderDemo from './placeholder-demo.vue';
 import RemoteDemo from './remote-demo.vue';
@@ -102,6 +102,13 @@ const propsJson: IPropsTableItem[] = [
     optional: ['all', 'need-key'],
   },
   {
+    name: 'comprehensive-use',
+    type: 'String',
+    default: 'delete-value',
+    desc: '配置按下delete键时是否删除整个value 配置为 delete-char 则删除当前字符 delete-value 则删除当前光标所在的整个value字符',
+    optional: ['delete-char', 'delete-value'],
+  },
+  {
     name: 'placeholder',
     type: 'String',
     default: '请选择',
@@ -129,7 +136,12 @@ const slotsJson = [
     type: 'scoped slot',
     default: [],
     desc: 'menu面板子项插槽',
-    params: '{list, item, hoverId, multiple, getSearchNode}',
+    params: `{
+      value: ICommonItem;
+      id: string;
+      name: string;
+      onSubmit: (value: string) => void;
+    }`,
   },
 ];
 const eventJson = [
@@ -211,6 +223,12 @@ const dataJson = [
     default: 'false',
     desc: '是否显示逻辑符号选项列表 默认不显示 仅在多选时生效',
   },
+  {
+    name: 'isCustomMenu',
+    type: 'Boolean',
+    default: 'false',
+    desc: '是否配置了自定义子项面板 仅在配置了menu插槽时生效',
+  },
 ];
 const slotColumnMap = {
   name: '名称',
@@ -234,79 +252,89 @@ export default defineComponent({
     return (
       <div>
         <DemoTitle
-          name='Search Select'
           desc='Search Select组件， 为页面和模块提供方便的搜索选择功能。'
           designLink='https://bkdesign.bk.tencent.com/design/70'
+          name='Search Select'
         />
         <DemoBox
-          title='基础用法'
-          subtitle='基础使用'
-          desc='基础用法'
           componentName='search-select'
           demoName='base-demo'
+          desc='基础用法'
+          subtitle='基础使用'
+          title='基础用法'
         >
           <BaseDemo />
         </DemoBox>
         <DemoBox
-          title='远程加载子列表'
-          subtitle='通过配置属性 geMenuList 方法 来做到异步获取menu列表 同时配合 data 内子项 async 属性来配置针对不同的选择项是否需要远程获取子列表'
-          desc='远程加载子列表'
           componentName='search-select'
           demoName='remote-demo'
+          desc='远程加载子列表'
+          subtitle='通过配置属性 geMenuList 方法 来做到异步获取menu列表 同时配合 data 内子项 async 属性来配置针对不同的选择项是否需要远程获取子列表'
+          title='远程加载子列表'
         >
           <RemoteDemo />
         </DemoBox>
         <DemoBox
-          title='校验输入的选择项'
-          subtitle='通过配置属性 validateValues 方法 来做到对选择的子项进行校验 validateValues 返回校验失败文案 返回true则代表校验成功'
-          desc='同时配合子项配置 noValidate 来做到不同的选择项是否触发校验'
           componentName='search-select'
           demoName='validate-demo'
+          desc='同时配合子项配置 noValidate 来做到不同的选择项是否触发校验'
+          subtitle='通过配置属性 validateValues 方法 来做到对选择的子项进行校验 validateValues 返回校验失败文案 返回true则代表校验成功'
+          title='校验输入的选择项'
         >
           <ValidateDemo />
         </DemoBox>
         <DemoBox
-          title='配置每个选项独立的placeholder'
-          subtitle='通过配置子选项属性 placeholder 来做到针对每一个选项都有独自的placeholder'
-          desc='独立的placeholder'
           componentName='search-select'
           demoName='placeholder-demo'
+          desc='独立的placeholder'
+          subtitle='通过配置子选项属性 placeholder 来做到针对每一个选项都有独自的placeholder'
+          title='配置每个选项独立的placeholder'
         >
           <PlaceholderDemo />
         </DemoBox>
         <DemoBox
-          title='配置 menu 插槽来自定义 menu 面板'
-          subtitle='通过配置子选项属性 placeholder 来做到针对每一个选项都有独自的placeholder'
-          desc='menu 插槽'
           componentName='search-select'
           demoName='menu-demo'
+          desc='menu 插槽'
+          subtitle='配置 menu 插槽来自定义 menu 面板'
+          title='自定义 menu 面板'
         >
           <MenuDemo />
         </DemoBox>
         <DemoBox
-          title='配置 valueBehevior 属性定义生成 value 交互行为'
-          subtitle='改变配置 valueBehevior 值为 need-key  来做到存文本不可生成 value tag'
-          desc='valueBehevior 行为'
           componentName='search-select'
-          demoName='menu-demo'
+          demoName='value-behavior'
+          desc='valueBehevior 行为'
+          subtitle='改变配置 valueBehevior 值为 need-key  来做到存文本不可生成 value tag'
+          title='配置 valueBehevior 属性定义生成 value 交互行为'
         >
           <ValueBehaviorDemo />
         </DemoBox>
+
+        <DemoBox
+          componentName='search-select'
+          demoName='comprehensive-use'
+          desc='综合使用示例'
+          subtitle='综合使用示例'
+          title='综合使用'
+        >
+          <ComprehensiveUseDemo />
+        </DemoBox>
         <PropsBox propsData={propsJson} />
         <PropsBox
-          title='data数据字段配置'
           columnMap={dataColumnMap}
           propsData={dataJson}
+          title='data数据字段配置'
         />
         <PropsBox
-          title='插槽'
           columnMap={slotColumnMap}
           propsData={slotsJson}
+          title='插槽'
         />
         <PropsBox
-          title='事件'
           columnMap={eventColumnMap}
           propsData={eventJson}
+          title='事件'
         />
       </div>
     );

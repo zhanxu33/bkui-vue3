@@ -24,20 +24,23 @@
  * IN THE SOFTWARE.
  */
 
-import type { ExtractPropTypes } from 'vue';
 import { defineComponent } from 'vue';
+import { func } from 'vue-types';
 
 import { usePrefix } from '@bkui-vue/config-provider';
 import { classes, PropTypes } from '@bkui-vue/shared';
 
 import { useFocus, useRadio } from './common';
 
+import type { ExtractPropTypes } from 'vue';
+
 const radioProps = {
   name: PropTypes.string.def(''),
-  label: PropTypes.oneOfType([String, Number, Boolean]).isRequired,
-  modelValue: PropTypes.oneOfType([String, Number, Boolean]).def(''),
+  label: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).isRequired,
+  modelValue: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).def(''),
   checked: PropTypes.bool.def(false),
   disabled: PropTypes.bool.def(false),
+  beforeChange: func<(event: boolean | string | number) => Promise<boolean> | boolean>().def(() => true),
 };
 
 export type RadioProps = Readonly<ExtractPropTypes<typeof radioProps>>;
@@ -96,14 +99,14 @@ export default defineComponent({
       >
         <input
           class={`${this.resolveClassName('radio-input')}`}
-          type='radio'
-          tabindex='0'
-          value={this.label as string}
           checked={this.isChecked}
           disabled={this.isDisabled}
-          onFocus={this.handleFocus}
+          tabindex='0'
+          type='radio'
+          value={this.label as string}
           onBlur={this.handleBlur}
           onChange={this.handleChange}
+          onFocus={this.handleFocus}
         />
         {renderLabel()}
       </label>
