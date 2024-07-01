@@ -409,9 +409,9 @@ export const tableProps = {
 
   /**
    * 设置表格最小高度
-   * 默认：LINE_HEIGHT * 3
+   * 默认：LINE_HEIGHT * 2
    */
-  minHeight: StringNumberType(LINE_HEIGHT * 3),
+  minHeight: StringNumberType(LINE_HEIGHT),
 
   /**
    * 设置表格最d大高度
