@@ -1,5 +1,24 @@
 ## 更新日志
 
+### 2.0.1-beta.30
+
+* **[feat]**:
+    - feature(alert|checkbox|pagination|radio|steps|dialog|form|menu|sideslider|tag-input): 补全文档
+    - bugfix(sideslider): renderDirective配置成 if 时会报错
+    - feat(table): 支持多表头功能
+    - bugfix(select): 下拉框组件清空选项后，clear icon 没有消失，必须再点一次才会消失
+    - feature(docs): affix\backtop\cascader\fixed-navbar\link 文档优化
+    - docs: button\code-diff\input\loading 文档补齐
+    - bugfix(table): 取消全选方法修复 & 文档补齐
+    - feat(docs): grid\color-picker\date-picker\time-picker\divider\pop-confirm 文档补齐
+
+
+### 2.0.1-beta.29
+
+* **[feat]**:
+    - bugfix(tree): 父级全选/半选状态错误
+
+
 ### 2.0.1-beta.28
 
 * **[feat]**:
