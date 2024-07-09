@@ -23,67 +23,18 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+import { defineComponent } from 'vue';
 
-import type { HTMLAttributes } from 'vue';
+export default defineComponent({
+  name: 'GhostBody',
+  setup(_, ctx) {
+    const columnGhostStyle = {
+      zIndex: -1,
+      width: 0,
+      height: 0,
+      display: 'none' as const,
+    };
 
-declare module 'vue' {
-  interface AnchorHTMLAttributes<T> extends HTMLAttributes<T> {
-    disabled?: boolean;
-  }
-
-  declare module '*.vue' {
-    import { DefineComponent } from 'vue';
-    const component: DefineComponent;
-    export default component;
-  }
-
-  declare module '*.png' {
-    const value: any;
-    export default value;
-  }
-
-  declare module '*.gif' {
-    const SRC: string;
-    export default SRC;
-  }
-
-  declare module '*.jpg' {
-    const SRC: string;
-    export default SRC;
-  }
-
-  declare module '*.jpeg' {
-    const SRC: string;
-    export default SRC;
-  }
-
-  declare module '*.webp' {
-    const SRC: string;
-    export default SRC;
-  }
-
-  declare module '*.svg' {
-    const SRC: string;
-    export default SRC;
-  }
-
-  declare module '*.css' {
-    const content: any;
-    export default content;
-  }
-
-  declare module '*.module.css' {
-    const classes: { readonly [key: string]: string };
-    export default classes;
-  }
-
-  declare module '*.module.scss' {
-    const classes: { readonly [key: string]: string };
-    export default classes;
-  }
-
-  declare module '*.module.sass' {
-    const classes: { readonly [key: string]: string };
-    export default classes;
-  }
-}
+    return () => <div style={columnGhostStyle}>{ctx.slots.default?.()}</div>;
+  },
+});

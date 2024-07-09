@@ -25,37 +25,35 @@
  */
 import { computed, defineComponent } from 'vue';
 
-import { classes, PropTypes } from '@bkui-vue/shared';
-
-import { getColumnReactWidth, resolveWidth } from '../utils';
+import { useLocale } from '@bkui-vue/config-provider';
+import Exception from '@bkui-vue/exception';
+import { PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
-  name: 'ColGroup',
+  name: 'BodyEmpty',
   props: {
-    colgroups: PropTypes.array.def([]),
-    columnPick: PropTypes.string.def(''),
-    propActiveCols: PropTypes.array.def([]),
+    list: PropTypes.array.def([]),
+    filterList: PropTypes.array.def([]),
+    emptyText: PropTypes.string,
   },
-  setup(props) {
-    const filterColgroups = computed(() => props.colgroups.filter((col: any) => !col.isHidden));
-    const isColActive = (colIndex: number) =>
-      props.columnPick !== 'disabled' && props.propActiveCols.some((col: any) => col.index === colIndex && col.active);
-    return () => (
-      <colgroup>
-        {(filterColgroups.value || []).map((column: any, index: number) => {
-          const colCls = classes({
-            active: isColActive(index),
-          });
+  emits: ['change'],
 
-          const width = `${resolveWidth(getColumnReactWidth(column))}`.replace(/px$/i, '');
-          return (
-            <col
-              class={colCls}
-              width={width}
-            ></col>
-          );
-        })}
-      </colgroup>
+  setup(props) {
+    const t = useLocale('table');
+    const localEmptyText = computed(() => {
+      if (props.emptyText === undefined) {
+        return t.value.emptyText;
+      }
+      return props.emptyText;
+    });
+
+    const type = computed(() => (props.list.length === 0 ? 'empty' : 'search-empty'));
+    return () => (
+      <Exception
+        description={localEmptyText.value}
+        scene='part'
+        type={type.value}
+      />
     );
   },
 });

@@ -41,8 +41,8 @@ import {
 } from './const';
 
 export enum SortScope {
-  CURRENT = 'current',
   ALL = 'all',
+  CURRENT = 'current',
 }
 
 export type ColumnFilterListItem = {
@@ -51,8 +51,8 @@ export type ColumnFilterListItem = {
 };
 
 export enum OverflowModeEnum {
-  STATIC = 'static',
   AUTO = 'auto',
+  STATIC = 'static',
 }
 
 export const EnumOverflowModeType = toType<`${OverflowModeEnum}`>('showOverflowTooltipMode', {
@@ -60,17 +60,17 @@ export const EnumOverflowModeType = toType<`${OverflowModeEnum}`>('showOverflowT
 });
 
 export enum ColumnTypeEnum {
-  SELECTION = 'selection',
-  INDEX = 'index',
   EXPAND = 'expand',
+  INDEX = 'index',
   NONE = '__COL_TYPE_NONE',
+  SELECTION = 'selection',
 }
 
 export enum TableAlignEnum {
-  LEFT = 'left',
-  RIGHT = 'right',
   CENTER = 'center',
+  LEFT = 'left',
   NONE = '',
+  RIGHT = 'right',
 }
 
 export const columnType = toType<`${ColumnTypeEnum}`>('columnType', {
@@ -90,9 +90,9 @@ export const fullType = toType<`${FullEnum}`>('full', {
 });
 
 export enum SettingSizeEnum {
-  SMALL = 'small',
-  MEDIUM = 'medium',
   LARGE = 'large',
+  MEDIUM = 'medium',
+  SMALL = 'small',
 }
 
 export const settingSizeType = toType<`${SettingSizeEnum}`>('columnSize', {
@@ -107,11 +107,12 @@ export enum FixedEnum {
 export const fixedType = string<`${FixedEnum}`>();
 
 export type IOverflowTooltipOption = {
-  content: ((col: Column, row: any) => string) | string;
-  disabled?: ((col: Column, row: any) => boolean) | boolean;
+  content: ((col: Column, row: Record<string, object>) => string) | string;
+  disabled?: ((col: Column, row: Record<string, object>) => boolean) | boolean;
+  allowHtml?: boolean;
   watchCellResize?: boolean;
   mode?: `${OverflowModeEnum}`;
-  popoverOption?: any;
+  popoverOption?: Record<string, object>;
   resizerWay?: ResizerWay;
   showHead?: boolean;
 };
@@ -135,7 +136,7 @@ export const ISortType = toType<ISortPropShape>('ISortPropShape', {
 });
 
 export type ISortShape = {
-  sortFn?: Function;
+  sortFn?: (...args) => boolean;
   sortScope?: SortScope;
   value?: SORT_OPTION;
 };
@@ -143,10 +144,10 @@ export type ISortShape = {
 export type ISortPropShape = ISortShape | boolean | string;
 
 export type IFilterShape = {
-  list: any[];
-  filterFn?: Function;
+  list: { label: string; value: string }[];
+  filterFn?: (...args) => boolean;
   match?: FullEnum;
-  checked?: any[];
+  checked?: string[];
   filterScope?: SortScope;
   btnSave?: boolean | string;
   btnReset?: boolean | string;
@@ -162,9 +163,9 @@ export const IFilterType = toType<IFilterPropShape>('IFilterPropShape', {
 });
 
 export enum ColumnPickEnum {
+  DISABLED = 'disabled',
   MULTI = 'multi',
   SINGLE = 'single',
-  DISABLED = 'disabled',
 }
 
 export enum ResizerWay {
@@ -216,35 +217,38 @@ export type Field = {
 };
 
 export type LabelFunctionString =
-  | ((_column, _index) => string | number | boolean | JSX.Element)
-  | string
+  | ((_column, _index) => JSX.Element | boolean | number | string)
+  | boolean
   | number
-  | boolean;
+  | string;
 export const LabelFunctionStringType = toType<LabelFunctionString>('LabelFunctionStringType', {});
+export type HeadRenderArgs = {
+  cell?: Record<string, object>;
+  data?: Record<string, object>[];
+  row?: Record<string, object>;
+  column: Column;
+  index: number;
+  rows?: Record<string, object>[];
+};
 
-export type RenderFunctionString = ({
-  cell,
-  data,
-  row,
-  column,
-  index,
-  rows,
-}) => string | number | boolean | JSX.Element;
+export type RenderFunctionString = (args: HeadRenderArgs) => JSX.Element | boolean | number | string;
 export const RenderFunctionStringType = toType<RenderFunctionString>('RenderFunctionStringType', {});
 
-export type SpanFunctionString = (({ column, colIndex, row, rowIndex }) => number) | Number;
+export type SpanFunctionString = (({ column, colIndex, row, rowIndex }) => number) | number;
 export const SpanFunctionStringType = toType<SpanFunctionString>('SpanFunctionStringType', {});
 
-export type RowClassFunctionString = ((row: any) => string) | string;
+export type RowClassFunctionString = ((row: Record<string, object>) => string) | string;
 export const RowClassFunctionStringType = toType<RowClassFunctionString>('RowClassFunctionStringType', {});
 
-export type RowHeightFunctionNumber = ((_type: string, _row: any, _rowIndex: number, _size?) => number) | number;
+export type RowHeightFunctionNumber =
+  | ((type: string, row: Record<string, object>, rowIndex: number, size?) => number)
+  | number;
 export const RowHeightFunctionNumberType = toType<RowHeightFunctionNumber>('RowHeightFunctionNumberType', {});
 
-type FunctionNumber = Function | number;
+type FunctionNumber = ((...args) => void) | number;
 export const FunctionNumberType = toType<FunctionNumber>('FunctionNumberType', {});
 
-type StringNumber = string | number;
+type StringNumber = number | string;
 export const StringNumberType = (val: number | string) => toType<StringNumber>('StringNumberType', {}).def(val);
 
 /**
@@ -265,17 +269,27 @@ export type IDraggableRowOption = {
   width?: number;
 };
 
+export type IHeadGroup = {
+  thColspan: number;
+  thRowspan: number;
+  isGroup: boolean;
+  parent?: IHeadGroup;
+  label?: string;
+  offsetLeft?: number;
+};
+
 export type Column = {
-  label: LabelFunctionString;
+  label?: LabelFunctionString;
   field?: LabelFunctionString;
   render?: RenderFunctionString;
+  disabled?: boolean;
   renderHead?: RenderFunctionString;
   width?: number | string;
   minWidth?: number | string;
   columnKey?: string;
   showOverflowTooltip?: IOverflowTooltip;
   type?: string;
-  fixed?: string | boolean;
+  fixed?: boolean | string;
   resizable?: boolean;
   sort?: ISortShape | boolean | string;
   filter?: IFilterShape | boolean | string;
@@ -285,8 +299,9 @@ export type Column = {
   className?: RowClassFunctionString;
   align?: string;
   prop?: LabelFunctionString;
-  index?: Number;
+  index?: number;
   explain?: IColumnExplain;
+  children?: Column[];
 };
 
 export const IColumnProp = toType<Column>('IColumnPropType', {
@@ -298,9 +313,9 @@ export const IColumnProp = toType<Column>('IColumnPropType', {
 });
 
 export type Thead = {
-  height?: Number;
+  height?: number;
   isShow?: boolean;
-  cellFn?: Function;
+  cellFn?: (...args) => void;
   color?: IHeadColor | string;
 };
 
@@ -311,7 +326,7 @@ export type GroupColumn = {
   calcWidth?: number;
   resizeWidth?: number;
   isHidden?: boolean;
-  listeners?: Map<string, any>;
+  listeners?: Map<string, (...args) => void>;
 } & Column;
 
 export type IColumnActive = {
@@ -321,35 +336,41 @@ export type IColumnActive = {
 
 export type IReactiveProp = {
   activeColumns: IColumnActive[];
-  rowActions: Record<string, any>;
-  scrollTranslateY: Number;
-  scrollTranslateX: Number;
-  pos: Record<string, any>;
+  rowActions: Record<string, object>;
+  scrollTranslateY: number;
+  scrollTranslateX: number;
+  pos: Record<string, object>;
   settings: Settings | boolean;
   setting: {
     size: string;
-    height: Number;
+    height: number;
   };
-  defaultSort: Record<string, any>;
+  defaultSort: Record<string, object>;
 };
 
 export type Colgroups = Column & {
   calcWidth: number;
   resizeWidth: number;
-  listeners: Map<string, Function>;
+  listeners: Map<string, (...args) => void>;
 };
 
 export enum IColSortBehavior {
   /**
-   * 列排序是相互依赖的
-   */
-  interdependent = 'interdependent',
-
-  /**
    * 列与列之间的排序是独立的，互斥的
    */
   independent = 'independent',
+
+  /**
+   * 列排序是相互依赖的
+   */
+  interdependent = 'interdependent',
 }
+
+export type FixedBottomOption = {
+  position: 'absolute' | 'relative';
+  height: number;
+  loading?: boolean;
+};
 
 export const tableProps = {
   /**
@@ -389,9 +410,9 @@ export const tableProps = {
 
   /**
    * 设置表格最小高度
-   * 默认：300
+   * 默认：LINE_HEIGHT * 2
    */
-  minHeight: StringNumberType(LINE_HEIGHT * 2),
+  minHeight: StringNumberType(LINE_HEIGHT),
 
   /**
    * 设置表格最d大高度
@@ -403,7 +424,7 @@ export const tableProps = {
    * 行高，可以为固定数值类型
    * 可以是函数，返回当前行的高度，返回值为数值类型
    */
-  rowHeight: RowHeightFunctionNumberType.def(LINE_HEIGHT),
+  rowHeight: RowHeightFunctionNumberType,
 
   /**
    * Thead行高，可以为固定数值类型
@@ -629,4 +650,16 @@ export const tableProps = {
    * 是否支持shift键多行选择
    */
   shiftMultiChecked: PropTypes.bool.def(false),
+
+  /**
+   * 启用Scrollbar
+   */
+  scrollbar: PropTypes.bool.def(true),
+
+  /**
+   * 固定在底部的配置项
+   */
+  fixedBottom: toType<FixedBottomOption>('FixedBottomOption', {
+    default: { position: 'relative', height: LINE_HEIGHT },
+  }).def(null),
 };

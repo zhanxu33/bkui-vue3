@@ -110,8 +110,8 @@ export default [
       { name: 'show-checkbox', type: 'Boolean', default: 'false', desc: '是否支持多选', optional: [] },
       { name: 'show-node-type-icon', type: 'Boolean', default: 'true', desc: '是否显示节点类型Icon', optional: [] },
       {
-        name: 'selected',
-        type: 'Object',
+        name: 'checked',
+        type: 'Array',
         default: 'null',
         desc: '默认选中的节点id(如果设置了node-key)或者节点对象，selectable为false时无效',
         optional: [],
@@ -290,6 +290,7 @@ export default [
       { name: 'setSelect', desc: '设置指定节点是否选中', params: '(item: any, selected = true, autoOpen = true)' },
       { name: 'asyncNodeClick', desc: '异步请求触发点击节点', params: '（item）' },
       { name: 'getData', desc: '获取当前树配置数据（经过内部处理的数据）', params: '（）' },
+      { name: 'getParentNode', desc: '获取指定节点的父级节点', params: 'node: 当前节点' },
     ],
   },
   {

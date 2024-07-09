@@ -23,10 +23,10 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import throttle from 'lodash/throttle';
 import { nextTick, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
+import throttle from 'lodash/throttle';
 
 import type { ModalProps } from './modal';
 
@@ -58,11 +58,13 @@ export const useContentResize = (
       .getBoundingClientRect();
 
     const windowInnerHeight = window.innerHeight;
+    const footerMarginTop = 32;
 
-    isContentScroll.value = windowInnerHeight < headerHeight + contentHeight + footerHeight + 20;
+    isContentScroll.value = windowInnerHeight < headerHeight + contentHeight + footerHeight + footerMarginTop;
     if (isContentScroll.value || props.fullscreen) {
+      const fixedFooterHeight = 48;
       contentStyles.value = {
-        height: `${windowInnerHeight - headerHeight - footerHeight}px`,
+        height: `${windowInnerHeight - headerHeight - fixedFooterHeight}px`,
         overflow: 'auto',
         'scrollbar-gutter': 'stable',
       };
@@ -74,11 +76,14 @@ export const useContentResize = (
   }, 30);
 
   watch(
-    () => props.isShow,
+    () => [props.isShow, resizeTarget],
     () => {
       let observer: ResizeObserver;
       if (props.isShow) {
         nextTick(() => {
+          if (!resizeTarget.value) {
+            return;
+          }
           observer = new ResizeObserver(() => {
             calcContentScroll();
           });

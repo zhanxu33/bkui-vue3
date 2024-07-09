@@ -24,12 +24,13 @@
  * IN THE SOFTWARE.
  */
 
+import { isProxy, toRaw } from 'vue';
+
+import { throttle } from '@bkui-vue/shared';
 import debounce from 'lodash/debounce';
 import objGet from 'lodash/get';
-import throttle from 'lodash/throttle';
 import ResizeObserver from 'resize-observer-polyfill';
 import { v4 as uuidv4 } from 'uuid';
-import { isProxy, toRaw } from 'vue';
 
 import { BORDER_OPTION, BORDER_OPTIONS, SORT_OPTION, TABLE_ROW_ATTRIBUTE } from './const';
 import { Column, GroupColumn, ISortPropShape, TablePropTypes } from './props';
@@ -41,7 +42,7 @@ import { Column, GroupColumn, ISortPropShape, TablePropTypes } from './props';
  * @param args 如果是函数，传递参数
  * @returns
  */
-export const resolvePropVal = (prop: any, key: string | string[], args: any[]) => {
+export const resolvePropVal = (prop: Record<string, unknown>, key: string | string[], args: unknown[]) => {
   if (prop === undefined || prop === null) {
     return undefined;
   }
@@ -49,7 +50,7 @@ export const resolvePropVal = (prop: any, key: string | string[], args: any[]) =
   if (typeof key === 'string') {
     if (Object.prototype.hasOwnProperty.call(prop, key)) {
       if (typeof prop[key] === 'function') {
-        return prop[key].call(this, ...args);
+        return (prop[key] as (...args) => unknown).call(this, ...args);
       }
 
       return prop[key];
@@ -61,7 +62,7 @@ export const resolvePropVal = (prop: any, key: string | string[], args: any[]) =
   if (Array.isArray(key)) {
     return key
       .map((_key: string) => resolvePropVal(prop, _key, args))
-      .filter((val: any) => val !== undefined)
+      .filter((val: unknown) => val !== undefined)
       .at(0);
   }
 };
@@ -102,7 +103,7 @@ export const resolveNumberToNumArray = (prop: number) => {
  * @param propWidth
  * @returns
  */
-export const resolveWidth = (propWidth: string | number) => resolveNumberOrStringToPix(propWidth, 'auto');
+export const resolveWidth = (propWidth: number | string) => resolveNumberOrStringToPix(propWidth, 'auto');
 
 /**
  * 解析可为数字或者字符串设置的样式配置
@@ -112,12 +113,12 @@ export const resolveWidth = (propWidth: string | number) => resolveNumberOrStrin
  * @returns 标准化px string
  */
 export const resolveNumberOrStringToPix = (
-  val: string | number,
-  defaultValue: string | number = '100%',
+  val: number | string,
+  defaultValue: number | string = '100%',
   offset = null,
 ) => {
-  let target: string | number = '';
-  if (/^auto|null|undefined$/gi.test(`${val}`)) {
+  let target: number | string = '';
+  if (/^null|undefined$/gi.test(`${val}`)) {
     target = defaultValue;
   } else {
     target = /^\d+\.?\d+$/.test(`${val}`) ? `${val}px` : val;
@@ -182,7 +183,7 @@ export const observerResize = (
       callbackFn();
     }
   };
-  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn, delay);
+  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn);
   const callFn = () => Reflect.apply(execFn, this, []);
 
   const resizeObserver = new ResizeObserver(() => {
@@ -210,7 +211,7 @@ export const observerResize = (
  * @param val
  * @returns
  */
-export const isPercentPixOrNumber = (val: string | number) => /^\d+\.?\d*(px|%)?$/.test(`${val}`);
+export const isPercentPixOrNumber = (val: number | string) => /^\d+\.?\d*(px|%)?$/.test(`${val}`);
 
 /**
  * Format Table Head Option
@@ -222,7 +223,7 @@ export const resolveHeadConfig = (props: TablePropTypes) => {
   return Object.assign({}, { isShow: showHead, height: headHeight }, thead);
 };
 
-const getRegExp = (val: string | number | boolean, flags = 'ig') =>
+const getRegExp = (val: boolean | number | string, flags = 'ig') =>
   new RegExp(`${val}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
 
 /**
@@ -233,7 +234,7 @@ const getRegExp = (val: string | number | boolean, flags = 'ig') =>
  * @param index 当前行Index
  * @returns
  */
-export const getRowText = (row: any, key: string, format?: string[] | (() => string | number | boolean)[]) => {
+export const getRowText = (row: any, key: string, format?: (() => boolean | number | string)[] | string[]) => {
   let result;
   if (typeof row === 'string' || typeof row === 'number' || typeof row === 'boolean') {
     result = row;
@@ -277,7 +278,7 @@ export const getRowValue = (row: any, key: string) => {
  * @param args 如果是function参数
  * @returns
  */
-export const formatPropAsArray = (prop: string | object | (() => any), args: any[]) => {
+export const formatPropAsArray = (prop: (() => any) | object | string, args: any[]) => {
   if (Array.isArray(prop)) {
     return prop;
   }
@@ -405,7 +406,7 @@ export const resolveCellSpan = (column: Column, colIndex: number, row: any, rowI
 };
 
 export const skipThisColumn = (columns: Column[], colIndex: number, row: any, rowIndex: number) => {
-  let skip: number | boolean = false;
+  let skip: boolean | number = false;
 
   for (let i = colIndex; i > 0; i--) {
     const colspan = resolveColumnSpan(columns[i], i, row, rowIndex, 'colspan');
@@ -420,9 +421,10 @@ export const skipThisColumn = (columns: Column[], colIndex: number, row: any, ro
 export const getSortFn = (column, sortType, format = []) => {
   const fieldName = column.field as string;
   const getVal = (row: any) => getRowText(row, fieldName, format);
-  const sortFn0 = (a: any, b: any) => {
-    const val0 = getVal(a) ?? '';
-    const val1 = getVal(b) ?? '';
+  const isIndexCol = column.type === 'index';
+  const sortFn0 = (a: any, b: any, rowIndex0: number, rowIndex1: number) => {
+    const val0 = isIndexCol ? rowIndex0 : getVal(a) ?? '';
+    const val1 = isIndexCol ? rowIndex1 : getVal(b) ?? '';
     if (typeof val0 === 'number' && typeof val1 === 'number') {
       return val0 - val1;
     }
@@ -434,7 +436,7 @@ export const getSortFn = (column, sortType, format = []) => {
 
   return sortType === SORT_OPTION.NULL
     ? (_a, _b) => true
-    : (_a, _b) => sortFn(_a, _b) * (sortType === SORT_OPTION.DESC ? -1 : 1);
+    : (_a, _b, index0, index1) => sortFn(_a, _b, index0, index1) * (sortType === SORT_OPTION.DESC ? -1 : 1);
 };
 
 export const getNextSortType = (sortType: string) => {
@@ -509,6 +511,21 @@ export const resolveColumnSortProp = (col: Column, props: TablePropTypes) => {
     fn: sortFn,
     scope: sortScope,
     active: !!col.sort,
+    enabled: !!col.sort,
+  };
+};
+
+export const resolveColumnFilterProp = (col: Column) => {
+  if (typeof col.filter === 'object') {
+    return {
+      ...col.filter,
+      enabled: true,
+    };
+  }
+
+  return {
+    enabled: !!col.filter,
+    checked: [],
   };
 };
 
@@ -518,4 +535,22 @@ export const getRawData = data => {
   }
 
   return data;
+};
+
+/**
+ * 转换 px | % 为实际数值
+ * @param val
+ * @param parentVal
+ * @returns
+ */
+export const getNumberOrPercentValue = (val: number | string, parentVal?: number) => {
+  if (/^\d+\.?\d+(px)?$/.test(`${val}`)) {
+    return Number(`${val}`.replace(/px/, ''));
+  }
+
+  if (/^\d+\.?\d+%$/.test(`${val}`)) {
+    return (Number(`${val}`.replace(/%/, '')) / 100) * (parentVal ?? 1);
+  }
+
+  return null;
 };

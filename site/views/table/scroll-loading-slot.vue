@@ -1,18 +1,12 @@
 <template>
   <div style="height: 300px">
-    <bk-table
-      height="100%"
-      :columns="columns"
-      :data="tableData"
-      @scroll-bottom="handleScrollBottom"
-    >
+    <bk-table height="100%" :columns="columns" :data="tableData" @scroll-bottom="handleScrollBottom"
+      :fixedBottom="fixedBottom">
       <template #prepend>
-        <div style="background-color: red; width: 100%; color: #fff; opacity: 0.4;padding: 10px;">
-          Fixed TOP
-        </div>
+        <div style="background-color: red; width: 100%; color: #fff; opacity: 0.4; padding: 10px">Fixed TOP</div>
       </template>
       <template #fixedBottom>
-        <div style="background-color: red; width: 100%; color: #fff; opacity: 0.4;padding: 10px;">
+        <div style="background-color: red; width: 100%; color: #fff; opacity: 0.4; padding: 10px">
           {{ `Fixed Bottom` }}
         </div>
       </template>
@@ -21,29 +15,33 @@
 </template>
 
 <script>
-  import { defineComponent } from 'vue';
+import { defineComponent } from 'vue';
 
-  import { DATA_FIX_COLUMNS, DATA_FIX_TABLE } from './options';
-  export default defineComponent({
-    components: {},
-    data() {
-      return {
-        tableData: [...DATA_FIX_TABLE],
-        columns: [...DATA_FIX_COLUMNS],
-        isScrollLoading: false,
-      };
-    },
-    methods: {
-      handleScrollBottom(arg) {
-        console.log('handleScrollBottom', arg);
-        this.isScrollLoading = true;
+import { DATA_FIX_COLUMNS, DATA_FIX_TABLE } from './options';
+export default defineComponent({
+  components: {},
+  data() {
+    return {
+      tableData: [...DATA_FIX_TABLE],
+      columns: [...DATA_FIX_COLUMNS],
+      isScrollLoading: false,
+      fixedBottom: {
+        position: 'relative',
+        height: 42
+      }
+    };
+  },
+  methods: {
+    handleScrollBottom(arg) {
+      console.log('handleScrollBottom', arg);
+      this.isScrollLoading = true;
 
-        setTimeout(() => {
-          this.isScrollLoading = false;
-        }, 1500);
-      },
+      setTimeout(() => {
+        this.isScrollLoading = false;
+      }, 1500);
     },
-  });
+  },
+});
 </script>
 <style scoped>
 .row {

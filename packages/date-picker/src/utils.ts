@@ -24,13 +24,13 @@
  * IN THE SOFTWARE.
  */
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { format as dateFnsFormat, toDate } from 'date-fns';
-import type { InjectionKey } from 'vue';
-
-import { resolveClassName } from '@bkui-vue/shared';
 
 import fecha from './fecha';
+
 import type { IDatePickerCtx, ITimePickerCtx, PickerTypeType } from './interface';
+import type { InjectionKey } from 'vue';
 
 export const RANGE_SEPARATOR = ' - ';
 
@@ -332,6 +332,7 @@ export const timePickerKey: InjectionKey<ITimePickerCtx> = Symbol('time-picker')
 // }
 
 export function iconBtnCls(direction, type = '') {
+  const { resolveClassName } = usePrefix();
   return [
     resolveClassName('picker-panel-icon-btn'),
     resolveClassName(`date-picker-${direction}-btn`),

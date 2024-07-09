@@ -137,17 +137,44 @@ export default defineComponent({
       if (!initRendered.value) {
         return null;
       }
+
+      const renderMask = () => {
+        if (!props.showMask) {
+          return null;
+        }
+        return (
+          <Transition name={mask.getMaskCount() > 0 ? 'fadein' : ''}>
+            <div
+              ref={maskRef}
+              style={{
+                zIndex: zIndex.value,
+              }}
+              class={{
+                [resolveClassName('modal-mask')]: true,
+              }}
+              v-show={localShow.value}
+              onClick={handleClickOutSide}
+            />
+          </Transition>
+        );
+      };
+
       const renderContent = () => {
         // v-if 模式渲染，如果 isShow 为 false 销毁 DOM
         if (props.renderDirective === 'if' && !localShow.value) {
           return null;
         }
         return (
-          <div class={resolveClassName('modal-body')}>
+          <div
+            style={{
+              backgroundColor: props.backgroundColor,
+            }}
+            class={resolveClassName('modal-body')}
+          >
             <div class={resolveClassName('modal-header')}>{slots.header?.()}</div>
             <div
-              class={resolveClassName('modal-content')}
               style={contentStyles.value}
+              class={resolveClassName('modal-content')}
             >
               <div style='position: relative; display: inline-block; width: 100%;'>
                 {slots.default?.()}
@@ -179,34 +206,20 @@ export default defineComponent({
 
       return (
         <Teleport
-          to='body'
           disabled={!props.transfer}
+          to='body'
         >
           <div
             ref={rootRef}
             {...attrs}
             class={[resolveClassName('modal'), props.extCls || '']}
           >
-            {props.showMask && (
-              <Transition name={mask.getMaskCount() > 0 ? 'fadein' : ''}>
-                <div
-                  v-show={localShow.value}
-                  ref={maskRef}
-                  class={{
-                    [resolveClassName('modal-mask')]: true,
-                  }}
-                  style={{
-                    zIndex: zIndex.value,
-                  }}
-                  onClick={handleClickOutSide}
-                />
-              </Transition>
-            )}
+            {renderMask()}
             <Transition name={`modal-${props.animateType}`}>
               <div
-                v-show={localShow.value}
-                class={resolveClassName('modal-wrapper')}
                 style={modalWrapperStyles.value}
+                class={resolveClassName('modal-wrapper')}
+                v-show={localShow.value}
               >
                 {renderContent()}
               </div>

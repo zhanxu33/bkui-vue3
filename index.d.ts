@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making
- * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ * 蓝鲸智云PaaS平台 (BlueKing PaaS) available.
  *
  * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
- * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ * 蓝鲸智云PaaS平台 (BlueKing PaaS) is licensed under the MIT License.
  *
- * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ * License for 蓝鲸智云PaaS平台 (BlueKing PaaS):
  *
  * ---------------------------------------------------
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
@@ -23,37 +23,6 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent } from 'vue';
 
-import { useLocale } from '@bkui-vue/config-provider';
-import Exception from '@bkui-vue/exception';
-import { PropTypes } from '@bkui-vue/shared';
-
-export default defineComponent({
-  name: 'BodyEmpty',
-  props: {
-    list: PropTypes.array.def([]),
-    filterList: PropTypes.array.def([]),
-    emptyText: PropTypes.string,
-  },
-  emits: ['change'],
-
-  setup(props) {
-    const t = useLocale('table');
-    const localEmptyText = computed(() => {
-      if (props.emptyText === undefined) {
-        return t.value.emptyText;
-      }
-      return props.emptyText;
-    });
-
-    const type = computed(() => (props.list.length === 0 ? 'empty' : 'search-empty'));
-    return () => (
-      <Exception
-        scene='part'
-        type={type.value}
-        description={localEmptyText.value}
-      />
-    );
-  },
-});
+declare module '*.less';
+declare module '*.svg';
