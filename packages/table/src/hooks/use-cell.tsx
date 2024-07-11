@@ -28,6 +28,7 @@ import { SetupContext, toRaw, unref } from 'vue';
 
 import Checkbox from '@bkui-vue/checkbox';
 import { DownShape, GragFill, RightShape } from '@bkui-vue/icon';
+import { isEmpty } from 'lodash';
 
 import { COLUMN_ATTRIBUTE, TABLE_ROW_ATTRIBUTE } from '../const';
 import { EMIT_EVENTS } from '../events';
@@ -149,18 +150,21 @@ export default ({
       if (typeof cell === 'boolean') {
         return String(cell);
       }
-      if (!cell && typeof cell !== 'number') {
+
+      if (typeof cell === 'object') {
+        return JSON.stringify(unref(cell));
+      }
+
+      if (isEmpty(cell)) {
         const { emptyCellText } = props;
         if (emptyCellText) {
           if (typeof emptyCellText === 'function') {
-            return emptyCellText(row, column, index, rows.tableRowList.value);
+            return emptyCellText({ row, column, index });
           }
           return emptyCellText;
         }
       }
-      if (typeof cell === 'object') {
-        return JSON.stringify(unref(cell));
-      }
+
       return cell;
     };
 
