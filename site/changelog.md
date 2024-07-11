@@ -1,6 +1,12 @@
 ## 更新日志
 
 
+### 2.0.1-beta.35
+
+* **[feat]**:
+    - feat(tree): setSelect & setChecked 参数调整
+
+
 ### 2.0.1-beta.34
 
 * **[feat]**:
