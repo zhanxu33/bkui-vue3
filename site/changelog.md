@@ -1,6 +1,12 @@
 ## 更新日志
 
 
+### 2.0.1-beta.36
+
+* **[feat]**:
+    - bugfix: 修复lodash isEmpty判定number类型为true的问题
+
+
 ### 2.0.1-beta.35
 
 * **[feat]**:
