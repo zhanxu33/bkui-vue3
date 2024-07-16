@@ -1,6 +1,12 @@
 ## 更新日志
 
 
+### 2.0.1-beta.38
+
+* **[feat]**:
+    - feature(select): select tag模式下新增tagRender插槽 & tree模式优化
+
+
 ### 2.0.1-beta.37
 
 * **[feat]**:
