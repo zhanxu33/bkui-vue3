@@ -25,6 +25,7 @@
  */
 import { ref, watch } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { throttle } from '@bkui-vue/shared';
 import { debounce } from 'lodash';
 
@@ -34,6 +35,8 @@ import { UseColumns } from './use-columns';
 
 export default (columns: UseColumns, { afterResize }) => {
   const { getColumnAttribute, getColumnOrderWidth, setColumnAttribute, setNextColumnWidth } = columns;
+  const { resolveClassName } = usePrefix();
+  const resizingClassName = resolveClassName('table-col-resizing');
   const getColListener = (col: Column) =>
     getColumnAttribute(col, COLUMN_ATTRIBUTE.LISTENERS) as Map<string, ((...args) => void)[]>;
 
@@ -60,6 +63,9 @@ export default (columns: UseColumns, { afterResize }) => {
 
   const handleMouseUp = (e: MouseEvent) => {
     stopDefaultEvent(e);
+    document.body.style.removeProperty('user-select');
+    const targetTable = (e.target as HTMLElement).closest('table');
+    targetTable?.classList.remove(resizingClassName);
 
     isMouseDown = false;
     isDraging = false;
@@ -84,8 +90,8 @@ export default (columns: UseColumns, { afterResize }) => {
     afterResize?.();
   };
 
-  const updateOffsetX = (e: MouseEvent) =>
-    throttle(() => {
+  const updateOffsetX = (() =>
+    throttle((e: MouseEvent) => {
       const diff = e.clientX - startX;
       const resolveWidth = getColumnOrderWidth(dragColumn, ORDER_LIST) + diff;
       const minWidth = getColumnOrderWidth(dragColumn, [COLUMN_ATTRIBUTE.COL_MIN_WIDTH]);
@@ -93,16 +99,15 @@ export default (columns: UseColumns, { afterResize }) => {
       if (minWidth < resolveWidth) {
         dragOffsetX.value = e.clientX - startX + dragStartOffsetX;
       }
-    });
+    }))();
 
   const handleMouseMove = (e: MouseEvent) => {
     stopDefaultEvent(e);
-    updateOffsetX(e)();
+    updateOffsetX(e);
   };
 
   const setNodeCursor = (() => {
     return debounce((target: HTMLElement) => {
-      target?.style?.setProperty('cursor', 'col-resize');
       target?.classList.add('col-resize-hover');
     });
   })();
@@ -110,7 +115,6 @@ export default (columns: UseColumns, { afterResize }) => {
   const removeCursor = (target: HTMLElement) => {
     setNodeCursor.cancel();
 
-    target?.style?.removeProperty('cursor');
     target?.classList.remove('col-resize-hover');
   };
 
@@ -129,8 +133,9 @@ export default (columns: UseColumns, { afterResize }) => {
       startX = e.clientX;
 
       const targetTable = (e.target as HTMLElement).closest('table');
+      targetTable?.classList.add(resizingClassName);
       dragStartOffsetX = startX - targetTable.getBoundingClientRect().left;
-      updateOffsetX(e)();
+      updateOffsetX(e);
 
       document.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mousemove', handleMouseMove);
@@ -144,7 +149,7 @@ export default (columns: UseColumns, { afterResize }) => {
 
       const target = (e.target as HTMLElement).closest('th');
       if (isDraging) {
-        target.style.setProperty('user-select', 'none');
+        document.body.style.setProperty('user-select', 'none');
       }
 
       if (!isDraging) {
@@ -154,6 +159,8 @@ export default (columns: UseColumns, { afterResize }) => {
 
         const rect = target.getBoundingClientRect();
         if (rect.width > 12 && rect.right - e.pageX < 12) {
+          console.log('mouse enter', target, e);
+
           isInDragSection = true;
           setNodeCursor(target);
         } else {

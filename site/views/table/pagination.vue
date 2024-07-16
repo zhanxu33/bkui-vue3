@@ -13,7 +13,7 @@ import { DATA_FIX_COLUMNS } from './options';
 
 const tableData = new Array(Math.ceil(Math.random() * 100) + 100).fill('').map((_, index) => ({
   ip: `${index}--192.168.0.x`,
-  source: `${index}_QQ`,
+  source: index,
   create_by: `user-admin-${index}`,
   status: '',
   create_time: `2018-05-25 15:02:24.${index}`,

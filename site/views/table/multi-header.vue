@@ -2,7 +2,7 @@
   <h2>bk-table-column 模板模式：</h2>
   <bk-table :data="projectTable" :height="500" :pagination="pagination">
     <bk-table-column type="index" label='序号' width="80"></bk-table-column>
-    <bk-table-column label="用户组" prop="groupName">
+    <bk-table-column :label="getColLabel" prop="groupName">
       <bk-table-column label="用户描述" prop="groupDesc" />
       <bk-table-column label="有效期" prop="validityPeriod" />
     </bk-table-column>
@@ -15,8 +15,10 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, h } from 'vue';
 const pagination = ref({ count: 11, limit: 10, current: 1 });
+const getColLabel = () => h('span', { class: 'col-label', style: { color: 'red', fontWeight: '800' } }, '用户组');
+
 const columns = reactive([
   {
     label: '序号',

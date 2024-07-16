@@ -103,6 +103,12 @@
       table-layout: fixed;
       align-self: flex-start;
 
+      &.@{bk-prefix}-table-col-resizing {
+        th {
+          cursor: col-resize !important;
+        }
+      }
+
       th,
       td {
         height: var(--row-height);
@@ -216,20 +222,6 @@
           background-color: var(--background-color);
 
           &.col-resize-hover {
-            &::after {
-              position: absolute;
-              top: 0;
-              right: 0;
-              bottom: 0;
-              z-index: 1;
-              width: 6px;
-              pointer-events: none;
-              background-color: #3785ff;
-              content: '';
-              transform: translateX(50%);
-              cursor: col-resize;
-            }
-
             .cell {
               cursor: col-resize;
             }
