@@ -1,6 +1,13 @@
 ## 更新日志
 
 
+### 2.0.1-beta.39
+
+* **[feat]**:
+    - docs(tab|notify): 文档补全
+    - bugfix(infobox): onCancel 配置不生效
+
+
 ### 2.0.1-beta.38
 
 * **[feat]**:
