@@ -338,6 +338,27 @@ export default [
         desc: '单元格数据为空展示',
         optional: [],
       },
+      {
+        name: 'is-empty-cell',
+        type: '["", undefined, null] | ({ cellText, row, column }) => boolean',
+        default: '["", undefined, null]',
+        desc: `  /**
+         * 判定单元格是否为空
+         * 支持数组：判定条件为 arr.some(item => item === cellText)
+         * 支持函数回调：返回结果为 true | false， ({ cellText, row, column }) => boolean
+         */`,
+        optional: [],
+      },
+      {
+        name: 'append-last-row',
+        type: 'Option',
+        default: '{ type: "default", cellRender: undefined }',
+        desc: '表格尾部追加的行配置, 这里的 type = default时，会优选渲染 cellRender 函数，如果没有配置，则会渲染插槽 #appendLastRow； 如果要实现统计功能，请配置 type: "summary"，每一列的渲染统计显示通过回调函数 cellRender 返回；',
+        optional: [
+          '{ type: "default", cellRender?: (column: Column, index: number) => VNode | number | string }',
+          '{ type: "summary", cellRender?: (column: Column, index: number) => VNode | number | string }',
+        ],
+      },
     ],
   },
   {
@@ -762,6 +783,11 @@ export default [
       {
         name: '#fixedBottom',
         desc: '底部加载插槽,此插槽内容会一直固定在底部, 可以结合 props.fixedBottom 进行详细配置',
+        params: '',
+      },
+      {
+        name: '#appendLastRow',
+        desc: '追加到最后一行插槽，区别于 #fixedBottom, 此插槽内容会追加最后一行数据之后，可以滚动，而fixedBottom内容固定底部（如果是虚拟滚动，这里暂时不支持）；注意：如果设置 append-last-row type=default时，会优先渲染 append-last-row 中配置的cellRender函数；',
         params: '',
       },
       { name: '#setting', desc: '表格设置中间自定义插槽', params: '' },
