@@ -103,6 +103,12 @@
       table-layout: fixed;
       align-self: flex-start;
 
+      &.@{bk-prefix}-table-col-resizing {
+        th {
+          cursor: col-resize !important;
+        }
+      }
+
       th,
       td {
         height: var(--row-height);
