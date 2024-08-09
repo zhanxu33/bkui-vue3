@@ -1,6 +1,15 @@
 ## 更新日志
 
 
+### 2.0.1-beta.45
+
+* **[feat]**:
+    - feat(table): 支持虚拟渲染自定义行高配置
+    - bugfix(search-select): 删除搜索条件时， 始终选中第一个下拉选项
+    - bugfix(select): 修复 virtualScrollRender slot失效问题
+    - 前端 UI 库容器化相关能力支持
+
+
 ### 2.0.1-beta.44
 
 * **[feat]**:
