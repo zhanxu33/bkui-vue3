@@ -80,9 +80,7 @@ export default defineComponent({
           const asParentPath = `${itemPath}-`;
           return (
             checkNodeIsOpen(item) &&
-            (isNodeMatched(item) ||
-              matchedNodePath.includes(itemPath) ||
-              matchedNodePath.some(path => asParentPath.indexOf(`${path}-`) === 0))
+            (isNodeMatched(item) || matchedNodePath.some(path => asParentPath.indexOf(`${path}-`) === 0))
           );
         }
 
