@@ -22,28 +22,26 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
+
+import { defineComponent } from 'vue';
+import { func } from 'vue-types';
+
+import { usePrefix } from '@bkui-vue/config-provider';
+import { classes, PropTypes } from '@bkui-vue/shared';
+
+import { useFocus, useRadio } from './common';
 
 import type { ExtractPropTypes } from 'vue';
-import { defineComponent } from 'vue';
-
-import {
-  classes,
-  PropTypes,
-} from '@bkui-vue/shared';
-
-import {
-  useFocus,
-  useRadio,
-} from './common';
 
 const radioButtonProps = {
   name: PropTypes.string.def(''),
-  label: PropTypes.oneOfType([String, Number, Boolean]).isRequired,
-  modelValue: PropTypes.oneOfType([String, Number, Boolean]).def(''),
+  label: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).isRequired,
+  modelValue: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).def(''),
   checked: PropTypes.bool.def(false),
   disabled: PropTypes.bool.def(false),
   size: PropTypes.size(),
+  beforeChange: func<(event: boolean | number | string) => Promise<boolean> | boolean>().def(() => true),
 };
 
 export type RadioButtonProps = Readonly<ExtractPropTypes<typeof radioButtonProps>>;
@@ -51,39 +49,33 @@ export type RadioButtonProps = Readonly<ExtractPropTypes<typeof radioButtonProps
 export default defineComponent({
   name: 'RadioButton',
   props: radioButtonProps,
-  emits: [
-    'change',
-    'update:modelValue',
-  ],
+  emits: {
+    'update:modelValue': (value: any) => value !== undefined,
+    change: (value: any) => value !== undefined,
+  },
   setup() {
-    const [
-      isFocused,
-      {
-        blur: handleBlur,
-        focus: handleFocus,
-      },
-    ] = useFocus();
+    const [isFocused, { blur: handleBlur, focus: handleFocus }] = useFocus();
 
-    const  {
-      isChecked,
-      isDisabled,
-      setChecked,
-      handleChange,
-    } = useRadio();
+    const { size, isChecked, isDisabled, setChecked, handleChange } = useRadio();
+
+    const { resolveClassName } = usePrefix();
 
     return {
       isFocused,
+      size,
       isChecked,
       isDisabled,
       setChecked,
       handleBlur,
       handleFocus,
       handleChange,
+      resolveClassName,
     };
   },
   render() {
     const radioClass = classes({
-      'bk-radio-button': true,
+      [`${this.resolveClassName('radio-button')}`]: true,
+      [`${this.resolveClassName('radio-button')}-${this.size}`]: true,
       'is-focused': this.isFocused,
       'is-disabled': this.isDisabled,
       'is-checked': this.isChecked,
@@ -95,7 +87,7 @@ export default defineComponent({
       }
 
       return (
-        <div class="bk-radio-button-label">
+        <div class={`${this.resolveClassName('radio-button-label')}`}>
           {this.$slots.default ? this.$slots.default() : this.label}
         </div>
       );
@@ -104,18 +96,20 @@ export default defineComponent({
     return (
       <label
         class={radioClass}
-        tabindex="0">
+        tabindex='0'
+      >
         <input
-          class="bk-radio-button-input"
-          type="radio"
-          tabindex="0"
-          value={this.label as any}
+          class={`${this.resolveClassName('radio-button-input')}`}
           checked={this.isChecked}
           disabled={this.isDisabled}
-          onFocus={this.handleFocus}
+          tabindex='0'
+          type='radio'
+          value={this.label as any}
           onBlur={this.handleBlur}
-          onChange={this.handleChange} />
-          {renderLabel()}
+          onChange={this.handleChange}
+          onFocus={this.handleFocus}
+        />
+        {renderLabel()}
       </label>
     );
   },

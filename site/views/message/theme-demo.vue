@@ -4,20 +4,20 @@
       theme="primary"
       @click="handlePrimary"
     >
-      消息
-    </bk-button>&nbsp;&nbsp;
+      消息 </bk-button
+    >&nbsp;&nbsp;
     <bk-button
       theme="success"
       @click="handleSuccess"
     >
-      成功
-    </bk-button>&nbsp;&nbsp;
+      成功 </bk-button
+    >&nbsp;&nbsp;
     <bk-button
       theme="warning"
       @click="handleWarning"
     >
-      警告
-    </bk-button>&nbsp;&nbsp;
+      警告 </bk-button
+    >&nbsp;&nbsp;
     <bk-button
       theme="danger"
       @click="handleError"
@@ -28,6 +28,8 @@
 </template>
 
 <script setup>
+  import { h } from 'vue';
+
   import { Message } from 'bkui-vue';
 
   const handlePrimary = () => {
@@ -39,7 +41,7 @@
   const handleSuccess = () => {
     Message({
       theme: 'success',
-      message: '恭喜！你提交的申请已经审核通过，请及时跟进了解下一步操作方式',
+      message: h('div', '恭喜！你提交的申请已经审核通过，请及时跟进了解下一步操作方式'),
     });
   };
   const handleWarning = () => {

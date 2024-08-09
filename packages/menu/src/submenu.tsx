@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { computed, defineComponent, getCurrentInstance, onBeforeUnmount, ref, Transition } from 'vue';
+import { computed, defineComponent, getCurrentInstance, onBeforeUnmount, ref, SlotsType, Transition } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { AngleDown, TreeApplicationShape } from '@bkui-vue/icon/';
 
 import { collapseMotion, useMenuInject, useMenuPathInject, useMenuPathProvider } from './utils';
@@ -40,10 +41,14 @@ export default defineComponent({
   name: 'Submenu',
   props: subMenuProps,
   emits: ['collapse'],
-  slots: ['icon'],
+  // slots: ['icon'],
+  slots: Object as SlotsType<{
+    default?: () => HTMLElement;
+    icon?: () => HTMLElement;
+  }>,
   setup(props, { slots, emit }) {
-    const { registerMenuInfo, unregisterMenuInfo, openedKeys,
-      handleOpenChange, collapse, activeKey, menuStore } = useMenuInject();
+    const { registerMenuInfo, unregisterMenuInfo, openedKeys, handleOpenChange, collapse, activeKey, menuStore } =
+      useMenuInject();
     const { parentInfo } = useMenuPathInject();
     const instance = getCurrentInstance();
     const key = instance.vnode.key?.toString?.() || String(instance.uid);
@@ -63,10 +68,13 @@ export default defineComponent({
       handleOpenChange(key, !isShow.value);
       emit('collapse', !isShow.value, instance);
     };
+
+    const { resolveClassName } = usePrefix();
+
     return () => (
       <li
         class={{
-          'bk-menu-submenu': true,
+          [`${resolveClassName('menu-submenu')}`]: true,
           'is-opened': isShow.value,
         }}
       >
@@ -77,10 +85,8 @@ export default defineComponent({
           }}
           onClick={handleCollapse}
         >
-          <span class="submenu-header-icon">
-            {slots.icon?.() || <TreeApplicationShape class="menu-icon" />}
-          </span>
-          <span class="submenu-header-content">{props.title}</span>
+          <span class='submenu-header-icon'>{slots.icon?.() || <TreeApplicationShape class='menu-icon' />}</span>
+          <span class='submenu-header-content'>{props.title}</span>
           <AngleDown
             class={{
               'submenu-header-collapse': true,
@@ -89,7 +95,10 @@ export default defineComponent({
           />
         </div>
         <Transition {...transition.value}>
-          <ul class="submenu-list" v-show={isShow.value}>
+          <ul
+            class='submenu-list'
+            v-show={isShow.value}
+          >
             {slots.default?.()}
           </ul>
         </Transition>

@@ -22,9 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
-
-import type { PropType } from 'vue';
+ */
 
 import {
   APIResponse,
@@ -38,6 +36,8 @@ import {
   UploadRawFile,
   UploadRequestHandler,
 } from './upload.type';
+
+import type { PropType } from 'vue';
 
 const themes = [EThemes.BUTTON, EThemes.DRAGGABLE, EThemes.PICTURE];
 
@@ -55,7 +55,7 @@ export default {
   },
   files: {
     type: Array as PropType<UploadFile[]>,
-    default: () => ([] as UploadFile[]),
+    default: () => [] as UploadFile[],
   },
   name: {
     type: String,
@@ -89,7 +89,7 @@ export default {
     default: 'post',
   },
   size: {
-    type: [Number, Object] as PropType<number | MaxSize>,
+    type: [Number, Object] as PropType<MaxSize | number>,
     default() {
       return {
         maxFileSize: 5,
@@ -111,7 +111,7 @@ export default {
     default: () => ({}),
   },
   header: {
-    type: [Array, Object] as PropType<HeaderDataAttr[] | HeaderDataAttr>,
+    type: [Array, Object] as PropType<HeaderDataAttr | HeaderDataAttr[]>,
     default: () => [],
   },
   tip: {
@@ -127,11 +127,11 @@ export default {
   },
   limit: Number,
   data: {
-    type: [Array, Object] as PropType<ExtraFormData[] | ExtraFormData>,
+    type: [Array, Object] as PropType<ExtraFormData | ExtraFormData[]>,
     default: () => [],
   },
   formDataAttributes: {
-    type: [Array, Object] as PropType<FormDataAttr[] | FormDataAttr>,
+    type: [Array, Object] as PropType<FormDataAttr | FormDataAttr[]>,
     default: () => [],
   },
   extCls: {
@@ -139,16 +139,14 @@ export default {
     default: '',
   },
   customRequest: Function as PropType<UploadRequestHandler>,
+  selectChange: {
+    type: Function as PropType<(event: Event) => boolean | void>,
+  },
   beforeUpload: {
-    type: Function as PropType<(
-      file: UploadRawFile
-    ) => Promise<boolean> | boolean>,
+    type: Function as PropType<(file: UploadRawFile) => Promise<boolean> | boolean>,
   },
   beforeRemove: {
-    type: Function as PropType<(
-      file: UploadFile,
-      uploadFiles: UploadFile[]
-    ) => Promise<boolean> | boolean>,
+    type: Function as PropType<(file: UploadFile, uploadFiles: UploadFile[]) => Promise<boolean> | boolean>,
   },
   sliceUpload: {
     type: Boolean,

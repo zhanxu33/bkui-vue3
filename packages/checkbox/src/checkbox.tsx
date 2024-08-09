@@ -22,35 +22,29 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
+
+import { defineComponent } from 'vue';
+import { func } from 'vue-types';
+
+import { usePrefix } from '@bkui-vue/config-provider';
+import { Loading } from '@bkui-vue/icon';
+import { classes, PropTypes, SizeEnum } from '@bkui-vue/shared';
+
+import { useCheckbox, useFocus } from './common';
 
 import type { ExtractPropTypes } from 'vue';
-import {
-  defineComponent,
-} from 'vue';
-
-import {
-  classes,
-  PropTypes,
-  resolveClassName,
-  SizeEnum,
-} from '@bkui-vue/shared';
-
-import {
-  useCheckbox,
-  useFocus,
-} from './common';
 
 export const checkboxProps = {
-  modelValue: PropTypes.oneOfType([String, Number, Boolean]),
-  label: PropTypes.oneOfType([String, Number, Boolean]),
-  trueLabel: PropTypes.oneOfType([String, Number, Boolean]).def(true),
-  falseLabel: PropTypes.oneOfType([String, Number, Boolean]).def(false),
+  modelValue: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]),
+  label: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]),
+  trueLabel: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).def(true),
+  falseLabel: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]).def(false),
   disabled: PropTypes.bool.def(false),
   checked: PropTypes.bool.def(false),
   indeterminate: PropTypes.bool,
-  beforeChange: PropTypes.func,
-  size: PropTypes.size().def(SizeEnum.LARGE),
+  beforeChange: func<(event: boolean | number | string) => Promise<boolean> | boolean>().def(() => true),
+  size: PropTypes.size().def(SizeEnum.DEFAULT),
   immediateEmitChange: PropTypes.bool.def(true), // 默认设置checked是否触发change事件
 };
 
@@ -59,46 +53,41 @@ export type CheckboxProps = Readonly<ExtractPropTypes<typeof checkboxProps>>;
 export default defineComponent({
   name: 'Checkbox',
   props: checkboxProps,
-  emits: [
-    'update:modelValue',
-    'change',
-  ],
+  emits: {
+    'update:modelValue': (value: any) => value !== undefined,
+    change: (value: any, _event?: Event) => value !== undefined,
+    click: (_event: MouseEvent) => true,
+  },
   setup(props) {
-    const [
-      isFocus,
-      {
-        blur: handleBlur,
-        focus: handleFocus,
-      },
-    ] = useFocus();
+    const [isFocus, { blur: handleBlur, focus: handleFocus }] = useFocus();
 
-    const {
-      inputRef,
-      isChecked,
-      isDisabled,
-      setChecked,
-      handleChange,
-    } = useCheckbox();
+    const { inputRef, isChecked, isPrechecking, isDisabled, setChecked, handleChange } = useCheckbox();
+
+    const { resolveClassName } = usePrefix();
 
     return {
       inputRef,
       isFocus,
       isChecked,
+      isPrechecking,
       isDisabled,
       setChecked,
       handleBlur,
       handleFocus,
       handleChange,
       size: props.size,
+      resolveClassName,
     };
   },
   render() {
     const checkboxClass = classes({
-      'bk-checkbox': true,
+      [`${this.resolveClassName('checkbox')}`]: true,
+      [`${this.resolveClassName('checkbox')}-${this.size}`]: true,
       'is-focused': this.isFocus,
       'is-checked': this.isChecked,
       'is-disabled': this.isDisabled,
       'is-indeterminated': this.indeterminate,
+      'is-prechecking': this.isPrechecking,
     });
 
     const renderLabel = () => {
@@ -107,7 +96,7 @@ export default defineComponent({
       }
 
       return (
-        <span class="bk-checkbox-label">
+        <span class={`${this.resolveClassName('checkbox-label')}`}>
           {this.$slots.default ? this.$slots.default() : this.label}
         </span>
       );
@@ -115,17 +104,19 @@ export default defineComponent({
 
     return (
       <label class={checkboxClass}>
-        <span class={[resolveClassName('checkbox-input'), this.size]}>
+        <span class={this.resolveClassName('checkbox-input')}>
           <input
-            ref="inputRef"
-            role="checkbox"
-            type="checkbox"
-            class="bk-checkbox-original"
-            disabled={this.isDisabled}
+            ref='inputRef'
+            class={`${this.resolveClassName('checkbox-original')}`}
             checked={this.isChecked}
-            onChange={this.handleChange} />
+            disabled={this.isDisabled || this.isPrechecking}
+            role='checkbox'
+            type='checkbox'
+            onChange={this.handleChange}
+          />
         </span>
         {renderLabel()}
+        {this.isPrechecking && <Loading class={`${this.resolveClassName('checkbox-checking')}`} />}
       </label>
     );
   },

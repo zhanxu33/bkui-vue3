@@ -22,15 +22,12 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { App } from 'vue';
+import { withInstall } from '@bkui-vue/shared';
 
 import CollapseTransition from './collapse-transition';
 
+const BKCollapseTransition = withInstall(CollapseTransition);
 
-CollapseTransition.install = (Vue: App) => {
-  Vue.component(CollapseTransition.name, CollapseTransition);
-};
-
-export default CollapseTransition;
+export default BKCollapseTransition;

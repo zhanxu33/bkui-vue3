@@ -22,14 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent, PropType, ref, toRefs } from 'vue';
 
-import BkButton from '@bkui-vue/button';
-import { useLocale } from '@bkui-vue/config-provider';
+import Button from '@bkui-vue/button';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { Del, Plus, Upload } from '@bkui-vue/icon';
-import BkProgress from '@bkui-vue/progress';
+import Progress from '@bkui-vue/progress';
 import { classes } from '@bkui-vue/shared';
 
 import uploadProps from './props';
@@ -45,13 +45,16 @@ export default defineComponent({
     file: {
       type: Object as PropType<UploadFile>,
     },
+    selectChange: uploadProps.selectChange,
   },
   emits: ['change', 'remove'],
   setup(props, { slots, emit }) {
     const t = useLocale('upload');
+    const { resolveClassName } = usePrefix();
+
     const { theme, disabled, file, multiple, accept } = toRefs(props);
 
-    const classBlock = `${CLASS_PREFIX}-trigger`;
+    const classBlock = `${resolveClassName(CLASS_PREFIX)}-trigger`;
 
     const isButton = computed<boolean>(() => theme.value === EThemes.BUTTON);
     const isDrag = computed<boolean>(() => theme.value === EThemes.DRAGGABLE);
@@ -59,19 +62,23 @@ export default defineComponent({
     const isPicture = computed<boolean>(() => theme.value === EThemes.PICTURE);
     const isSinglePicture = computed<boolean>(() => isPicture.value && !multiple.value);
 
-    const acceptTypes = computed(() => (isPicture.value && !accept.value ? 'image/png,image/jpeg,image/jpg' : accept.value));
+    const acceptTypes = computed(() =>
+      isPicture.value && !accept.value ? 'image/png,image/jpeg,image/jpg' : accept.value,
+    );
 
     const inputEl = ref(null);
 
-    const classNames = computed(() => classes({
-      [classBlock]: true,
-      [`${classBlock}--${theme.value}`]: true,
-      [`${classBlock}--single-picture`]: isSinglePicture.value,
-      [`${classBlock}--has-file`]: file.value ?? false,
-      [`${classBlock}--${file.value?.status}`]: file.value ?? false,
-      [`${classBlock}--dragover`]: dragover.value,
-      [`${classBlock}--disabled`]: disabled.value,
-    }));
+    const classNames = computed(() =>
+      classes({
+        [classBlock]: true,
+        [`${classBlock}--${theme.value}`]: true,
+        [`${classBlock}--single-picture`]: isSinglePicture.value,
+        [`${classBlock}--has-file`]: file.value ?? false,
+        [`${classBlock}--${file.value?.status}`]: file.value ?? false,
+        [`${classBlock}--dragover`]: dragover.value,
+        [`${classBlock}--disabled`]: disabled.value,
+      }),
+    );
 
     const invoke = () => {
       inputEl.value.value = null;
@@ -79,6 +86,9 @@ export default defineComponent({
     };
 
     const handleFileChange = (e: Event) => {
+      if (props.selectChange && props.selectChange?.(e) === false) {
+        return false;
+      }
       const { files } = e.target as HTMLInputElement;
       emit('change', Array.from(files));
     };
@@ -96,7 +106,7 @@ export default defineComponent({
         return;
       }
 
-      if ((e.code === 'Enter' || e.code === 'Space')) {
+      if (e.code === 'Enter' || e.code === 'Space') {
         invoke();
       }
 
@@ -120,36 +130,13 @@ export default defineComponent({
         e.preventDefault();
         dragover.value = false;
 
-        const files = Array.from(e.dataTransfer.files);
-
-        if (!acceptTypes.value) {
-          emit('change', files);
-          return;
+        if (props.selectChange && props.selectChange?.(e) === false) {
+          return false;
         }
 
-        const filesFiltered = files.filter((file) => {
-          const { type, name } = file;
-          const extension = name.includes('.') ? `.${name.split('.').pop()}` : '';
-          const baseType = type.replace(/\/.*$/, '');
-          return acceptTypes.value
-            .split(',')
-            .map(type => type.trim())
-            .filter(type => type)
-            .some((acceptedType) => {
-              if (acceptedType.startsWith('.')) {
-                return extension === acceptedType;
-              }
-              if (/\/\*$/.test(acceptedType)) {
-                return baseType === acceptedType.replace(/\/\*$/, '');
-              }
-              if (/^[^/]+\/[^/]+$/.test(acceptedType)) {
-                return type === acceptedType;
-              }
-              return false;
-            });
-        });
+        const files = Array.from(e.dataTransfer.files);
 
-        emit('change', filesFiltered);
+        emit('change', files);
       };
       const handleDragover = (e: DragEvent) => {
         e.preventDefault();
@@ -166,81 +153,90 @@ export default defineComponent({
       return (
         <div
           class={classNames}
-          onDrop={handleDrop}
-          onDragover={handleDragover}
           onDragleave={handleDragleave}
+          onDragover={handleDragover}
+          onDrop={handleDrop}
         >
-          {
-            slots.default
-              ? slots.default()
-              : (
-                <>
-                  <Upload class={`${classBlock}__draggable-icon`} />
-                  <div class={`${classBlock}__draggable-text`}>
-                    {t.value.drapFileOr}<span class={`${classBlock}__draggable-upload-link`}>{t.value.clickUpload}</span>
-                  </div>
-                </>
-              )
-          }
+          {slots.default ? (
+            slots.default()
+          ) : (
+            <>
+              <Upload class={`${classBlock}__draggable-icon`} />
+              <div class={`${classBlock}__draggable-text`}>
+                {t.value.drapFileOr}
+                <span class={`${classBlock}__draggable-upload-link`}>{t.value.clickUpload}</span>
+              </div>
+            </>
+          )}
         </div>
       );
     };
 
-    const Picture = () => (
-      <>
-      {
-        isSinglePicture.value && props.file
-          ? SinglePicture(props.file)
-          : DefaultPicture()
-      }
-      </>
-    );
+    const Picture = () => <>{isSinglePicture.value && props.file ? SinglePicture(props.file) : DefaultPicture()}</>;
 
     const DefaultPicture = () => (
       <>
-      {
-      slots.default
-        ? slots.default()
-        : (
+        {slots.default ? (
+          slots.default()
+        ) : (
           <div class={`${classBlock}__picture-inner`}>
             <Plus class={`${classBlock}__picture-icon`} />
             <div class={`${classBlock}__picture-text`}>{t.value.clickUpload}</div>
           </div>
-        )
-      }
+        )}
       </>
     );
 
-    const SinglePicture = (file: UploadFile) => ([
-      <img v-show={file.status !== 'uploading'} src={file.url} class={`${classBlock}__picture-thumbnail`} alt="" />,
-      <>{
-        file.status === 'uploading' && <BkProgress
-        class={`${classBlock}__picture-progress`}
-        type="circle"
-        color="#3a84ff"
-        bgColor="#333"
-        width={50}
-        titleStyle={{ color: '#fff' }}
-        percent={file.percentage}
-        />
-      }</>,
-      <>{
-        !props.disabled && <div class={`${classBlock}__picture-actions`}>
-          {/* { file.status !== 'uploading' && <Upload class="action-icon" /> } */}
-          <Del class="action-icon" onClick={e => handleRemove(file, e)} />
-        </div>
-      }
+    const SinglePicture = (file: UploadFile) => [
+      <img
+        class={`${classBlock}__picture-thumbnail`}
+        v-show={file.status !== 'uploading'}
+        alt=''
+        src={file.url}
+      />,
+      <>
+        {file.status === 'uploading' && (
+          <Progress
+            width={50}
+            class={`${classBlock}__picture-progress`}
+            bgColor='#333'
+            color='#3a84ff'
+            percent={file.percentage}
+            titleStyle={{ color: '#fff' }}
+            type='circle'
+          />
+        )}
       </>,
-    ]);
+      <>
+        {!props.disabled && (
+          <div class={`${classBlock}__picture-actions`}>
+            {/* { file.status !== 'uploading' && <Upload class="action-icon" /> } */}
+            <Del
+              class='action-icon'
+              onClick={e => handleRemove(file, e)}
+            />
+          </div>
+        )}
+      </>,
+    ];
 
-    const Button = () => (
-      <BkButton disabled={disabled.value}>
-        <Upload class={`${classBlock}__button-icon`} /><span class={`${classBlock}__button-text`}>{t.value.uploadLabel}</span>
-      </BkButton>
+    const xButton = () => (
+      <Button disabled={disabled.value}>
+        <>
+          {slots.default ? (
+            slots.default()
+          ) : (
+            <>
+              <Upload class={`${classBlock}__button-icon`} />
+              <span class={`${classBlock}__button-text`}>{t.value.uploadLabel}</span>
+            </>
+          )}
+        </>
+      </Button>
     );
 
     const Trigger = () => {
-      if (isButton.value) return Button();
+      if (isButton.value) return xButton();
       if (isDrag.value) return Dragger();
       if (isPicture.value) return Picture();
     };
@@ -248,24 +244,20 @@ export default defineComponent({
     return () => (
       <div
         class={classNames.value}
-        tabindex="0"
+        tabindex='0'
         onClick={handleClick}
         onKeydown={handleKeydown}
       >
-        {
-          slots.trigger
-            ? [slots.trigger(), slots?.default?.()]
-            : Trigger()
-        }
+        {slots.trigger ? [slots.trigger(), slots?.default?.()] : Trigger()}
         <input
           ref={inputEl}
           class={`${classBlock}__input-file`}
-          tabindex="-1"
-          onChange={handleFileChange}
           accept={acceptTypes.value}
-          multiple={multiple.value}
           disabled={disabled.value}
-          type="file"
+          multiple={multiple.value}
+          tabindex='-1'
+          type='file'
+          onChange={handleFileChange}
         />
       </div>
     );

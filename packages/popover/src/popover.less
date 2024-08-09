@@ -4,9 +4,12 @@
 .@{bk-prefix}-popover {
   &.@{bk-prefix}-pop2-content {
     position: absolute;
-    display: none;
-    
-    padding: 7px 14px;
+
+    &.hidden {
+      display: none;
+    }
+
+    padding: 12px;
 
     font-size: 12px;
     color: #fff;
@@ -16,6 +19,7 @@
 
     .@{bk-prefix}-pop2-arrow {
       position: absolute;
+      z-index: -1;
       width: 8px;
       height: 8px;
       background: #333;

@@ -24,17 +24,16 @@
  * IN THE SOFTWARE.
  */
 
-import { computed, defineComponent, ExtractPropTypes, ref, watch } from 'vue';
-
-import { useLocale } from '@bkui-vue/config-provider';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
+import { bkTooltips } from '@bkui-vue/directives';
 import { Close, DownSmall, Eye, Search, Unvisible } from '@bkui-vue/icon';
-import {
-  classes,
-  InputBehaviorType,
-  PropTypes,
-  resolveClassName,
-  useFormItem,
-} from '@bkui-vue/shared';
+import { classes, InputBehaviorType, PropTypes, useFormItem } from '@bkui-vue/shared';
+import { computed, defineComponent, ExtractPropTypes, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { calcTextareaHeight } from './util';
+
+
+
+export type InputAutoSize = { minRows?: number; maxRows?: number };
 
 export const inputType = {
   type: PropTypes.string.def('text'),
@@ -50,36 +49,46 @@ export const inputType = {
   max: PropTypes.integer,
   min: PropTypes.integer,
   maxlength: PropTypes.integer,
+  maxcharacter: PropTypes.integer,
   behavior: InputBehaviorType(),
   showWordLimit: PropTypes.bool,
   showControl: PropTypes.bool.def(true),
   showClearOnlyHover: PropTypes.bool.def(true),
-  precision: PropTypes.number.def(0).validate(val => val as number >= 0 && val as number < 20),
+  precision: PropTypes.number.def(0).validate(val => (val as number) >= 0 && (val as number) < 20),
   modelValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   size: PropTypes.size(),
   rows: PropTypes.number,
   selectReadonly: PropTypes.bool.def(false), // selectReadonly select组件使用，readonly属性，但是组件样式属于正常输入框样式
   withValidate: PropTypes.bool.def(true),
+  overMaxLengthLimit: PropTypes.bool.def(false),
+  showOverflowTooltips: PropTypes.bool.def(true),
+  resize: PropTypes.bool.def(true),
+  autosize: PropTypes.oneOfType<InputAutoSize | boolean>([Boolean, Object]).def(false),
+  stopPropagation: PropTypes.bool.def(true),
 };
 
 export const enum EVENTS {
-  UPDATE = 'update:modelValue',
-  FOCUS = 'focus',
   BLUR = 'blur',
   CHANGE = 'change',
   CLEAR = 'clear',
-  INPUT = 'input',
-  KEYPRESS = 'keypress',
-  KEYDOWN = 'keydown',
-  KEYUP = 'keyup',
-  ENTER = 'enter',
-  PASTE = 'paste',
+  COMPOSITIONEND = 'compositionend',
   COMPOSITIONSTART = 'compositionstart',
   COMPOSITIONUPDATE = 'compositionupdate',
-  COMPOSITIONEND = 'compositionend',
+  ENTER = 'enter',
+  FOCUS = 'focus',
+  INPUT = 'input',
+  KEYDOWN = 'keydown',
+  KEYPRESS = 'keypress',
+  KEYUP = 'keyup',
+  PASTE = 'paste',
+  UPDATE = 'update:modelValue',
 }
-function EventFunction(_value: any, _evt?: KeyboardEvent);
-function EventFunction(_value: any, _evt?: Event) {
+function EventFunction(_value: any, _evt: KeyboardEvent);
+function EventFunction(_value: any, _evt: Event) {
+  return true;
+}
+
+function PastEventFunction(_value: any, _e: ClipboardEvent) {
   return true;
 }
 
@@ -98,7 +107,7 @@ export const inputEmitEventsType = {
   [EVENTS.KEYDOWN]: EventFunction,
   [EVENTS.KEYUP]: EventFunction,
   [EVENTS.ENTER]: EventFunction,
-  [EVENTS.PASTE]: EventFunction,
+  [EVENTS.PASTE]: PastEventFunction,
   [EVENTS.COMPOSITIONSTART]: CompositionEventFunction,
   [EVENTS.COMPOSITIONUPDATE]: CompositionEventFunction,
   [EVENTS.COMPOSITIONEND]: CompositionEventFunction,
@@ -109,83 +118,250 @@ export type InputType = ExtractPropTypes<typeof inputType>;
 
 export default defineComponent({
   name: 'Input',
+  directives: {
+    bkTooltips,
+  },
   inheritAttrs: false,
   props: inputType,
   emits: inputEmitEventsType,
   setup(props, ctx) {
+    const { resolveClassName } = usePrefix();
     const formItem = useFormItem();
     const t = useLocale('input');
     const isFocused = ref(false);
     const isCNInput = ref(false);
     const isTextArea = computed(() => props.type === 'textarea');
-    const inputClsPrefix = computed(() => (isTextArea.value
-      ? resolveClassName('textarea')
-      : resolveClassName('input')));
+    const inputClsPrefix = computed(() =>
+      isTextArea.value ? resolveClassName('textarea') : resolveClassName('input'),
+    );
     const { class: cls, style, ...inputAttrs } = ctx.attrs;
 
     const inputRef = ref();
-    const inputCls = computed(() => classes(
-      {
-        [`${inputClsPrefix.value}--${props.size}`]: !!props.size,
-        'is-focused': isFocused.value,
-        'is-readonly': props.readonly && !props.selectReadonly,
-        'is-disabled': props.disabled,
-        'is-simplicity': props.behavior === 'simplicity',
-        [`${cls}`]: !!cls,
-      },
-      inputClsPrefix.value,
-    ));
-    const suffixIconMap = {
-      search: () => <Search/>,
-      password: () => <Eye onClick={handleVisibleChange}/>,
+    const innerInputValue = ref<{ value?: number | string }>(
+      typeof props.modelValue === 'undefined' || props.modelValue === null
+        ? {}
+        : {
+            value: props.modelValue,
+          },
+    );
+    const inputCls = computed(() =>
+      classes(
+        {
+          [`${inputClsPrefix.value}--${props.size}`]: !!props.size,
+          resizable: props.resize,
+          'is-focused': isFocused.value,
+          'is-readonly': props.readonly && !props.selectReadonly,
+          'is-disabled': props.disabled,
+          'is-simplicity': props.behavior === 'simplicity',
+          [`${ctx.attrs.class}`]: !!ctx.attrs.class,
+        },
+        inputClsPrefix.value,
+      ),
+    );
+    const isOverflow = ref(false);
+    const textareaCalcStyle = ref({});
+    const resizeTextarea = () => {
+      if (!isTextArea.value) return;
+
+      if (props.autosize) {
+        const minRows = (props.autosize as InputAutoSize)?.minRows;
+        const maxRows = (props.autosize as InputAutoSize)?.maxRows;
+        const textareaStyle = calcTextareaHeight(inputRef.value, minRows, maxRows);
+
+        textareaCalcStyle.value = {
+          overflowY: 'hidden',
+          ...textareaStyle,
+        };
+
+        nextTick(() => {
+          textareaCalcStyle.value = textareaStyle;
+        });
+      } else {
+        textareaCalcStyle.value = {
+          minHeight: calcTextareaHeight(inputRef.value).minHeight,
+        };
+      }
     };
+
+    const createOnceInitResize = (resizeTextarea: () => void) => {
+      let isInit = false;
+      return () => {
+        if (isInit || !props.autosize) return;
+        const isElHidden = inputRef.value?.offsetParent === null;
+        if (!isElHidden) {
+          resizeTextarea();
+          isInit = true;
+        }
+      };
+    };
+
+    const onceInitSizeTextarea = createOnceInitResize(resizeTextarea);
     const suffixCls = getCls('suffix-icon');
+    const suffixIconMap = {
+      search: () => <Search />,
+      password: () => (
+        <Unvisible
+          class={suffixCls}
+          onClick={handleVisibleChange}
+        />
+      ),
+    };
     const suffixIcon = computed(() => {
       const icon = suffixIconMap[props.type];
       if (pwdVisible.value) {
-        return <Unvisible onClick={handleVisibleChange} class={suffixCls}/>;
+        return (
+          <Eye
+            class={suffixCls}
+            onClick={handleVisibleChange}
+          />
+        );
       }
-      return icon ? <icon class={suffixCls}/> : null;
+      return icon ? <icon class={suffixCls} /> : null;
     });
     const isNumberInput = computed(() => props.type === 'number');
-    const ceilMaxLength = computed(() => Math.floor(props.maxlength));
+    const ceilMaxLength = computed(() => Math.floor(props.maxlength ?? props.maxcharacter ?? 0));
     const pwdVisible = ref(false);
-    const clearCls = computed(() => classes(
-      {
-        'show-clear-only-hover': props.showClearOnlyHover,
-        [`${inputClsPrefix.value}--clear-icon`]: true,
-      },
-      suffixCls,
-    ));
-    const incControlCls = computed(() => classes({
-      'is-disabled': props.disabled || props.modelValue as number >= props.max,
-    }));
+    const clearCls = computed(() =>
+      classes(
+        {
+          'show-clear-only-hover': props.showClearOnlyHover,
+          [`${inputClsPrefix.value}--clear-icon`]: true,
+        },
+        suffixCls,
+      ),
+    );
+    const maxLengthCls = computed(() =>
+      classes({
+        [getCls('max-length')]: true,
+        'is-over-limit': ceilMaxLength.value - modelValueLength.value < 0,
+      }),
+    );
+    const getValueLimits = (val: string) => {
+      if (typeof props.maxcharacter === 'number') {
+        return val.split('').reduce(
+          (limit, char, index) => {
+            limit.len += char.charCodeAt(0) > 255 ? 2 : 1;
+            if (limit.len > props.maxcharacter && limit.pos === -1) {
+              limit.pos = index;
+            }
+            return limit;
+          },
+          {
+            len: 0,
+            pos: -1,
+          },
+        );
+      }
+      return {
+        len: val.length,
+        pos: -1,
+      };
+    };
 
-    const decControlCls = computed(() => classes({
-      'is-disabled': props.disabled || props.modelValue as number <= props.min,
-    }));
+    const modelValueLength = computed(() => {
+      const modelValue = (props.modelValue ?? '') as string;
+      return getValueLimits(modelValue).len;
+    });
+
+    const incControlCls = computed(() =>
+      classes({
+        'is-disabled': props.disabled || (props.modelValue as number) >= props.max,
+      }),
+    );
+
+    const decControlCls = computed(() =>
+      classes({
+        'is-disabled': props.disabled || (props.modelValue as number) <= props.min,
+      }),
+    );
+
+    const tooltips = computed(() => {
+      if (showMaxLimit.value && ceilMaxLength.value - modelValueLength.value === 0) {
+        return {
+          content: t.value.maxlengthLimitTips,
+        };
+      }
+      return props.showOverflowTooltips && isOverflow.value && props.modelValue
+        ? {
+            content: props.modelValue?.toString(),
+            sameWidth: true,
+          }
+        : {
+            disabled: true,
+          };
+    });
+
+    const showMaxLimit = computed(() => {
+      return typeof props.maxlength === 'number' || typeof props.maxcharacter === 'number';
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      onceInitSizeTextarea();
+      setOverflow();
+    });
+
+    watch(
+      () => props.type,
+      async () => {
+        await nextTick();
+        resizeTextarea();
+      },
+    );
 
     watch(
       () => props.modelValue,
-      () => {
+      val => {
         if (props.withValidate) {
           formItem?.validate?.('change');
         }
+        innerInputValue.value = {
+          value: val,
+        };
+        nextTick(() => resizeTextarea());
+        setOverflow();
       },
     );
+
+    onMounted(() => {
+      setOverflow();
+      resizeObserver.observe(inputRef.value);
+      nextTick(() => resizeTextarea());
+      // Hack: 修复autofocus属性失效问题 原生autofocus属性只在页面加载时生效
+      if (Object.prototype.hasOwnProperty.call(ctx.attrs, 'autofocus')) {
+        inputRef.value?.focus?.();
+      }
+    });
+
+    onBeforeUnmount(() => {
+      resizeObserver.disconnect();
+    });
 
     ctx.expose({
       focus() {
         inputRef.value.focus();
       },
+      blur() {
+        inputRef.value.blur();
+        isFocused.value = false;
+      },
       clear,
     });
+
+    function detectOverflow() {
+      return inputRef.value?.scrollWidth > inputRef.value?.clientWidth + 2;
+    }
+
+    function setOverflow() {
+      setTimeout(() => {
+        isOverflow.value = detectOverflow();
+      });
+    }
 
     function clear() {
       if (props.disabled) return;
       const resetVal = isNumberInput.value ? props.min : '';
-      ctx.emit(EVENTS.UPDATE, resetVal);
-      ctx.emit(EVENTS.CHANGE, resetVal);
+      ctx.emit(EVENTS.UPDATE, resetVal, null);
+      ctx.emit(EVENTS.CHANGE, resetVal, null);
       ctx.emit(EVENTS.CLEAR);
     }
 
@@ -204,45 +380,42 @@ export default defineComponent({
 
     // 事件句柄生成器
     function eventHandler(eventName) {
-      return (e) => {
-        e.stopPropagation();
-        if (
-          eventName === EVENTS.KEYDOWN
-          && (e.code === 'Enter' || e.key === 'Enter' || e.keyCode === 13)
-        ) {
-          ctx.emit(EVENTS.ENTER, e.target.value, e);
-        }
-        if (
-          isCNInput.value
-          && [EVENTS.INPUT, EVENTS.CHANGE].some(e => eventName === e)
-        ) return;
-        if (eventName === EVENTS.INPUT) {
-          ctx.emit(
-            EVENTS.UPDATE,
-            e.target.value,
-          );
-        } else if (eventName === EVENTS.CHANGE && isNumberInput.value) {
-          const val = parseInt(e.target.value, 10);
-          if (val > props.max || val < props.min) {
-            const limitVal = val > props.max ? props.max : props.min;
-            ctx.emit(EVENTS.UPDATE, limitVal, e);
-            ctx.emit(eventName, limitVal, e);
+      return e => {
+        props.stopPropagation && e.stopPropagation();
+        if (showMaxLimit.value && !props.overMaxLengthLimit) {
+          const limit = getValueLimits(e.target.value);
+          if (
+            limit.len >= ceilMaxLength.value &&
+            (eventName === EVENTS.KEYDOWN || eventName === EVENTS.INPUT) &&
+            !isCNInput.value
+          ) {
+            const val = limit.pos > 0 ? e.target.value.slice(0, limit.pos) : e.target.value;
+            innerInputValue.value = {
+              value: val,
+            };
+            ctx.emit(EVENTS.UPDATE, val, e);
+            ctx.emit(EVENTS.INPUT, val, e);
             return;
           }
         }
+        if (eventName === EVENTS.KEYDOWN && (e.code === 'Enter' || e.key === 'Enter' || e.keyCode === 13)) {
+          ctx.emit(EVENTS.ENTER, isNumberInput.value ? handleNumber(e.target.value, 0) : e.target.value, e);
+        }
 
+        if (isCNInput.value && [EVENTS.INPUT, EVENTS.CHANGE, EVENTS.KEYDOWN].some(e => eventName === e)) return;
+        if (eventName === EVENTS.INPUT) {
+          ctx.emit(EVENTS.UPDATE, e.target.value, e);
+        } else if (eventName === EVENTS.CHANGE && isNumberInput.value && e.target.value !== '') {
+          const val = handleNumber(e.target.value, 0);
+          ctx.emit(EVENTS.UPDATE, val, e);
+          ctx.emit(eventName, val, e);
+          return;
+        }
         ctx.emit(eventName, e.target.value, e);
       };
     }
 
-    const [
-      handleKeyup,
-      handleKeydown,
-      handleKeyPress,
-      handlePaste,
-      handleChange,
-      handleInput,
-    ] = [
+    const [handleKeyup, handleKeydown, handleKeyPress, handlePaste, handleChange, handleInput] = [
       EVENTS.KEYUP,
       EVENTS.KEYDOWN,
       EVENTS.KEYPRESS,
@@ -262,12 +435,15 @@ export default defineComponent({
       handleInput(e);
     }
 
-    function handleNumber(step: number, INC = true) {
-      const numStep = parseFloat(String(step));
+    function handleNumber(modelValue: number, step: number, INC = true) {
+      const numStep = Number(step);
       const precision = Number.isInteger(props.precision) ? props.precision : 0;
-      const val: number = parseFloat((props.modelValue ?? 0).toString());
-      const factor = typeof numStep === 'number' ? numStep : 1;
+      const val = Number(modelValue);
 
+      const factor = Number.isInteger(numStep) ? numStep : 1;
+      if (Number.isNaN(val)) {
+        return Number.isInteger(props.min) ? props.min : 0;
+      }
       let newVal = val + (INC ? factor : -1 * factor);
       if (Number.isInteger(props.max)) {
         newVal = Math.min(newVal, props.max);
@@ -279,18 +455,18 @@ export default defineComponent({
       return +newVal.toFixed(precision);
     }
 
-    function handleInc() {
+    function handleInc(e) {
       if (props.disabled) return;
-      const newVal = handleNumber(props.step);
-      ctx.emit(EVENTS.UPDATE, newVal);
-      ctx.emit(EVENTS.CHANGE, newVal);
+      const newVal = handleNumber(props.modelValue as number, props.step);
+      ctx.emit(EVENTS.UPDATE, newVal, e);
+      ctx.emit(EVENTS.CHANGE, newVal, e);
     }
 
-    function handleDec() {
+    function handleDec(e) {
       if (props.disabled) return;
-      const newVal = handleNumber(props.step, false);
-      ctx.emit(EVENTS.UPDATE, newVal);
-      ctx.emit(EVENTS.CHANGE, newVal);
+      const newVal = handleNumber(props.modelValue as number, props.step, false);
+      ctx.emit(EVENTS.UPDATE, newVal, e);
+      ctx.emit(EVENTS.CHANGE, newVal, e);
     }
 
     function getCls(name) {
@@ -302,14 +478,8 @@ export default defineComponent({
     }
 
     const bindProps = computed(() => {
-      const val = typeof props.modelValue === 'undefined' || props.modelValue === null
-        ? {}
-        : {
-          value: props.modelValue,
-        };
       return {
-        ...val,
-        maxlength: props.maxlength,
+        maxlength: !props.overMaxLengthLimit && props.maxlength,
         placeholder: props.placeholder || t.value.placeholder,
         readonly: props.readonly,
         disabled: props.disabled,
@@ -328,9 +498,13 @@ export default defineComponent({
       onCompositionend: handleCompositionEnd,
     };
     return () => (
-      <div class={inputCls.value} style={style as any}>
-        {ctx.slots?.prefix?.()
-          ?? (props.prefix && (
+      <div
+        style={style as any}
+        class={inputCls.value}
+        v-bk-tooltips={tooltips.value}
+      >
+        {ctx.slots?.prefix?.() ??
+          (props.prefix && (
             <div class={getCls('prefix-area')}>
               <span class={getCls('prefix-area--text')}>{props.prefix}</span>
             </div>
@@ -342,7 +516,9 @@ export default defineComponent({
             {...inputAttrs}
             {...eventListener}
             {...bindProps.value}
+            style={textareaCalcStyle.value}
             rows={props.rows}
+            {...innerInputValue.value}
           />
         ) : (
           <input
@@ -350,39 +526,49 @@ export default defineComponent({
             {...inputAttrs}
             ref={inputRef}
             class={`${inputClsPrefix.value}--text`}
-            type={
-              pwdVisible.value && props.type === 'password'
-                ? 'text'
-                : props.type
-            }
-            step={props.step}
             max={props.max}
             min={props.min}
+            step={props.step}
+            type={pwdVisible.value && props.type === 'password' ? 'text' : props.type}
             {...eventListener}
             {...bindProps.value}
+            {...innerInputValue.value}
           />
         )}
         {!isTextArea.value && props.clearable && !!props.modelValue && (
-          <span class={clearCls.value} onClick={clear}>
-            <Close/>
+          <span
+            class={clearCls.value}
+            onClick={clear}
+          >
+            <Close />
           </span>
         )}
         {suffixIcon.value}
-        {typeof props.maxlength === 'number'
-          && (props.showWordLimit || isTextArea.value) && (
-            <p class={getCls('max-length')}>
-              {(props.modelValue ?? '').toString().length}/
-              <span>{ceilMaxLength.value}</span>
-            </p>
+        {showMaxLimit.value && (props.showWordLimit || isTextArea.value) && (
+          <p class={maxLengthCls.value}>
+            {props.overMaxLengthLimit ? (
+              ceilMaxLength.value - modelValueLength.value
+            ) : (
+              <>
+                {modelValueLength.value} / <span>{ceilMaxLength.value}</span>
+              </>
+            )}
+          </p>
         )}
         {isNumberInput.value && props.showControl && (
           <div class={getCls('number-control')}>
-            <DownSmall class={incControlCls.value} onClick={handleInc}/>
-            <DownSmall class={decControlCls.value} onClick={handleDec}/>
+            <DownSmall
+              class={incControlCls.value}
+              onClick={handleInc}
+            />
+            <DownSmall
+              class={decControlCls.value}
+              onClick={handleDec}
+            />
           </div>
         )}
-        {ctx.slots?.suffix?.()
-          ?? (props.suffix && (
+        {ctx.slots?.suffix?.() ??
+          (props.suffix && (
             <div class={getCls('suffix-area')}>
               <span class={getCls('suffix-area--text')}>{props.suffix}</span>
             </div>

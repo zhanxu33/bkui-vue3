@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import {
   computed,
@@ -33,24 +33,28 @@ import {
   provide,
   reactive,
   ref,
+  SlotsType,
   Teleport,
   toRefs,
   Transition,
   watch,
 } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
 import { Close } from '@bkui-vue/icon';
-import { resolveClassName, useFormItem } from '@bkui-vue/shared';
+import { getFullscreenRoot, useFormItem } from '@bkui-vue/shared';
 
 import PickerDropdown from './base/picker-dropdown';
+import { dateIcon, timeIcon } from './common';
 // import VueTypes, { toType, toValidableType } from 'vue-types';
-// import { PropTypes } from '@bkui-vue/shared';
-import type { DatePickerPanelType, SelectionModeType } from './interface';
 import TimePanel from './panel/time';
 import TimeRangePanel from './panel/time-range';
 import { datePickerProps, timePanelProps, timePickerProps } from './props';
-import { datePickerKey, extractTime, formatDate, isAllEmptyArr, parseDate } from './utils';
+import { extractTime, formatDate, isAllEmptyArr, parseDate, timePickerKey } from './utils';
+
+// import { PropTypes } from '@bkui-vue/shared';
+import type { DatePickerPanelType, SelectionModeType } from './interface';
 
 export default defineComponent({
   name: 'TimePicker',
@@ -63,8 +67,17 @@ export default defineComponent({
     ...timePanelProps,
   },
   emits: ['open-change', 'input', 'change', 'update:modelValue', 'clear', 'shortcut-change', 'pick-success'],
-  slots: ['header'],
+  // slots: ['header'],
+  slots: Object as SlotsType<{
+    header?: () => any;
+    trigger?: (displayValue: string) => any;
+    footer?: () => any;
+    shortcuts?: (arg?: { change: Function }) => any;
+    confirm?: {};
+  }>,
   setup(props, { slots, emit }) {
+    const { resolveClassName } = usePrefix();
+    const teleportTo = ref(getFullscreenRoot());
     const formItem = useFormItem();
     const isRange = props.type.includes('range');
     const emptyArray = isRange ? [null, null] : [null];
@@ -100,6 +113,9 @@ export default defineComponent({
       timeEnterMode: true,
       shortcut,
       onSelectionModeChange,
+
+      // for 编辑时，mouseleave 事件中缓存的 value
+      tmpValue: initialValue,
     });
 
     function onSelectionModeChange(_type) {
@@ -110,19 +126,19 @@ export default defineComponent({
       // return ['year', 'month', 'date', 'time'].indexOf(type) > -1 && type;
       state.selectionMode = ['year', 'month', 'date', 'time'].indexOf(type) > -1 && type;
       return state.selectionMode;
-    };
+    }
 
     const publicVModelValue = computed(() => {
       if (props.multiple) {
         return state.internalValue.slice();
       }
       const isRange = props.type.includes('range');
-      let val = state.internalValue.map(date => (date instanceof Date ? new Date(date) : (date || '')));
+      let val = state.internalValue.map(date => (date instanceof Date ? new Date(date) : date || ''));
 
       if (props.type.match(/^time/)) {
         val = val.map(v => formatDate(v, props.type, props.multiple, props.format));
       }
-      return (isRange || props.multiple) ? val : val[0];
+      return isRange || props.multiple ? val : val[0];
     });
 
     const publicStringValue = computed(() => {
@@ -154,7 +170,9 @@ export default defineComponent({
       return visualValue.value;
     });
 
-    const isConfirm = computed(() => !!slots.trigger || props.type === 'datetime' || props.type === 'datetimerange' || props.multiple);
+    const isConfirm = computed(
+      () => !!slots.trigger || props.type === 'datetime' || props.type === 'datetimerange' || props.multiple,
+    );
 
     const hasHeader = computed(() => !!slots.header);
     const hasFooter = computed(() => !!slots.footer);
@@ -199,46 +217,68 @@ export default defineComponent({
     const allowCrossDayProp = computed(() => (panel.value === 'RangeTimePickerPanel' ? props.allowCrossDay : false));
 
     const inputRef = ref(null);
-    const inputFocus = () => {
-      inputRef?.value?.focus();
-    };
+    // const inputFocus = () => {
+    //   inputRef?.value?.focus();
+    // };
 
     const { proxy } = getCurrentInstance();
 
     const pickerDropdownRef = ref(null);
 
-    watch(() => state.visible, (visible) => {
-      if (visible) {
-        pickerDropdownRef.value?.forceUpdate?.();
-        nextTick(() => {
-          (proxy as any).pickerPanelRef?.timeSpinnerRef?.updateScroll();
-        });
-      }
-    });
+    watch(
+      () => state.visible,
+      visible => {
+        if (visible) {
+          pickerDropdownRef.value?.forceUpdate?.();
+          nextTick(() => {
+            (proxy as any).pickerPanelRef?.timeSpinnerRef?.updateScroll();
+          });
+        }
+      },
+    );
 
-    watch(() => props.modelValue, (modelValue) => {
-      state.internalValue = parseDate(modelValue, props.type, props.multiple, props.format);
-      if (props.withValidate) {
-        formItem?.validate?.('change');
-      }
-    });
+    watch(
+      () => props.modelValue,
+      modelValue => {
+        state.internalValue = parseDate(modelValue, props.type, props.multiple, props.format);
+        if (props.withValidate) {
+          formItem?.validate?.('change');
+        }
+      },
+    );
 
-    watch(() => props.open, (open) => {
-      state.visible = open === true;
-    });
+    watch(
+      () => props.open,
+      open => {
+        state.visible = open === true;
+      },
+    );
 
-    watch(() => props.type, (type) => {
-      onSelectionModeChange(type);
-    });
+    watch(
+      () => props.type,
+      type => {
+        onSelectionModeChange(type);
+      },
+    );
 
-    watch(() => publicVModelValue, (now, before) => {
-      const newValue = JSON.stringify(now);
-      const oldValue = JSON.stringify(before);
-      const shouldEmitInput = newValue !== oldValue || typeof now !== typeof before;
-      if (shouldEmitInput) {
-        emit('input', now);
-      }
-    });
+    watch(
+      () => publicVModelValue,
+      (now, before) => {
+        const newValue = JSON.stringify(now);
+        const oldValue = JSON.stringify(before);
+        const shouldEmitInput = newValue !== oldValue || typeof now !== typeof before;
+        if (shouldEmitInput) {
+          emit('input', now);
+        }
+      },
+    );
+
+    watch(
+      () => state.internalValue,
+      v => {
+        state.tmpValue = v;
+      },
+    );
 
     onMounted(() => {
       // 如果是 date-picker 那么 time-picker 就是回车模式
@@ -260,10 +300,15 @@ export default defineComponent({
       }
 
       // this.$on('focus-input', () => this.focus())
-      provide(datePickerKey, {
-        props,
-        focus: () => inputFocus(),
-      });
+      // provide(datePickerKey, {
+      //   props,
+      //   focus: () => inputFocus(),
+      // });
+    });
+
+    provide(timePickerKey, {
+      panelDate: state.focusedDate,
+      parentName: proxy.$options.name,
     });
 
     const pickerPanelRef = ref(null);
@@ -281,7 +326,7 @@ export default defineComponent({
 
       if (state.visible) {
         const pickerPanel = pickerPanelRef?.value?.$el;
-        if (e && pickerPanel && pickerPanel.contains(e.target)) {
+        if (e && pickerPanel?.contains(e.target)) {
           return;
         }
 
@@ -307,16 +352,18 @@ export default defineComponent({
       if (visualValue?.value) {
         state.showClose = true;
       }
+      state.internalValue = state.tmpValue;
     };
 
-    const handleInputMouseleave = (_e) => {
+    const handleInputMouseleave = _e => {
       // if (e.toElement?.classList.contains('clear-action')) {
       //   return;
       // }
       state.showClose = false;
+      state.internalValue = state.tmpValue;
     };
 
-    const emitChange = (type) => {
+    const emitChange = type => {
       nextTick(() => {
         // 使用 :value 或 :model-value 的时候才需要 handleChange，此时没有触发 update:modelValue
         // 使用 v-model 时才会触发 update:modelValue 事件
@@ -329,7 +376,7 @@ export default defineComponent({
       });
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = e => {
       const isArrayValue = props.type.includes('range') || props.multiple;
       const oldValue = visualValue.value;
       const newValue = e.target.value;
@@ -346,10 +393,25 @@ export default defineComponent({
       }
     };
 
-    const handleFocus = (e) => {
+    const handleInputInput = e => {
+      const isArrayValue = props.type.includes('range') || props.multiple;
+      const oldValue = visualValue.value;
+      const newValue = e.target.value;
+      const newDate = parseDate(newValue, props.type, props.multiple, props.format);
+      const valueToTest = isArrayValue ? newDate : newDate[0];
+      const isDisabled = props.disabledDate?.(valueToTest);
+      const isValidDate = newDate.reduce((valid, date) => valid && date instanceof Date, true);
+
+      if (newValue !== oldValue && !isDisabled && isValidDate) {
+        state.tmpValue = newDate;
+      }
+    };
+
+    const handleFocus = e => {
       if (props.readonly) {
         return;
       }
+      teleportTo.value = getFullscreenRoot();
       state.isFocused = true;
       if (e && e.type === 'focus') {
         return;
@@ -364,7 +426,7 @@ export default defineComponent({
       pickerPanelRef?.value?.reset?.();
     };
 
-    const handleBlur = (e) => {
+    const handleBlur = e => {
       if (state.internalFocus) {
         state.internalFocus = false;
         return;
@@ -391,7 +453,8 @@ export default defineComponent({
           e.preventDefault();
 
           if (isConfirm.value) {
-            const selector = '.bk-picker-confirm > *';
+            // const selector = '.bk-picker-confirm > *';
+            const selector = `.${resolveClassName('picker-confirm > *')}`;
             const tabbable = pickerDropdownRef.value.$el.querySelectorAll(selector);
             state.internalFocus = true;
             const element = [...tabbable][e.shiftKey ? 'pop' : 'shift']();
@@ -456,10 +519,7 @@ export default defineComponent({
       state.showClose = false;
       state.shortcut = null;
 
-      setTimeout(
-        () => onSelectionModeChange(props.type),
-        500,
-      );
+      setTimeout(() => onSelectionModeChange(props.type), 500);
     };
 
     const handleTransferClick = () => {
@@ -549,7 +609,7 @@ export default defineComponent({
       inputRef,
       triggerRef,
       pickerPanelRef,
-
+      teleportTo,
       handleClose,
       handleIconClick,
       handleInputMouseenter,
@@ -558,67 +618,52 @@ export default defineComponent({
       handleBlur,
       handleKeydown,
       handleInputChange,
+      handleInputInput,
       handleClear,
       handleTransferClick,
       onPick,
       onPickSuccess,
+      resolveClassName,
     };
   },
   render() {
     const defaultTrigger = (
       <div>
         <span
-          class={[
-            'icon-wrapper',
-            this.disabled ? 'disabled' : '',
-          ]}
-          onClick={this.handleIconClick}>
-          {
-            this.type === 'time' || this.type === 'timerange' ? (
-              <svg class="picker-icon" x="0px" y="0px" viewBox="0 0 1024 1024">
-                <g id="time">
-                  <path fill="#c4c6cc" d="M512,128c51.9,0,102.2,10.1,149.5,30.2c45.7,19.3,86.8,47,122.1,82.3s63,76.4,82.3,122.1c20,47.3,30.2,97.6,30.2,149.5S886,614.3,865.9,661.6c-19.3,45.7-47,86.8-82.3,122.1s-76.4,63-122.1,82.3c-47.3,20-97.6,30.2-149.5,30.2S409.8,886.1,362.5,866c-45.7-19.3-86.8-47-122.1-82.3s-63-76.4-82.3-122.1c-20-47.3-30.2-97.6-30.2-149.5s10.1-102.2,30.2-149.5c19.3-45.7,47-86.8,82.3-122.1s76.4-63,122.1-82.3C409.8,138.1,460.1,128,512,128 M512,64C264.6,64,64,264.6,64,512s200.6,448,448,448s448-200.6,448-448S759.4,64,512,64L512,64z"/>
-                  <polygon fill="#c4c6cc" points="512,512 512,256 448,256 448,512 448,576 512,576 768,576 768,512" />
-                </g>
-              </svg>
-            ) : (
-              <svg class="picker-icon" x="0px" y="0px" viewBox="0 0 1024 1024">
-                <g id="date">
-                  <path fill="#c4c6cc" d="M896,128h-96v64h64v112H160V192h64v-64h-96c-17.7,0-32,14.3-32,32v736c0,17.7,14.3,32,32,32h768c17.7,0,32-14.3,32-32V160C928,142.3,913.7,128,896,128z M160,864V368h704v496H160z" />
-                  <rect x="416" y="128" fill="#c4c6cc" width="192" height="64" />
-                  <rect x="288" y="96" fill="#c4c6cc" width="64" height="128" />
-                  <rect x="672" y="96" fill="#c4c6cc" width="64" height="128" />
-                  <polygon fill="#c4c6cc" points="403.7,514.4 557.1,514.4 557.1,515.3 420.1,765.5 483.5,765.5 620.3,504.3 620.3,466.5 403.7,466.5" />
-                </g>
-              </svg>
-            )
-          }
+          class={['icon-wrapper', this.disabled ? 'disabled' : '']}
+          onClick={this.handleIconClick}
+        >
+          {this.type === 'time' || this.type === 'timerange' ? timeIcon : dateIcon}
         </span>
         <input
-          type="text"
+          key={this.forceInputRerender}
+          ref='inputRef'
           class={[
-            resolveClassName('date-picker-editor'),
+            this.resolveClassName('date-picker-editor'),
             this.readonly ? 'readonly' : '',
             this.fontSizeCls,
             this.behavior === 'simplicity' ? 'only-bottom-border' : '',
           ]}
-          ref="inputRef"
-          key={this.forceInputRerender}
-          readonly={this.localReadonly}
           disabled={this.disabled}
           placeholder={this.placeholder}
+          readonly={this.localReadonly}
+          type='text'
           value={this.displayValue}
-          onFocus={this.handleFocus}
-          onClick={this.handleFocus}
           onBlur={this.handleBlur}
-          onKeydown={this.handleKeydown}
           onChange={this.handleInputChange}
+          onClick={this.handleFocus}
+          onFocus={this.handleFocus}
+          onInput={this.handleInputInput}
+          onKeydown={this.handleKeydown}
         />
-        {
-          (this.clearable && this.showClose) ? (
-            <Close onClick={this.handleClear} class="clear-action" />
-          ) : ''
-        }
+        {this.clearable && this.showClose ? (
+          <Close
+            class='clear-action'
+            onClick={this.handleClear}
+          />
+        ) : (
+          ''
+        )}
       </div>
     );
 
@@ -626,94 +671,86 @@ export default defineComponent({
 
     return (
       <div
-        class={[
-          resolveClassName('date-picker'),
-          this.type === 'datetimerange' ? 'long' : '',
-          this.longWidthCls,
-        ]}
-        v-clickoutside={this.handleClose}>
-          <div ref="triggerRef" class={resolveClassName('date-picker-rel')}
-            onMouseenter={this.handleInputMouseenter}
-            onMouseleave={this.handleInputMouseleave}>
-            {this.$slots.trigger?.() ?? defaultTrigger}
-          </div>
-          <Teleport to="body" disabled={!this.appendToBody}>
-            <Transition name="bk-fade-down-transition">
-              <PickerDropdown
-                class={[
-                  this.appendToBody ? resolveClassName('date-picker-transfer') : '',
-                ]}
-                ref="pickerDropdownRef"
-                v-show={this.opened}
-                triggerRef={this.triggerRef}
-                placement={this.placement}
-                extPopoverCls={this.extPopoverCls}
-                appendToBody={this.appendToBody}
-                onClick={this.handleTransferClick}
-              >
-                {
-                  this.hasHeader
-                    ? (
-                      <div class={[resolveClassName('date-picker-top-wrapper'), this.headerSlotCls]} >
-                        {this.$slots.header?.() ?? null}
-                      </div>
-                    )
-                    : null
-                }
-                {
-                  this.panel === 'RangeTimePickerPanel'
-                    ? (
-                      <TimeRangePanel
-                        ref="pickerPanelRef"
-                        clearable={this.clearable}
-                        shortcuts={this.shortcuts}
-                        multiple={this.multiple}
-                        shortcutClose={this.shortcutClose}
-                        value={this.internalValue}
-                        startDate={this.startDate}
-                        disabledDate={this.disabledDate}
-                        onPick={this.onPick}
-                        onPick-clear={this.handleClear}
-                        onPick-success={this.onPickSuccess}
-                        v-slots={shortcutsSlot}
-                        disabledHours={this.ownPickerProps.disabledHours}
-                        disabledMinutes={this.ownPickerProps.disabledMinutes}
-                        disabledSeconds={this.ownPickerProps.disabledSeconds}
-                      />
-                    )
-                    : (
-                      <TimePanel
-                        ref="pickerPanelRef"
-                        clearable={this.clearable}
-                        confirm={this.isConfirm}
-                        shortcuts={this.shortcuts}
-                        multiple={this.multiple}
-                        shortcutClose={this.shortcutClose}
-                        value={this.internalValue}
-                        startDate={this.startDate}
-                        disabledDate={this.disabledDate}
-                        onPick={this.onPick}
-                        onPick-clear={this.handleClear}
-                        onPick-success={this.onPickSuccess}
-                        v-slots={shortcutsSlot}
-                        disabledHours={this.ownPickerProps.disabledHours}
-                        disabledMinutes={this.ownPickerProps.disabledMinutes}
-                        disabledSeconds={this.ownPickerProps.disabledSeconds}
-                      />
-                    )
-                }
-                {
-                  this.hasFooter
-                    ? (
-                      <div class={[resolveClassName('date-picker-footer-wrapper'), this.footerSlotCls]} >
-                        {this.$slots.footer?.() ?? null}
-                      </div>
-                    )
-                    : null
-                }
-              </PickerDropdown>
-            </Transition>
-          </Teleport>
+        class={[this.resolveClassName('date-picker'), this.type === 'datetimerange' ? 'long' : '', this.longWidthCls]}
+        v-clickoutside={this.handleClose}
+      >
+        <div
+          ref='triggerRef'
+          class={this.resolveClassName('date-picker-rel')}
+          onMouseenter={this.handleInputMouseenter}
+          onMouseleave={this.handleInputMouseleave}
+        >
+          {this.$slots.trigger?.(this.displayValue) ?? defaultTrigger}
+        </div>
+        <Teleport
+          disabled={!this.appendToBody}
+          to={this.teleportTo}
+        >
+          <Transition name='bk-fade-down-transition'>
+            <PickerDropdown
+              ref='pickerDropdownRef'
+              class={[this.appendToBody ? this.resolveClassName('date-picker-transfer') : '']}
+              v-show={this.opened}
+              appendToBody={this.appendToBody}
+              extPopoverCls={this.extPopoverCls}
+              placement={this.placement}
+              triggerRef={this.triggerRef}
+              onClick={this.handleTransferClick}
+            >
+              {this.hasHeader ? (
+                <div class={[this.resolveClassName('date-picker-top-wrapper'), this.headerSlotCls]}>
+                  {this.$slots.header?.() ?? null}
+                </div>
+              ) : null}
+              {this.panel === 'RangeTimePickerPanel' ? (
+                <TimeRangePanel
+                  ref='pickerPanelRef'
+                  v-slots={shortcutsSlot}
+                  allowCrossDay={this.allowCrossDayProp}
+                  clearable={this.clearable}
+                  disabledDate={this.disabledDate}
+                  disabledHours={this.ownPickerProps.disabledHours}
+                  disabledMinutes={this.ownPickerProps.disabledMinutes}
+                  disabledSeconds={this.ownPickerProps.disabledSeconds}
+                  format={this.format}
+                  multiple={this.multiple}
+                  shortcutClose={this.shortcutClose}
+                  shortcuts={this.shortcuts}
+                  startDate={this.startDate}
+                  value={this.internalValue}
+                  onPick={this.onPick}
+                  onPick-clear={this.handleClear}
+                  onPick-success={this.onPickSuccess}
+                />
+              ) : (
+                <TimePanel
+                  ref='pickerPanelRef'
+                  v-slots={shortcutsSlot}
+                  clearable={this.clearable}
+                  confirm={this.isConfirm}
+                  disabledDate={this.disabledDate}
+                  disabledHours={this.ownPickerProps.disabledHours}
+                  disabledMinutes={this.ownPickerProps.disabledMinutes}
+                  disabledSeconds={this.ownPickerProps.disabledSeconds}
+                  format={this.format}
+                  multiple={this.multiple}
+                  shortcutClose={this.shortcutClose}
+                  shortcuts={this.shortcuts}
+                  startDate={this.startDate}
+                  value={this.internalValue}
+                  onPick={this.onPick}
+                  onPick-clear={this.handleClear}
+                  onPick-success={this.onPickSuccess}
+                />
+              )}
+              {this.hasFooter ? (
+                <div class={[this.resolveClassName('date-picker-footer-wrapper'), this.footerSlotCls]}>
+                  {this.$slots.footer?.() ?? null}
+                </div>
+              ) : null}
+            </PickerDropdown>
+          </Transition>
+        </Teleport>
       </div>
     );
   },

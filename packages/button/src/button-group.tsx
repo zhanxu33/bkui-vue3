@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { classes, PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
@@ -34,14 +35,16 @@ export default defineComponent({
     size: PropTypes.size(),
   },
   setup(props, ctx) {
-    const btnGroupCls = computed(() => classes({
-      [`bk-button-group-${props.size}`]: !!props.size,
-    }, 'bk-button-group'));
-
-    return () => (
-      <div class={btnGroupCls.value}>
-        {ctx.slots.default?.()}
-      </div>
+    const { resolveClassName } = usePrefix();
+    const btnGroupCls = computed(() =>
+      classes(
+        {
+          [`${resolveClassName(`button-group-${props.size}`)}`]: !!props.size,
+        },
+        `${resolveClassName('button-group')}`,
+      ),
     );
+
+    return () => <div class={btnGroupCls.value}>{ctx.slots.default?.()}</div>;
   },
 });

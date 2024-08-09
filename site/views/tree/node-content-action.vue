@@ -1,42 +1,48 @@
 <template>
   <div style="width: 100%; overflow: auto">
+    <bk-input
+      style="width: 400px; margin-left: 20px"
+      v-model="search.value"
+      type="search"
+    />
     <div class="row">
       <div class="column">
-        <div class="attr-tag">
-          node-content-action = ['selected', 'click', 'expand'] | (默认配置)
-        </div>
+        <div class="attr-tag">node-content-action = ['selected', 'click', 'expand', 'collapse'] | (默认配置)</div>
         <div class="cell">
           <bk-tree
             :data="treeData"
-            label="name"
+            :node-content-action="['selected', 'click', 'expand', 'collapse']"
+            :search="search"
             children="children"
-            :node-content-action="['selected', 'click', 'expand']"
+            label="name"
+            expand-all
           />
         </div>
       </div>
       <div class="column">
-        <div class="attr-tag">
-          node-content-action =['selected', 'click']
-        </div>
+        <div class="attr-tag">node-content-action =['selected', 'click']</div>
         <div class="cell">
           <bk-tree
             :data="treeData"
-            label="name"
             :node-content-action="['selected', 'click']"
+            :search="search"
             children="children"
+            label="name"
           />
         </div>
       </div>
       <div class="column">
         <div class="attr-tag">
-          node-content-action =[] | (如果要禁用所有行为请设置为[],不要设置null|undefined之类，这类设置会被置换为默认配置)
+          node-content-action =[] |
+          (如果要禁用所有行为请设置为[],不要设置null|undefined之类，这类设置会被置换为默认配置)
         </div>
         <div class="cell">
           <bk-tree
             :data="treeData"
-            label="name"
             :node-content-action="[]"
+            :search="search"
             children="children"
+            label="name"
           />
         </div>
       </div>
@@ -52,33 +58,21 @@
     components: {},
     data() {
       return {
-        treeData: [...JSON.parse(JSON.stringify(BASIC_DATA))],
+        treeData: BASIC_DATA,
+        search: {
+          value: '',
+          showChildNodes: true,
+        },
       };
     },
   });
 </script>
 <style scoped>
-.row {
-  display: flex;
-  width: 100%;
-  padding-top: 15px;
-}
+  @import './tree.less';
 
-.column {
-  width: 33%;
-}
-
-.cell {
-  height: 300px;
-  padding: 0 15px;
-  overflow: auto;
-  border-right: solid 1px #ddd;
-  flex: 1;
-}
-
-.attr-tag {
-  padding: 10px;
-  margin-right: 2px;
-  background: #f0f1f5;
-}
+  .attr-tag {
+    padding: 10px;
+    margin-right: 2px;
+    background: #f0f1f5;
+  }
 </style>

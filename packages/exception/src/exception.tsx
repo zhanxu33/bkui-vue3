@@ -22,16 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import _ from 'lodash';
 import { defineComponent } from 'vue';
 import { toType } from 'vue-types';
 
-import {
-  classes,
-  PropTypes,
-} from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { classes, PropTypes } from '@bkui-vue/shared';
+import isFunction from 'lodash/isFunction';
 
 import permissions from './images/403.svg';
 import notFound from './images/404.svg';
@@ -43,13 +41,13 @@ import searchEmpty from './images/search-empty.svg';
 import { TypesMapType } from './typings';
 
 export enum ExceptionEnum {
-  CODE_404 = '404',
-  CODE_403 = '403',
-  CODE_500 = '500',
   BUILDING = 'building',
+  CODE_403 = '403',
+  CODE_404 = '404',
+  CODE_500 = '500',
   EMPTY = 'empty',
-  SEARCH = 'search-empty',
   LOGIN = 'login',
+  SEARCH = 'search-empty',
 }
 export enum SceneEnum {
   PAGE = 'page',
@@ -75,64 +73,55 @@ export default defineComponent({
       'search-empty': searchEmpty,
       login,
     };
+    const { resolveClassName } = usePrefix();
 
     const renderImg = () => {
-      if (_.isFunction(slots.type)) {
-        return (
-          <div class="bk-exception-img">
-            {slots.type()}
-          </div>
-        );
+      if (isFunction(slots.type)) {
+        return <div class={`${resolveClassName('exception-img')}`}>{slots.type()}</div>;
       }
       const imgSrc = images[props.type] ? images[props.type] : empty;
       return (
-        <div class="bk-exception-img">
-          <img class="exception-image" src={imgSrc} alt="type" />
+        <div class={`${resolveClassName('exception-img')}`}>
+          <img
+            class='exception-image'
+            alt='type'
+            src={imgSrc}
+          />
         </div>
       );
     };
 
     const renderTitle = () => {
-      if (_.isFunction(slots.title)) {
-        return (
-          <div class="bk-exception-title">{slots.title()}</div>
-        );
+      if (isFunction(slots.title)) {
+        return <div class={`${resolveClassName('exception-title')}`}>{slots.title()}</div>;
       }
       if (props.title) {
-        return (
-          <div class="bk-exception-title">{props.title}</div>
-        );
+        return <div class={`${resolveClassName('exception-title')}`}>{props.title}</div>;
       }
       return null;
     };
 
     const renderDescription = () => {
-      if (_.isFunction(slots.description)) {
-        return (
-          <div class="bk-exception-description">{slots.description()}</div>
-        );
+      if (isFunction(slots.description)) {
+        return <div class={`${resolveClassName('exception-description')}`}>{slots.description()}</div>;
       }
       if (props.description) {
-        return (
-          <div class="bk-exception-description">{props.description}</div>
-        );
+        return <div class={`${resolveClassName('exception-description')}`}>{props.description}</div>;
       }
       return null;
     };
 
     const renderFooter = () => {
-      if (_.isFunction(slots.default)) {
-        return (
-          <div class="bk-exception-footer">{slots.default()}</div>
-        );
+      if (isFunction(slots.default)) {
+        return <div class={`${resolveClassName('exception-footer')}`}>{slots.default()}</div>;
       }
       return null;
     };
 
     return () => {
       const rootClass = classes({
-        'bk-exception': true,
-        [`bk-exception-${props.scene}`]: true,
+        [`${resolveClassName('exception')}`]: true,
+        [`${resolveClassName(`exception-${props.scene}`)}`]: true,
       });
       return (
         <div class={rootClass}>

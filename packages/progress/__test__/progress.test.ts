@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { mount } from '@vue/test-utils';
 
@@ -75,8 +75,7 @@ describe('Progress.tsx', () => {
         theme: 'success',
       },
     });
-    expect(wrapper.find('.progress-inner').classes())
-      .toContain('bk-success');
+    expect(wrapper.find('.progress-inner').classes()).toContain('bk-success');
     expect(wrapper.classes()).toContain('bk-progress-line');
   });
 
@@ -129,7 +128,7 @@ describe('Progress.tsx', () => {
     const wrapper = mount(Progress, {
       props: {
         percent: 88,
-        format: (percent: Number) => `百分比${percent}`,
+        format: (percent: number) => `百分比${percent}`,
       },
     });
     expect(wrapper.find('.progress-text').text()).toBe('百分比88');

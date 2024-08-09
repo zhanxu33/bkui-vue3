@@ -30,27 +30,27 @@
  * Copyright © 2012-2019 Tencent BlueKing. All Rights Reserved. 蓝鲸智云 版权所有
  */
 import {
-  type SetupContext,
   computed,
   defineComponent,
+  // EmitsOptions,
   h,
-  nextTick,
   onMounted,
+  onUnmounted,
   reactive,
   ref,
-  resolveDirective,
+  type SetupContext,
+  SlotsType,
   watch,
-  withDirectives,
+  nextTick,
 } from 'vue';
 
-import { resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
 
-import {
-  type VirtualRenderProps,
-  virtualRenderProps,
-} from './props';
+import { type VirtualRenderProps, virtualRenderProps } from './props';
+import useFixTop from './use-fix-top';
+import useScrollbar from './use-scrollbar';
 import useTagRender from './use-tag-render';
-import virtualRender, { computedVirtualIndex } from './v-virtual-render';
+import virtualRender, { computedVirtualIndex, VisibleRender } from './v-virtual-render';
 
 export default defineComponent({
   name: 'VirtualRender',
@@ -58,11 +58,17 @@ export default defineComponent({
     bkVirtualRender: virtualRender,
   },
   props: virtualRenderProps,
-  emits: ['content-scroll'],
+  emits: ['content-scroll' as string],
+  slots: Object as SlotsType<{
+    default?: Record<string, object>;
+    beforeContent?: Record<string, object>;
+    afterContent?: Record<string, object>;
+    afterSection?: Record<string, object>;
+  }>,
   setup(props: VirtualRenderProps, ctx: SetupContext) {
     const { renderAs, contentAs } = props;
 
-    const resolvePropClassName = (prop: string | string[] | any[] | any) => {
+    const resolvePropClassName = (prop: Record<string, object> | Record<string, object>[] | string | string[]) => {
       if (typeof prop === 'string') {
         return [prop];
       }
@@ -79,7 +85,20 @@ export default defineComponent({
       return rendAsTag;
     }
 
+    const binding = computed(() => ({
+      lineHeight: props.lineHeight,
+      handleScrollCallback,
+      pagination,
+      throttleDelay: props.throttleDelay,
+      scrollbar: props.scrollbar,
+    }));
+
     const refRoot = ref(null);
+    const refContent = ref(null);
+
+    const { init, scrollTo, classNames, updateScrollHeight } = useScrollbar(refRoot, props);
+
+    let instance = null;
     const pagination = reactive({
       startIndex: 0,
       endIndex: 0,
@@ -92,40 +111,53 @@ export default defineComponent({
       groupItemCount: props.groupItemCount,
     });
 
+    const calcList = ref([]);
+
     /** 指令触发Scroll事件，计算当前startIndex & endIndex & scrollTop & translateY */
     const handleScrollCallback = (event, startIndex, endIndex, scrollTop, translateY, scrollLeft, pos) => {
-      pagination.startIndex = startIndex;
-      pagination.endIndex = endIndex;
-      pagination.scrollTop = scrollTop;
+      const translateX = scrollLeft;
+      Object.assign(pagination, { startIndex, endIndex, scrollTop, translateX, translateY, scrollLeft, pos });
+      let start = pagination.startIndex * props.groupItemCount;
+      let end = pagination.endIndex * props.groupItemCount;
+      const total = localList.value.length;
+      if (total < end) {
+        end = total;
+        start = end - Math.floor(refContent.value.offsetHeight / props.lineHeight);
+        start = start < 0 ? 0 : start;
+      }
 
-      // 设置偏移量，避免行高较大时出现卡顿式的滚动
-      pagination.translateY = translateY;
-      pagination.translateX =  scrollLeft;
-      pagination.scrollLeft = scrollLeft;
-      pagination.pos = pos;
-      ctx.emit('content-scroll', [event, pagination]);
+      if (end > total) {
+        end = total;
+        start = end - Math.floor(refContent.value.offsetHeight / props.lineHeight);
+      }
+
+      const value = localList.value.slice(start, end);
+      calcList.value = value;
+      if (event) {
+        ctx.emit('content-scroll', [event, pagination, value]);
+      }
     };
 
     onMounted(() => {
-      nextTick(() => {
-        handleListChanged(props.list);
-        afterListDataReset();
-      });
+      instance = new VisibleRender(binding, refRoot.value);
+
+      if (props.scrollbar?.enabled) {
+        init(instance.executeThrottledRender.bind(instance));
+        updateScrollHeight(contentHeight.value);
+        instance.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
+        return;
+      }
+
+      instance.install();
     });
 
-    watch(() => props.list, () => {
-      handleChangeListConfig();
-      afterListDataReset();
-    }, { deep: true });
-
-    watch(() => props.lineHeight, () => {
-      handleChangeListConfig();
-      afterListDataReset();
+    onUnmounted(() => {
+      instance?.uninstall();
     });
 
     const handleChangeListConfig = () => {
       /** 数据改变时激活当前表单，使其渲染DOM */
-      handleListChanged(props.list);
+      handleListChanged(props.list as Record<string, object>[]);
     };
 
     /** 如果有分组状态，计算总行数 */
@@ -137,13 +169,9 @@ export default defineComponent({
     /**
      * 列表数据改变时，处理相关参数
      */
-    const handleListChanged = (list: any[]) => {
+    const handleListChanged = (list: Record<string, object>[]) => {
       listLength.value = Math.ceil((list || []).length / props.groupItemCount);
       pagination.count = listLength.value;
-      pagination.startIndex = 0;
-      pagination.endIndex = 0;
-      pagination.translateY = 0;
-      pagination.scrollTop = 0;
 
       const isAuto = typeof props.abosuteHeight === 'string' && props.abosuteHeight === 'auto';
       if (isAuto) {
@@ -164,124 +192,126 @@ export default defineComponent({
     };
 
     /** 列表数据重置之后的处理事项 */
-    const afterListDataReset = (scrollTop = true) => {
-      const el = refRoot.value?.parentNode as HTMLElement;
-      computedVirtualIndex(props.lineHeight, handleScrollCallback, pagination, el, null);
-      if (scrollTop && refRoot.value) {
-        refRoot.value.scrollTo(0, 0);
-      }
+    const afterListDataReset = (_scrollToOpt = { left: 0, top: 0 }) => {
+      const el = refRoot.value as HTMLElement;
+      computedVirtualIndex(props.lineHeight, handleScrollCallback, pagination, el, { target: el });
     };
 
     /** 映射传入的数组为新的数组，增加 $index属性，用来处理唯一Index */
     const localList = computed(() => {
-      if (props.rowKey !== undefined) {
+      if (props.rowKey !== undefined || !props.autoIndex) {
         return props.list;
       }
 
-      return (props.list || []).map((item: any, index) => ({ ...item,  $index: index }));
+      return ((props.list || []) as Record<string, object>[]).map((item, index) => ({ ...item, $index: index }));
     });
-
-    /** 计算出来的当前页数据 */
-    const calcList = computed(() => localList.value.slice(
-      pagination.startIndex * props.groupItemCount,
-      (pagination.endIndex + props.preloadItemCount) * props.groupItemCount,
-    ));
 
     /** 展示列表内容区域样式 */
-    const innerContentStyle = computed(() => (props.scrollPosition === 'content' ? ({
-      top: `${pagination.scrollTop + props.scrollOffsetTop}px`,
-      transform: `translateY(-${pagination.translateY}px)`,
-    }) : ({})));
+    const innerContentStyle = computed(() => (props.scrollPosition === 'content' ? {} : {}));
 
     /** 虚拟渲染外层容器样式 */
-    const wrapperStyle = computed(() => ({
-      height: typeof props.height === 'number' ? `${props.height}px` : props.height,
-      width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-      display: 'inline-block',
-      ...(props.scrollPosition === 'container' ? innerContentStyle.value : {}),
-    }));
-
-    /** 虚拟渲染区域内置占位区域样式，用来撑起总高度，出现滚动条 */
-    const innerStyle = computed(() => {
-      const isHidden = typeof props.abosuteHeight === 'number' && props.abosuteHeight === 0;
+    const wrapperStyle = computed(() => {
+      const height = typeof props.height === 'number' ? `${props.height}px` : props.height;
       return {
-        height: `${innerHeight.value < props.minHeight ? props.minHeight : innerHeight.value}px`,
-        display: isHidden ? 'none' : 'block',
+        height,
+        width: typeof props.width === 'number' ? `${props.width}px` : props.width,
+        display: 'inline-block',
+        maxHeight: props.maxHeight ? `${props.maxHeight}px` : false,
+        minHeight: props.minHeight ? `${props.minHeight}px` : false,
+        ...(props.scrollPosition === 'container' ? innerContentStyle.value : {}),
+        ...props.wrapperStyle,
       };
     });
+
+    const contentHeight = computed(() => {
+      return innerHeight.value < props.minHeight ? props.minHeight : innerHeight.value;
+    });
+
+    const { resolveClassName } = usePrefix();
 
     /** 外层样式列表 */
     const wrapperClass = computed(() => [
       resolveClassName('virtual-render'),
-      props.scrollXName,
-      props.scrollYName,
+
       ...resolvePropClassName(props.className),
-      props.scrollPosition === 'container' ? resolveClassName('virtual-content') : '']);
+      props.scrollPosition === 'container' ? resolveClassName('virtual-content') : '',
+    ]);
 
     /** 内容区域样式列表 */
     const innerClass = computed(() => [
       props.scrollPosition === 'content' ? resolveClassName('virtual-content') : '',
-      ...resolvePropClassName(props.contentClassName)]);
-    const vVirtualRender = resolveDirective('bkVirtualRender');
-    const dirModifier = {
-      lineHeight: props.lineHeight,
-      handleScrollCallback,
-      pagination,
-      throttleDelay: props.throttleDelay,
-    };
+      ...resolvePropClassName(props.contentClassName),
+    ]);
 
+    /**
+     * 重置当前配置
+     * @param keepLastPostion
+     */
     const reset = () => {
       handleChangeListConfig();
       afterListDataReset();
+      instance?.executeThrottledRender.call(instance, { offset: { x: 0, y: 0 } });
     };
 
-    const scrollTo = (option = { left: 0, top: 0 }) => {
-      const { left, top } = option;
-      refRoot.value.scrollTo(left, top);
-    };
+    const { fixToTop } = useFixTop(props, scrollTo);
+
+    watch(
+      () => [contentHeight.value, props.list],
+      () => {
+        instance?.setBinding(binding);
+        handleChangeListConfig();
+        updateScrollHeight(contentHeight.value);
+        afterListDataReset();
+        nextTick(() => {
+          instance?.executeThrottledRender.call(instance, {
+            offset: { x: pagination.scrollLeft, y: pagination.scrollTop },
+          });
+        });
+      },
+      {
+        immediate: true,
+        deep: true,
+      },
+    );
 
     ctx.expose({
       reset,
       scrollTo,
+      fixToTop,
+      refRoot,
+      refContent,
     });
 
-    return () => h(
-      // @ts-ignore:next-line
-      renderAs || 'div',
-      {
-        ref: refRoot,
-        class: wrapperClass.value,
-        style: wrapperStyle.value,
-      },
-      [
-        ctx.slots.beforeContent?.() ?? '',
-        withDirectives(h(
-          contentAs || 'div',
-          {
-            class: innerClass.value,
-            style: {
-              ...innerContentStyle.value,
-              ...props.contentStyle,
+    return () =>
+      h(
+        // @ts-ignore:next-line
+        renderAs || 'div',
+        {
+          ref: refRoot,
+          class: [...wrapperClass.value, classNames.wrapper],
+          style: wrapperStyle.value,
+        },
+        [
+          ctx.slots.beforeContent?.() ?? '',
+          h(
+            contentAs || 'div',
+            {
+              ref: refContent,
+              class: [...innerClass.value, classNames.contentEl],
+              style: {
+                ...innerContentStyle.value,
+                ...props.contentStyle,
+              },
             },
-          },
-          [
-            ctx.slots.default?.({
-              data: calcList.value,
-            }) ?? '',
-          ],
-        ), [
-          [
-            vVirtualRender,
-            dirModifier,
-          ],
-        ]),
-        ctx.slots.afterContent?.() ?? '',
-        h('div', {
-          class: [resolveClassName('virtual-section')],
-          style: innerStyle.value,
-        }),
-        ctx.slots.afterSection?.() ?? '',
-      ],
-    );
+            [
+              ctx.slots.default?.({
+                data: calcList.value,
+              }) ?? '',
+            ],
+          ),
+          ctx.slots.afterContent?.() ?? '',
+          ctx.slots.afterSection?.() ?? '',
+        ],
+      );
   },
 });

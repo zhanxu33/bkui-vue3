@@ -26,11 +26,11 @@
 
 import { computed, defineComponent, nextTick, onMounted, ref, watch } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import Input from '@bkui-vue/input';
 import { PropTypes } from '@bkui-vue/shared';
 
 import SliderButton from './slider-button';
-
 
 export const on = (element: Element | Window, event: string, handler) => {
   if (element && event && handler) {
@@ -46,7 +46,7 @@ export const off = (element: Element | Window, event: string, handler) => {
 export default defineComponent({
   name: 'Slider',
   props: {
-    modelValue: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+    modelValue: PropTypes.oneOfType([PropTypes.arrayOf(PropTypes.number), PropTypes.number]),
     extCls: { type: String, default: '' }, // 自定义class
     vertical: { type: Boolean, default: false }, // 是否为垂直模式
     height: { type: String, default: '200px' }, // 滑动选择器高度 vertical为true时使用
@@ -65,18 +65,22 @@ export default defineComponent({
     formatterLabel: { type: Function, default: (value: number) => value }, // 自定义间断点下文字格式
     formatterButtonLabel: { type: Function, default: (value: number) => value }, // 自定义滑块下文字格式
     formatterTipLabel: { type: Function, default: (value: number) => value }, // 自定义tip格式
+    labelClick: {
+      type: [Boolean, Function],
+      default: false,
+    },
   },
   emits: ['update:modelValue', 'change'],
   setup(props, { slots, emit }) {
     /* 滑动选择器长度 */
     const sliderSize = ref(1);
     /* 第一个滑块与第二个滑块的值 */
-    const firstValue = ref<number | null>(null);
-    const secondValue = ref<number | null>(null);
+    const firstValue = ref<null | number>(null);
+    const secondValue = ref<null | number>(null);
     const oldValue = ref(null);
     /* 第一个输入框与第二个输入框的值 */
-    const firstInput = ref<number | null>(0);
-    const secondInput = ref<number | null>(0);
+    const firstInput = ref<null | number>(0);
+    const secondInput = ref<null | number>(0);
     /* 以下为refDom */
     const slider = ref(null);
     const firstbutton = ref(null);
@@ -85,8 +89,8 @@ export default defineComponent({
 
     // 小数点后最大位数
     const precision = computed(() => {
-      const precisions = [props.minValue, props.maxValue, props.step].map((item) => {
-        const decimal = (`${item}`).split('.')[1];
+      const precisions = [props.minValue, props.maxValue, props.step].map(item => {
+        const decimal = `${item}`.split('.')[1];
         return decimal ? decimal.length : 0;
       });
       return Math.max.apply(null, precisions);
@@ -94,21 +98,26 @@ export default defineComponent({
     /* 当前滑块的最小值与最大值 */
     const rangeMinValue = computed(() => Math.min(firstValue.value, secondValue.value));
     const rangeMaxValue = computed(() => Math.max(firstValue.value, secondValue.value));
-    const barSize = computed(() => (props.range
-      ? `${100 * (rangeMaxValue.value - rangeMinValue.value) / (props.maxValue - props.minValue)}%`
-      : `${100 * (firstValue.value - props.minValue) / (props.maxValue - props.minValue)}%`));
-    const barStart = computed(() => (props.range
-      ? `${100 * (rangeMinValue.value - props.minValue) / (props.maxValue - props.minValue)}%`
-      : '0%'));
+    const barSize = computed(() =>
+      props.range
+        ? `${(100 * (rangeMaxValue.value - rangeMinValue.value)) / (props.maxValue - props.minValue)}%`
+        : `${(100 * (firstValue.value - props.minValue)) / (props.maxValue - props.minValue)}%`,
+    );
+    const barStart = computed(() =>
+      props.range ? `${(100 * (rangeMinValue.value - props.minValue)) / (props.maxValue - props.minValue)}%` : '0%',
+    );
     /* 当前滑动区域的位置与长度 */
-    const barStyle = computed(() => (props.vertical
-      ? {
-        height: barSize.value,
-        bottom: barStart.value,
-      } : {
-        width: barSize.value,
-        left: barStart.value,
-      }));
+    const barStyle = computed(() =>
+      props.vertical
+        ? {
+            height: barSize.value,
+            bottom: barStart.value,
+          }
+        : {
+            width: barSize.value,
+            left: barStart.value,
+          },
+    );
     /* 断点 */
     const intervals = computed(() => {
       if (!props.showInterval || props.minValue > props.maxValue) return [];
@@ -117,18 +126,22 @@ export default defineComponent({
         return [];
       }
       const stopCount = (props.maxValue - props.minValue) / props.step;
-      const stepWidth = 100 * props.step / (props.maxValue - props.minValue);
+      const stepWidth = (100 * props.step) / (props.maxValue - props.minValue);
       const result = [];
       for (let i = 1; i < stopCount; i++) {
         result.push(i * stepWidth);
       }
       if (props.range) {
-        // eslint-disable-next-line max-len
-        return result.filter(step => step < 100 * (rangeMinValue.value - props.minValue) / (props.maxValue - props.minValue)
-                  || step > 100 * (rangeMaxValue.value - props.minValue) / (props.maxValue - props.minValue));
+        return result.filter(
+          step =>
+            step < (100 * (rangeMinValue.value - props.minValue)) / (props.maxValue - props.minValue) ||
+            step > (100 * (rangeMaxValue.value - props.minValue)) / (props.maxValue - props.minValue),
+        );
       }
-      // eslint-disable-next-line max-len
-      return result.filter(step => step > 100 * (firstValue.value - props.minValue) / (props.maxValue - props.minValue));
+
+      return result.filter(
+        step => step > (100 * (firstValue.value - props.minValue)) / (props.maxValue - props.minValue),
+      );
     });
     /* 可滑动区域的样式 */
     const runwayStyle = computed(() => (props.vertical ? { height: props.height, width: '4px' } : {}));
@@ -139,7 +152,7 @@ export default defineComponent({
         console.warn('WARNNING:step should not be 0');
         return [];
       }
-      const stepWidth = 100 * props.step / (props.maxValue - props.minValue);
+      const stepWidth = (100 * props.step) / (props.maxValue - props.minValue);
       const result = [];
       for (let i = props.minValue, j = 0; i <= props.maxValue; i += props.step, j++) {
         const item = {
@@ -160,13 +173,13 @@ export default defineComponent({
       return Object.keys(props.customContent)
         .sort((a, b) => Number(a) - Number(b))
         .filter(value => Number(value) >= props.minValue && Number(value) <= props.maxValue)
-        .map((item) => {
+        .map(item => {
           const { tip } = props.customContent[item];
           const { label } = props.customContent[item];
           return {
             tip: tip || label || '',
             label: label || '',
-            percent: (Number(item) - props.minValue) / (props.maxValue - props.minValue) * 100,
+            percent: ((Number(item) - props.minValue) / (props.maxValue - props.minValue)) * 100,
           };
         });
     });
@@ -188,21 +201,30 @@ export default defineComponent({
     }));
 
     // 监听
-    watch(() => props.modelValue, () => {
-      setValues();
-    });
-    watch(() => firstValue.value, (val) => {
-      if (props.range) {
+    watch(
+      () => props.modelValue,
+      () => {
+        setValues();
+      },
+    );
+    watch(
+      () => firstValue.value,
+      val => {
+        if (props.range) {
+          emit('update:modelValue', [rangeMinValue.value, rangeMaxValue.value]);
+        } else {
+          emit('update:modelValue', val);
+        }
+        firstInput.value = val;
+      },
+    );
+    watch(
+      () => secondValue.value,
+      val => {
         emit('update:modelValue', [rangeMinValue.value, rangeMaxValue.value]);
-      } else {
-        emit('update:modelValue', val);
-      }
-      firstInput.value = val;
-    });
-    watch(() => secondValue.value, (val) => {
-      emit('update:modelValue', [rangeMinValue.value, rangeMaxValue.value]);
-      secondInput.value = val;
-    });
+        secondInput.value = val;
+      },
+    );
     /* 初始化 */
     onMounted(() => {
       if (props.range) {
@@ -237,10 +259,10 @@ export default defineComponent({
       resetSize();
       if (props.vertical) {
         const offsetBottom = slider.value?.getBoundingClientRect().bottom;
-        setPosition((offsetBottom - event.clientY) / sliderSize.value * 100);
+        setPosition(((offsetBottom - event.clientY) / sliderSize.value) * 100);
       } else {
         const offsetLeft = slider.value?.getBoundingClientRect().left;
-        setPosition((event.clientX - offsetLeft) / sliderSize.value * 100);
+        setPosition(((event.clientX - offsetLeft) / sliderSize.value) * 100);
       }
       emitChange();
     };
@@ -257,7 +279,7 @@ export default defineComponent({
         console.error('min should not be greater than max.');
         return;
       }
-      const val = props.modelValue;
+      const val = props.modelValue as number[];
       if (props.range && Array.isArray(val)) {
         if (val[1] < props.minValue) {
           emit('update:modelValue', [props.minValue, props.minValue]);
@@ -293,14 +315,15 @@ export default defineComponent({
       emit('change', props.range ? [rangeMinValue.value, rangeMaxValue.value] : props.modelValue);
     };
     /* 断点样式 */
-    const getIntervalStyle = (position: number) => (props.vertical ? { bottom: `${position}%` } : { left: `${position}%` });
+    const getIntervalStyle = (position: number) =>
+      props.vertical ? { bottom: `${position}%` } : { left: `${position}%` };
     /* 设置滑块位置 */
     const setPosition = (percent: number) => {
       if (!props.range) {
         firstbutton.value.setPosition(percent);
         return;
       }
-      const targetValue = props.minValue + percent * (props.maxValue - props.minValue) / 100;
+      const targetValue = props.minValue + (percent * (props.maxValue - props.minValue)) / 100;
       // 绝对值
       if (Math.abs(rangeMinValue.value - targetValue) < Math.abs(rangeMaxValue.value - targetValue)) {
         curButtonRef.value = firstValue.value < secondValue.value ? firstbutton.value : secondbutton.value;
@@ -309,7 +332,7 @@ export default defineComponent({
       }
       curButtonRef.value.setPosition(percent);
     };
-    const firstInputChange = (v) => {
+    const firstInputChange = v => {
       if (v === '') {
         return;
       }
@@ -325,10 +348,10 @@ export default defineComponent({
       }
     };
     const secondInputChange = (v: number | string) => {
-      if (v === '' || typeof v === 'number') {
+      if (v === '') {
         return;
       }
-      const val = parseFloat(v);
+      const val = parseFloat(v.toString());
       if (val < props.minValue) {
         secondInput.value = props.minValue;
         secondValue.value = props.minValue;
@@ -339,7 +362,7 @@ export default defineComponent({
         secondValue.value = val;
       }
     };
-    const betweenLabelStyle = (postion: 'start' | 'end') => {
+    const betweenLabelStyle = (postion: 'end' | 'start') => {
       let value = 0;
       if (postion === 'start') {
         value = props.vertical ? props.maxValue : props.minValue;
@@ -352,101 +375,171 @@ export default defineComponent({
       return '1';
     };
 
+    const { resolveClassName } = usePrefix();
+    const handleStepLabelClick = (e: MouseEvent, step: any) => {
+      let percent = step.stepWidth ?? step.percent ?? step;
+      if (props.labelClick) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        let fnResult;
+        if (typeof props.labelClick === 'function') {
+          const args = {
+            percent,
+            step,
+          };
+          fnResult = props.labelClick(e, args);
+          if (fnResult === false) {
+            return;
+          }
+        }
+
+        percent = typeof fnResult === 'number' ? fnResult : percent;
+        console.log('handleStepLabelClick', percent);
+        setPosition(percent);
+        return;
+      }
+    };
+
     const renderDom = () => (
-      <div class={ ['bk-slider', props.extCls] }>
-        { slots.start?.() }
-        <div class="bk-slider-runway"
+      <div class={[`${resolveClassName('slider')}`, props.extCls]}>
+        {slots.start?.()}
+        <div
           ref={slider}
           style={runwayStyle.value}
-          onClick={setButtonPos}>
-          <div class={['bk-slider-bar', props.vertical ? 'vertical' : 'horizontal', { disable: props.disable }]}
-            style={barStyle.value}></div>
-            {props.showInterval ? intervals.value.map((interval, index) => (
-              <div key={index}
-                class={['bk-slider-interval', { vertical: props.vertical }]}
-                style={getIntervalStyle(interval)}></div>
-            )) : undefined}
-            {props.customContent ? customList.value.map((custom, index) => (
-              <div key={index}
-              class={['bk-slider-interval', { vertical: props.vertical }]}
-              style={getIntervalStyle(custom.percent)}></div>
-            )) : undefined}
-            {(props.showBetweenLabel || props.showIntervalLabel || props.customContent)
-              ? <div class={['bk-slider-labels', props.vertical ? 'vertical' : 'horizontal']}>
-                {(function () {
-                  if (props.showBetweenLabel) {
-                    return [
-                    <div class="label-start"
-                      style={[{ opacity: betweenLabelStyle('start') }]}>
+          class={`${resolveClassName('slider-runway')}`}
+          onClick={setButtonPos}
+        >
+          <div
+            style={barStyle.value}
+            class={[
+              `${resolveClassName('slider-bar')}`,
+              props.vertical ? 'vertical' : 'horizontal',
+              { disable: props.disable },
+            ]}
+          ></div>
+          {props.showInterval
+            ? intervals.value.map((interval, index) => {
+                if (index === 0 || index === intervals.value.length - 1) {
+                  return null;
+                }
+                return (
+                  <div
+                    key={index}
+                    style={getIntervalStyle(interval)}
+                    class={[`${resolveClassName('slider-interval')}`, { vertical: props.vertical }]}
+                    onClick={e => handleStepLabelClick(e, interval)}
+                  ></div>
+                );
+              })
+            : null}
+          {props.customContent
+            ? customList.value.map((custom, index) => {
+                if (index === 0 || index === customList.value.length - 1) {
+                  return null;
+                }
+                return (
+                  <div
+                    key={index}
+                    style={getIntervalStyle(custom.percent)}
+                    class={[`${resolveClassName('slider-interval')}`, { vertical: props.vertical }]}
+                    onClick={e => handleStepLabelClick(e, custom)}
+                  ></div>
+                );
+              })
+            : undefined}
+          {props.showBetweenLabel || props.showIntervalLabel || props.customContent ? (
+            <div class={[`${resolveClassName('slider-labels')}`, props.vertical ? 'vertical' : 'horizontal']}>
+              {(function () {
+                if (props.showBetweenLabel) {
+                  return [
+                    <div
+                      style={[{ opacity: betweenLabelStyle('start') }]}
+                      class='label-start'
+                    >
                       {props.formatterLabel(props.minValue)}
                     </div>,
-                    <div class="label-end"
-                      style={[{ opacity: betweenLabelStyle('end') }]}>
+                    <div
+                      style={[{ opacity: betweenLabelStyle('end') }]}
+                      class='label-end'
+                    >
                       {props.formatterLabel(props.maxValue)}
-                    </div>];
-                  }
-                  if (props.showIntervalLabel) {
-                    return (
-                      intervalLabels.value.map((intervalLabel, index) => (
-                        <div class={['bk-slider-label', props.vertical ? 'vertical' : 'horizontal']}
-                          key={index}
-                          style={getIntervalStyle(intervalLabel.stepWidth)}>
-                            {intervalLabel.stepLabel}
-                          </div>
-                      ))
-                    );
-                  }
-                  if (props.customContent) {
-                    return (
-                      customList.value.map((item, index) => (
-                        <div class={['bk-slider-label', props.vertical ? 'vertical' : 'horizontal']}
-                        key={index}
-                        style={getIntervalStyle(item.percent)}>
-                          {item.label}
-                        </div>
-                      ))
-                    );
-                  }
-                  return undefined;
-                }())}</div>
-              : undefined}
+                    </div>,
+                  ];
+                }
+                if (props.showIntervalLabel) {
+                  return intervalLabels.value.map((intervalLabel, index) => (
+                    <div
+                      key={index}
+                      style={getIntervalStyle(intervalLabel.stepWidth)}
+                      class={[`${resolveClassName('slider-label')}`, props.vertical ? 'vertical' : 'horizontal']}
+                      onClick={e => handleStepLabelClick(e, intervalLabel)}
+                    >
+                      {intervalLabel.stepLabel}
+                    </div>
+                  ));
+                }
+                if (props.customContent) {
+                  return customList.value.map((item, index) => (
+                    <div
+                      key={index}
+                      style={getIntervalStyle(item.percent)}
+                      class={[`${resolveClassName('slider-label')}`, props.vertical ? 'vertical' : 'horizontal']}
+                      onClick={e => handleStepLabelClick(e, item)}
+                    >
+                      {item.label}
+                    </div>
+                  ));
+                }
+                return undefined;
+              })()}
+            </div>
+          ) : undefined}
+          <SliderButton
+            ref={firstbutton}
+            v-model={firstValue.value}
+            params={buttonParms.value}
+            onEmitChange={emitChange}
+            onResetSize={resetSize}
+          ></SliderButton>
+          {props.range ? (
             <SliderButton
-              v-model={firstValue.value}
-              ref={firstbutton}
-              params={buttonParms.value}
-              onEmitChange={emitChange}
-              onResetSize={resetSize}></SliderButton>
-            { props.range
-              ? <SliderButton
-              v-model={secondValue.value}
               ref={secondbutton}
+              v-model={secondValue.value}
               params={buttonParms.value}
               onEmitChange={emitChange}
-              onResetSize={resetSize}></SliderButton> : undefined}
+              onResetSize={resetSize}
+            ></SliderButton>
+          ) : undefined}
         </div>
-        {(props.showInput && !props.vertical) ? <div class="bk-slider-input">
-          <div class="input-item">
-            <Input type="number"
-              modelValue={firstInput.value}
-              max={props.maxValue}
-              min={props.minValue}
-              onChange={firstInputChange}>
-
-              </Input>
-          </div>
-          {showSecondInput.value && secondValue.value ? [
-            <div class="input-center">～</div>,
-            <div class="input-item">
-              <Input type="number"
-                modelValue={secondInput.value}
+        {props.showInput && !props.vertical ? (
+          <div class={`${resolveClassName('slider-input')}`}>
+            <div class='input-item'>
+              <Input
                 max={props.maxValue}
                 min={props.minValue}
-                onChange={secondInputChange}
-                ></Input>
-            </div>,
-          ] : undefined}
-        </div> : undefined }
-        { slots.end?.() }
+                modelValue={firstInput.value}
+                type='number'
+                onChange={firstInputChange}
+              ></Input>
+            </div>
+            {showSecondInput.value && secondValue.value
+              ? [
+                  <div class='input-center'>～</div>,
+                  <div class='input-item'>
+                    <Input
+                      max={props.maxValue}
+                      min={props.minValue}
+                      modelValue={secondInput.value}
+                      type='number'
+                      onChange={secondInputChange}
+                    ></Input>
+                  </div>,
+                ]
+              : undefined}
+          </div>
+        ) : undefined}
+        {slots.end?.()}
       </div>
     );
 

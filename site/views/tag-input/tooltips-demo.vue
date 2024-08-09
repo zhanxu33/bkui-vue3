@@ -1,11 +1,12 @@
 <template>
   <bk-tag-input
     v-model="state.tags"
-    placeholder="请选择"
-    use-group
-    trigger="focus"
-    tooltip-key="tips"
     :list="state.list"
+    placeholder="请选择"
+    tooltip-key="tips"
+    trigger="focus"
+    collapse-tags
+    use-group
   />
 </template>
 

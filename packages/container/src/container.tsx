@@ -22,11 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent, provide } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes } from '@bkui-vue/shared';
+
+import { containerKey } from './interface';
 
 export const containerProps = {
   // 栅格数，默认 24
@@ -47,13 +50,17 @@ export default defineComponent({
   setup(props, ctx) {
     const { col, gutter, flex, extCls } = props;
 
-    provide('containerProps', {
+    provide(containerKey, {
       col,
       gutter,
       flex,
     });
 
-    const classes: any = computed(() => (extCls ? `bk-grid-container ${extCls}` : 'bk-grid-container'));
+    const { resolveClassName } = usePrefix();
+
+    const classes: any = computed(() =>
+      extCls ? `${resolveClassName('grid-container')} ${extCls}` : `${resolveClassName('grid-container')}`,
+    );
 
     const style: any = computed(() => {
       const { margin } = props;
@@ -61,7 +68,10 @@ export default defineComponent({
     });
 
     return () => (
-      <div class={classes.value} style={style.value}>
+      <div
+        style={style.value}
+        class={classes.value}
+      >
         {ctx.slots.default?.()}
       </div>
     );

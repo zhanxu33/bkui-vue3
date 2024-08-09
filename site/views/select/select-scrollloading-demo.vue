@@ -1,17 +1,17 @@
 <template>
   <bk-select
-    v-model="selectedValue"
     class="bk-select"
-    filterable
+    v-model="selectedValue"
     :scroll-loading="scrollLoading"
+    filterable
     @scroll-end="handleScrollEnd"
   >
     <bk-option
-      v-for="(item) in datasource"
-      :key="item.value"
-      :value="item.value"
-      :label="item.label"
+      v-for="item in datasource"
       :disabled="item.disabled"
+      :id="item.value"
+      :key="item.value"
+      :name="item.label"
     />
   </bk-select>
 </template>
@@ -58,12 +58,11 @@
         label: `滚动加载${new Date().getTime()}`,
       });
       scrollLoading.value = false;
-    }, 3000);
+    }, 1000);
   };
 </script>
 <style scoped>
-.bk-select {
-  width: 300px;
-}
+  .bk-select {
+    width: 300px;
+  }
 </style>
-

@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent, nextTick } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { classes, PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
@@ -33,7 +34,7 @@ export default defineComponent({
 
   props: {
     rate: PropTypes.number.def(0),
-    width: PropTypes.number.def(15),
+    width: PropTypes.number.def(16),
     height: PropTypes.number.def(16),
     editable: PropTypes.bool.def(true),
     hoverRate: PropTypes.number.def(0),
@@ -43,25 +44,40 @@ export default defineComponent({
   emits: ['chooseRate', 'changeHover'],
 
   setup(props, { emit }) {
-    const chooseRate = (index) => {
+    const chooseRate = index => {
       if (!props.editable) return;
 
       const rate = index + 1;
       emit('chooseRate', rate);
     };
 
-    const changeHover = (index) => {
+    const changeHover = (index, e: Event) => {
       if (!props.editable) return;
 
       const rate = index + 1;
       emit('changeHover', rate);
+
+      nextTick(() => {
+        (e.target as HTMLElement).classList.add(resolveClassName('is-hover'));
+      });
     };
 
-    const starClass = index => classes({
-      'bk-is-select': index < Math.floor(displayRate.value),
-      'bk-is-edit': props.editable,
-      'bk-rate-star': true,
-    });
+    const handleMouseLeave = (e: Event) => {
+      if (!props.editable) return;
+
+      nextTick(() => {
+        (e.target as HTMLElement).classList.remove(resolveClassName('is-hover'));
+      });
+    };
+
+    const { resolveClassName } = usePrefix();
+
+    const starClass = index =>
+      classes({
+        [`${resolveClassName('is-select')}`]: index < Math.floor(displayRate.value),
+        [`${resolveClassName('is-edit')}`]: props.editable,
+        [`${resolveClassName('rate-star')}`]: true,
+      });
 
     const displayRate = computed(() => props.hoverRate || props.rate);
 
@@ -72,32 +88,35 @@ export default defineComponent({
     };
 
     return () => (
-      <p class="bk-rate-stars">
-        {
-          Array(props.max).fill(1)
-            .map((_, index) => (
-              <svg
-                class={starClass(index)}
-                style={starStyle}
-                x="0px"
-                y="0px"
-                viewBox="0 0 64 64"
-                onClick={() => chooseRate(index)}
-                onMouseenter={() => changeHover(index)}
-              >
-                <g transform="translate(-143.000000, -635.000000)">
-                  <g transform="translate(83.000000, 114.000000)">
-                    <g transform="translate(15.000000, 384.000000)">
-                      <g transform="translate(29.000000, 137.000000)">
-                        {/* eslint-disable-next-line max-len */}
-                        <polygon class="st1" points="48,53 28.2,63.9 32,40.8 16,24.4 38.1,21 48,-0.1 57.8,21 79.9,24.4 63.9,40.8 67.7,63.9" />
-                      </g>
+      <p class={`${resolveClassName('rate-stars')}`}>
+        {Array(props.max)
+          .fill(1)
+          .map((_, index) => (
+            <svg
+              style={starStyle}
+              class={starClass(index)}
+              viewBox='0 0 64 64'
+              x='0px'
+              y='0px'
+              onClick={() => chooseRate(index)}
+              onMouseenter={(e: Event) => changeHover(index, e)}
+              onMouseleave={(e: Event) => handleMouseLeave(e)}
+            >
+              <g transform='translate(-143.000000, -635.000000)'>
+                <g transform='translate(83.000000, 114.000000)'>
+                  <g transform='translate(15.000000, 384.000000)'>
+                    <g transform='translate(29.000000, 137.000000)'>
+                      {}
+                      <polygon
+                        class='st1'
+                        points='48,53 28.2,63.9 32,40.8 16,24.4 38.1,21 48,-0.1 57.8,21 79.9,24.4 63.9,40.8 67.7,63.9'
+                      />
                     </g>
                   </g>
                 </g>
-              </svg>
-            ))
-        }
+              </g>
+            </svg>
+          ))}
       </p>
     );
   },

@@ -8,10 +8,42 @@
   align-items: center;
   font-size: 14px;
 
-  .transfer {
+  .@{bk-prefix}-transfer-icon {
     margin: 0 8px;
     font-size: 24px;
     color: @light-gray;
+  }
+
+  .transfer-button-group {
+    margin: 0 8px;
+
+    .transfer-button {
+      display: flex;
+      width: 24px;
+      height: 24px;
+      color: @white-color;
+      cursor: pointer;
+      background-color: @primary-color;
+      border: 1px solid @primary-color;
+      border-radius: 2px;
+      align-items: center;
+      justify-content: center;
+
+      &:first-child {
+        margin-bottom: 8px;
+      }
+
+      &.disabled {
+        color: @light-gray;
+        cursor: not-allowed;
+        background-color: @whitesmoke-color;
+        border-color: @disable-color;
+      }
+
+      span {
+        font-size: 18px;
+      }
+    }
   }
 
   .source-list,
@@ -40,7 +72,7 @@
       justify-content: space-between;
       font-weight: 700;
 
-      span {
+      .select-all {
         font-size: 12px;
         font-weight: normal;
         color: @primary-color;
@@ -51,8 +83,13 @@
           cursor: not-allowed;
         }
       }
+
+      .select-total-count {
+        font-weight: normal;
+        color: @gray-color;
+      }
     }
-    
+
     .transfer-search-input {
       width: calc(100% - 32px);
       height: 30px;
@@ -66,7 +103,7 @@
         box-shadow: none;
       }
 
-      .icon-search {
+      .@{bk-prefix}-icon-search {
         font-size: 18px;
         line-height: 28px;
         color: @light-gray;
@@ -89,14 +126,20 @@
 
     .content {
       flex: 1;
-      margin: 8px 0;
+      margin: 4px 0;
       overflow-y: auto;
 
+      &.is-flex {
+        display: flex;
+        flex-direction: column;
+      }
+
       li.custom-item,
-      li .item-content {
+      li .item-content,
+      .checkbox-item {
         display: flex;
         height: 32px;
-        padding: 0 10px 0 16px;
+        padding: 0 16px;
         margin-bottom: 4px;
         cursor: pointer;
         align-items: center;
@@ -120,12 +163,12 @@
         .icon-wrapper {
           visibility: hidden;
 
-          .bk-icon {
+          .@{bk-prefix}-icon {
             display: flex;
             font-size: 30px;
           }
 
-          .icon-delete {
+          .@{bk-prefix}-icon-delete {
             margin-right: 6px;
             font-size: 16px;
           }
@@ -134,6 +177,13 @@
         &.is-disabled {
           color: @light-gray;
           cursor: not-allowed;
+        }
+      }
+
+      .checkbox-item {
+        .item-content {
+          display: flex;
+          align-items: center;
         }
       }
 

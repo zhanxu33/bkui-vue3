@@ -1,69 +1,75 @@
-
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+import { onMounted, reactive, watch } from 'vue';
 
 import { v4 as uuidv4 } from 'uuid';
-import { computed, onMounted, reactive, watch } from 'vue';
 
 import { NODE_ATTRIBUTES, NODE_SOURCE_ATTRS } from './constant';
 import { TreePropTypes } from './props';
 import useNodeAsync from './use-node-async';
+import { resolvePropIsMatched, showCheckbox } from './util';
 
 export default (props: TreePropTypes) => {
   /**
- * 扁平化当前数据
- * @param arrData
- * @returns
- */
-  const getFlatdata = (props: TreePropTypes, treeData: Array<any> = undefined, cachedSchema: any[] = []) => {
+   * 扁平化当前数据
+   * @param treeData 树形结构数据
+   * @param cachedSchema 缓存数据
+   * @returns
+   */
+  const getFlatdata = (treeData: Array<any> = undefined, cachedSchema: WeakMap<Object, any> = null) => {
     const { data, children } = props;
     const checkedList = [];
     const outputData = [];
     let order = 0;
-    const schema = new Map<string, any>();
+    const treeSchema = new WeakMap();
 
     /**
      * 递归更新节点属性
-     * @param uuid 当前节点id
+     * @param node 当前节点
      * @param attrName 需要更新的节点属性名称
      * @param attrValue 需要更新的节点属性值
-     * @param callFn 回电函数
+     * @param callFn 回调函数
      * @returns
      */
-    function loopUpdateNodeAttr(uuid: string, attrName: string, attrValue: any, callFn: Function) {
-      if (uuid === undefined || uuid === null) {
+    function loopUpdateNodeAttr(node: any, attrName: string, attrValue: any, callFn: Function) {
+      if (node === undefined || node === null) {
         return;
       }
 
-      if (schema.has(uuid) && !([NODE_ATTRIBUTES.UUID, NODE_ATTRIBUTES.PARENT_ID] as string[]).includes(attrName)) {
-        const target = schema.get(uuid);
+      if (treeSchema.has(node)) {
+        const target = treeSchema.get(node);
         if (Object.prototype.hasOwnProperty.call(target, attrName)) {
-          if (typeof callFn === 'function' && Reflect.apply(callFn, self, [target, attrName, attrValue])) {
+          if (typeof callFn === 'function' && Reflect.apply(callFn, self, [target, attrName, attrValue, node])) {
+            if (target[attrName] === attrValue) {
+              return;
+            }
+
             Object.assign(target, { [attrName]: attrValue });
-            loopUpdateNodeAttr(target[NODE_ATTRIBUTES.PARENT_ID], attrName, attrValue, callFn);
+            loopUpdateNodeAttr(target[NODE_ATTRIBUTES.PARENT], attrName, attrValue, callFn);
           }
         }
       }
@@ -78,33 +84,51 @@ export default (props: TreePropTypes) => {
       return uid || item[NODE_ATTRIBUTES.UUID] || uuidv4();
     }
 
-
+    /**
+     * 默认设置
+     * 如果传入数据没有设置相关属性值
+     * 这里会自动生成
+     */
     const cachedDefaultVal = {
       [NODE_ATTRIBUTES.IS_OPEN]: () => !!props.expandAll,
       [NODE_ATTRIBUTES.IS_CHECKED]: () => false,
-      [NODE_ATTRIBUTES.IS_MATCH]: () => true,
-      [NODE_ATTRIBUTES.IS_SELECTED]: (uuid: string) => props.selected === uuid,
+      [NODE_ATTRIBUTES.IS_MATCH]: () => false,
+      [NODE_ATTRIBUTES.IS_SELECTED]: (node: any, uuid) => resolvePropIsMatched(node, props.selected, uuid),
       [NODE_ATTRIBUTES.IS_CACHED]: () => false,
       [NODE_ATTRIBUTES.IS_ASYNC]: () => null,
       [NODE_ATTRIBUTES.IS_LOADING]: () => false,
     };
 
-    function getCachedTreeNodeAttr(uuid: string, node: any, cachedAttr: string, defVal = undefined) {
+    /**
+     * 根据Props设置和已缓存数据解析当前节点对应属性值
+     * @param uuid 当前节点id
+     * @param node 当前节点
+     * @param cachedAttr 当前节点属性名称
+     * @param defVal 默认值
+     */
+    function getCachedTreeNodeAttr(uuid, node: any, cachedAttr: string, defVal = undefined) {
       let defaultValue = defVal;
+      // 设置默认值
       if (defVal === undefined && typeof cachedDefaultVal[cachedAttr] === 'function') {
-        defaultValue = cachedDefaultVal[cachedAttr](uuid, node);
+        defaultValue = cachedDefaultVal[cachedAttr](node, uuid);
       }
+
+      // 通过映射配置，检查当前数据是否设置相关属性值
+      // 如果传入数据设置了相关属性值，则返回传入数据设置值
       const sourceAttr = NODE_SOURCE_ATTRS[cachedAttr];
       if (Object.prototype.hasOwnProperty.call(node, sourceAttr)) {
         return node[sourceAttr];
       }
 
-      const cached = (cachedSchema || []).find((item: any) => item[NODE_ATTRIBUTES.UUID] === uuid);
+      // 判断是缓存数据是否已经处理过此属性
+      // 在数据改变时，如果缓存数据没有处理过此属性，则返回默认值
+      const cached = cachedSchema?.get(node) ?? undefined;
       let result = undefined;
       if (cached) {
         result = cached[cachedAttr];
       }
 
+      // 处理默认值
       if (result === undefined || result === null) {
         result = defaultValue;
       }
@@ -112,22 +136,47 @@ export default (props: TreePropTypes) => {
       return result;
     }
 
+    /**
+     * 当前节点是否是选中状态
+     * @param uuid 当前节点id
+     * @param node 当前节点
+     * @returns
+     */
     function isCachedTreeNodeSelected(uuid: string, node: any) {
       if (!props.selectable) {
         return false;
       }
 
-      return getCachedTreeNodeAttr(uuid, node, NODE_ATTRIBUTES.IS_SELECTED, props.selected === uuid);
+      const isMatch = resolvePropIsMatched(node, props.selected, uuid);
+      return getCachedTreeNodeAttr(uuid, node, NODE_ATTRIBUTES.IS_SELECTED, isMatch);
     }
 
     function isNodeOpend(uuid, item, parent) {
       const isItemOpened = getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_OPEN);
-      const isParentOpened = schema.has(parent) ? schema.get(parent)?.[NODE_ATTRIBUTES.IS_OPEN] : true;
+      const isParentOpened = treeSchema.has(parent) ? treeSchema.get(parent)?.[NODE_ATTRIBUTES.IS_OPEN] : true;
       return isItemOpened && isParentOpened;
     }
 
-    function validateIsOpenLoopFn(target: any) {
-      return !target[NODE_ATTRIBUTES.IS_OPEN];
+    function isCheckedNode(node, uuid, attributes) {
+      const isChecked = showCheckbox(props, { data: node, attributes });
+      if (!isChecked) {
+        return false;
+      }
+
+      const isMatch = resolvePropIsMatched(node, props.checked, uuid);
+      return getCachedTreeNodeAttr(uuid, node, NODE_ATTRIBUTES.IS_CHECKED, isMatch);
+    }
+
+    function validateIsOpenLoopFn(targetAttr: any) {
+      return !(targetAttr?.[NODE_ATTRIBUTES.IS_OPEN] ?? false);
+    }
+
+    function loopUpdateCheckedEvent(target, _attrName, _attrValue, node) {
+      target[NODE_ATTRIBUTES.IS_INDETERMINATE] = (node[props.children] || []).some(
+        child => !(treeSchema.get(child)?.[NODE_ATTRIBUTES.IS_CHECKED] ?? false),
+      );
+
+      return true;
     }
 
     function flatten(array: Array<any>, depth = 0, parent = null, path = null) {
@@ -161,16 +210,11 @@ export default (props: TreePropTypes) => {
               isOpened = isNodeOpend(uuid, item, parent);
             }
 
-            Object.assign(item, { [NODE_ATTRIBUTES.UUID]: uuid });
-            const isChecked = props.showCheckbox && getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_CHECKED);
-            if (isChecked) {
-              checkedList.push(uuid);
-            }
-            schema.set(uuid,  {
+            const attributes = {
               [NODE_ATTRIBUTES.DEPTH]: depth,
               [NODE_ATTRIBUTES.INDEX]: i,
               [NODE_ATTRIBUTES.UUID]: uuid,
-              [NODE_ATTRIBUTES.PARENT_ID]: parent,
+              [NODE_ATTRIBUTES.PARENT]: parent,
               [NODE_ATTRIBUTES.HAS_CHILD]: hasChildren,
               [NODE_ATTRIBUTES.PATH]: currentPath,
               [NODE_ATTRIBUTES.IS_ROOT]: parent === null,
@@ -178,40 +222,39 @@ export default (props: TreePropTypes) => {
               [NODE_ATTRIBUTES.IS_SELECTED]: isCachedTreeNodeSelected(uuid, item),
               [NODE_ATTRIBUTES.IS_MATCH]: getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_MATCH),
               [NODE_ATTRIBUTES.IS_OPEN]: isOpened,
-              [NODE_ATTRIBUTES.IS_CHECKED]: isChecked,
+              [NODE_ATTRIBUTES.IS_CHECKED]: undefined,
               [NODE_ATTRIBUTES.IS_CACHED]: getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_CACHED),
               [NODE_ATTRIBUTES.IS_ASYNC]: getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_ASYNC),
               [NODE_ATTRIBUTES.IS_LOADING]: getCachedTreeNodeAttr(uuid, item, NODE_ATTRIBUTES.IS_LOADING),
-              [children]: null,
-            });
+              [NODE_ATTRIBUTES.IS_INDETERMINATE]: false,
+            };
+
+            attributes[NODE_ATTRIBUTES.IS_CHECKED] = isCheckedNode(item, uuid, attributes);
+            if (attributes[NODE_ATTRIBUTES.IS_CHECKED]) {
+              checkedList.push(item);
+            }
+
+            treeSchema.set(item, attributes);
+            outputData.push(item);
             order += 1;
-            outputData.push({
-              ...(JSON.parse(JSON.stringify(item, (k: string, v: any) => (k === props.children ? null : v)))),
-              [NODE_ATTRIBUTES.IS_OPEN]: isOpened,
-              [children]: null,
-            });
 
             if (Object.prototype.hasOwnProperty.call(item, children)) {
-              flatten(item[children] || [], depth + 1, uuid, currentPath);
+              flatten(item[children] || [], depth + 1, item, currentPath);
             }
           }
         }
       }
     }
-    flatten(treeData ? treeData : data);
-    if (props.showCheckbox) {
-      checkedList?.forEach((value: string) => {
-        Array.from(schema.values())
-          .filter((t: any) => t[NODE_ATTRIBUTES.PATH]?.startsWith(schema.get(value)[NODE_ATTRIBUTES.PATH]))
-          .forEach((n: any) => Object.assign(n, { [NODE_ATTRIBUTES.IS_CHECKED]: true }));
-
-        loopUpdateNodeAttr(value, NODE_ATTRIBUTES.IS_CHECKED, true, () => true);
+    flatten(treeData ?? data);
+    if (props.showCheckbox !== false && props.checkStrictly) {
+      checkedList?.forEach((value: any) => {
+        loopUpdateNodeAttr(value, NODE_ATTRIBUTES.IS_CHECKED, true, loopUpdateCheckedEvent);
       });
     }
-    return [outputData, schema];
+    return [outputData, treeSchema];
   };
 
-  const formatData = getFlatdata(props);
+  const formatData = getFlatdata();
 
   const nextLoopEvents: Map<string, any> = new Map();
   const afterSelectEvents = [];
@@ -223,11 +266,9 @@ export default (props: TreePropTypes) => {
    */
   const flatData = reactive({
     data: formatData[0] as Array<any>,
-    schema: formatData[1],
+    schema: formatData[1] as WeakMap<Object, any>,
     levelLineSchema: {},
   });
-
-  const schemaValues = computed(() => Array.from(flatData.schema.values()));
 
   const { asyncNodeClick, deepAutoOpen } = useNodeAsync(props, flatData);
 
@@ -246,7 +287,6 @@ export default (props: TreePropTypes) => {
 
     nextLoopEvents.set(key, event);
   };
-
 
   const resolveEventOption = (event: any) => {
     if (typeof event === 'function') {
@@ -301,44 +341,50 @@ export default (props: TreePropTypes) => {
     });
   };
 
-
   /**
-     * 监听组件配置Data改变
-     */
-  watch(() => [props.data], (newData) => {
-    const formatData = getFlatdata(props, newData, schemaValues.value);
-    flatData.data = formatData[0] as Array<any>;
-    flatData.schema = formatData[1] as any;
-    if (props.async?.callback && props.async?.deepAutoOpen === 'every') {
-      deepAutoOpen();
-    }
+   * 监听组件配置Data改变
+   */
+  watch(
+    () => [props.data],
+    newData => {
+      const formatData = getFlatdata(newData, flatData.schema);
+      flatData.data = formatData[0] as Array<any>;
+      flatData.schema = formatData[1] as WeakMap<Object, any>;
+      if (props.async?.callback && props.async?.deepAutoOpen === 'every') {
+        deepAutoOpen();
+      }
 
-    /**
-     * 执行缓存下来的周期函数
-     * 保证data改变之后执行相关操作
-     */
-    executeNextEvent();
-  }, {
-    deep: true,
-  });
-
+      /**
+       * 执行缓存下来的周期函数
+       * 保证data改变之后执行相关操作
+       */
+      executeNextEvent();
+    },
+    {
+      deep: true,
+    },
+  );
 
   if (props.selectable) {
     onMounted(() => {
-      watch(() => props.selected, (newData) => {
-        // console.log('watch selected changed');
-        afterSelectWatch.length = 0;
-        afterSelectEvents.forEach((event: () => void) => {
-          Reflect.apply(event, this, [newData]);
+      watch(
+        () => props.selected,
+        newData => {
+          // console.log('watch selected changed');
+          afterSelectWatch.length = 0;
+          afterSelectEvents.forEach((event: () => void) => {
+            Reflect.apply(event, this, [newData]);
 
-          /**
-           * selected设置生效有可能会在props.data 改变之前
-           * 此时需要缓存当前执行函数，保证在watch data change 之后执行
-           */
-          afterSelectWatch.push(() => Reflect.apply(event, this, [newData]));
-        });
-        registerNextLoop('afterSelectWatch', afterSelectWatch);
-      }, { immediate: true });
+            /**
+             * selected设置生效有可能会在props.data 改变之前
+             * 此时需要缓存当前执行函数，保证在watch data change 之后执行
+             */
+            afterSelectWatch.push(() => Reflect.apply(event, this, [newData]));
+          });
+          registerNextLoop('afterSelectWatch', afterSelectWatch);
+        },
+        { immediate: true },
+      );
     });
   }
 
@@ -353,7 +399,6 @@ export default (props: TreePropTypes) => {
 
   return {
     flatData,
-    schemaValues,
     asyncNodeClick,
     deepAutoOpen,
     afterDataUpdate,

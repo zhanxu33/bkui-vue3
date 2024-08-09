@@ -1,28 +1,28 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 import { computed, ref, watch } from 'vue';
 
 import { bkZIndexManager } from '@bkui-vue/shared';
@@ -36,11 +36,14 @@ import {
   inline,
   offset,
   Placement,
-  shift } from '@floating-ui/dom';
+  shift,
+} from '@floating-ui/dom';
+import isElement from 'lodash/isElement';
 
 import { EMIT_EVENTS } from './const';
 import { PopoverPropTypes } from './props';
-import usePlatform from './use-platform';
+// import usePlatform from './use-platform';
+import { contentAsHTMLElement } from './utils';
 
 /**
  * 解析popover相关配置
@@ -49,7 +52,7 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
   const localIsShow = ref(false);
   const fullScreenTarget = ref();
   const isElementFullScreen = () => {
-    const elReference = resolveTargetElement(refReference.value?.$el);
+    const elReference = resolveReferElement();
     if (document.fullscreenElement?.shadowRoot) {
       return document.fullscreenElement.shadowRoot.contains(elReference);
     }
@@ -62,7 +65,7 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
    * @param selector
    * @returns
    */
-  const getFullscreenRoot = (selector) => {
+  const getFullscreenRoot = selector => {
     if (isElementFullScreen()) {
       if (document.fullscreenElement.shadowRoot) {
         return document.fullscreenElement.shadowRoot.querySelector(selector);
@@ -83,7 +86,7 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
    */
   const compTheme = computed(() => {
     const themes = props.theme?.split(/\s+/) ?? [];
-    themes.sort((a: string, b: string) => Number(themeList.includes(b)) - (Number(themeList.includes(a))));
+    themes.sort((a: string, b: string) => Number(themeList.includes(b)) - Number(themeList.includes(a)));
     const systemThemes = themes;
     const customThemes = themes.filter((item: string) => !themeList.includes(item));
     return { systemThemes, customThemes };
@@ -97,12 +100,20 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
    * @returns
    */
   const resolvePopElements = () => {
-    const elReference = resolveTargetElement(refReference.value?.$el);
+    const elReference = resolveReferElement();
     const elContent = resolveTargetElement(refContent.value?.$el);
     const elArrow = props.arrow ? resolveTargetElement(refArrow.value?.$el) : null;
     const root = resolveTargetElement(refRoot.value?.$el);
+
+    const { isElement, content } = contentAsHTMLElement(props.content);
+    if (elContent && isElement && !elContent?.contains(content)) {
+      (elContent as HTMLElement).append(content);
+    }
+
     return { elReference, elContent, elArrow, root };
   };
+
+  const resolveReferElement = () => resolveTargetElement(props.target) || resolveTargetElement(refReference.value?.$el);
 
   const resolveModifiers: any = () => {
     const resolveResult = {};
@@ -130,10 +141,7 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
   const resolvePopOptions = (elArrow, props) => {
     const modifiers = resolveModifiers();
 
-    const middleware = [
-      offset(modifiers.offset || props.offset),
-      shift({ padding: props.padding }),
-    ];
+    const middleware = [offset(modifiers.offset || props.offset), shift({ padding: props.padding })];
     const options = {
       placement: props.placement as Placement,
       middleware,
@@ -145,10 +153,10 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
 
     if (isAutoPlacementAvailable()) {
       middleware.push(autoPlacement());
-    } else {
-      middleware.unshift(inline());
-      middleware.push(flip());
     }
+
+    middleware.unshift(inline());
+    middleware.push(flip());
 
     if (isHideMiddlewareAvailable()) {
       options.middleware.push(hide());
@@ -160,22 +168,18 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
      * 在弹出的全屏元素中，元素相对位置有别于document下面元素
      * 全屏模式下面，需要自定义当前元素的一个platform
      */
-    if (isElementFullScreen() || props.isVirtualEl) {
-      const  {
-        getElementRects,
-        getDimensions,
-        getClippingRect,
-      } = usePlatform(fullScreenTarget.value);
+    // if (isElementFullScreen() || props.isVirtualEl) {
+    //   const { getElementRects, getDimensions, getClippingRect } = usePlatform(fullScreenTarget.value);
 
-      Object.assign(options, {
-        platform: {
-          ...(props?.platform ?? {}),
-          getElementRects,
-          getDimensions,
-          getClippingRect,
-        },
-      });
-    }
+    //   Object.assign(options, {
+    //     platform: {
+    //       ...(props?.platform ?? {}),
+    //       getElementRects,
+    //       getDimensions,
+    //       getClippingRect,
+    //     },
+    //   });
+    // }
     return options;
   };
 
@@ -190,6 +194,19 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
 
     if (typeof target?.getBoundingClientRect === 'function') {
       return target;
+    }
+
+    if (typeof target === 'string') {
+      const targetEl = document.querySelector(target);
+      if (isElement(targetEl)) {
+        return targetEl;
+      }
+
+      return null;
+    }
+
+    if (target instanceof PointerEvent) {
+      return resolveTargetElement(target.target);
     }
 
     return null;
@@ -263,15 +280,16 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     });
   };
 
-
-  const updatePopover = (virtualEl = null, props = {}) => {
+  const updatePopover = (virtualEl = null, props = {}, callFn?) => {
     const { elReference, elContent, elArrow } = resolvePopElements();
     const targetEl = virtualEl || elReference;
     if (!targetEl || !elContent) return;
     const options = resolvePopOptions(elArrow, props);
     computePosition(targetEl, elContent, options).then(({ x, y, placement, middlewareData }) => {
       const oldClass = elContent.className;
-      elContent.className = `${oldClass.replace(contentClass, '')} ${contentClass}`.replace(/\s+/mg, ' ').replace(/^\s+|\s+$/g, '');
+      elContent.className = `${oldClass.replace(contentClass, '')} ${contentClass}`
+        .replace(/\s+/gm, ' ')
+        .replace(/^\s+|\s+$/g, '');
       Object.keys(customTheme).forEach((key: string) => {
         elContent.setAttribute(key, customTheme[key]);
       });
@@ -284,6 +302,10 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
 
       updatePopContentStyle(elContent, x, y, middlewareData);
       updateArrowStyle(elArrow, resolvedPlacement, middlewareData);
+
+      if (typeof callFn === 'function') {
+        callFn();
+      }
     });
   };
 
@@ -303,9 +325,9 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     const delay = resolvePopoverDelay()[0];
     // 设置settimeout避免hidePopover导致显示问题
     popShowTimerId = setTimeout(() => {
-      if (popHideTimerId) {
-        clearTimeout(popHideTimerId);
-      }
+      // if (popHideTimerId) {
+      //   clearTimeout(popHideTimerId);
+      // }
       if (!props.disabled) {
         localIsShow.value = true;
       }
@@ -320,18 +342,19 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     }, delay);
   };
 
-  const hanldePopoverShow = () => {
+  const handlePopoverShow = () => {
     const elContent = resolveTargetElement(refContent.value?.$el) as HTMLElement;
     elContent.style.setProperty('display', 'block');
     elContent.style.setProperty('z-index', `${props.zIndex ? props.zIndex : bkZIndexManager.getPopperIndex()}`);
     updatePopover();
-    ctx.emit('afterShow', { isShow: true });
+
+    ctx.emit(EMIT_EVENTS.CONTENT_AfterShow, { isShow: true });
   };
 
   const handlePopoverHide = () => {
     const elContent = resolveTargetElement(refContent.value?.$el);
     elContent.style.setProperty('display', 'none');
-    ctx.emit('afterHidden', { isShow: false });
+    ctx.emit(EMIT_EVENTS.CONTENT_AfterHidden, { isShow: false });
   };
 
   const triggerPopover = () => {
@@ -346,7 +369,7 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     triggerPopover();
   };
 
-  const handlePopContentMouseEnter = () => {
+  const handlePopContentMouseEnter = (e: MouseEvent) => {
     if (props.trigger !== 'hover') {
       return;
     }
@@ -357,14 +380,14 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
       popHideTimerId = undefined;
     }
 
-    emitPopContentMouseEnter();
+    emitPopContentMouseEnter(e);
   };
 
-  const handlePopContentMouseLeave = () => {
+  const handlePopContentMouseLeave = (e: MouseEvent) => {
     if (isMouseenter) {
       hidePopover();
       isMouseenter = false;
-      emitPopContentMouseLeave();
+      emitPopContentMouseLeave(e);
     }
   };
 
@@ -373,15 +396,15 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
    * 抛出相关事件，方便后续操作
    * 例如：鼠标移入内容区域，则取消弹出内容隐藏操作
    */
-  const emitPopContentMouseEnter = () => {
-    ctx.emit(EMIT_EVENTS.CONTENT_MOUSEENTER);
+  const emitPopContentMouseEnter = (e: MouseEvent) => {
+    ctx.emit(EMIT_EVENTS.CONTENT_MOUSEENTER, e);
   };
 
   /**
    * 弹出内容鼠标移出事件
    */
-  const emitPopContentMouseLeave = () => {
-    ctx.emit(EMIT_EVENTS.CONTENT_MOUSELEAVE);
+  const emitPopContentMouseLeave = (e: MouseEvent) => {
+    ctx.emit(EMIT_EVENTS.CONTENT_MOUSELEAVE, e);
   };
 
   const resolveTriggerEvents = () => {
@@ -415,13 +438,16 @@ export default (props: PopoverPropTypes, ctx, { refReference, refContent, refArr
     fullScreenTarget.value = val;
   };
 
-  watch(() => props.isShow, (val) => {
-    localIsShow.value = val;
-  });
+  watch(
+    () => props.isShow,
+    val => {
+      localIsShow.value = val;
+    },
+  );
 
-  watch(localIsShow, (val) => {
+  watch(localIsShow, val => {
     if (val) {
-      hanldePopoverShow();
+      handlePopoverShow();
     } else {
       handlePopoverHide();
     }

@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import {
   Component,
@@ -36,7 +36,7 @@ import {
   VNode,
 } from 'vue';
 
-import { resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
 
 import { PositionEnum, SortTypeEnum, tabProps, TabTypeEnum } from './props';
 import TabNav from './tab-nav';
@@ -49,18 +49,27 @@ export default defineComponent({
   props: tabProps,
   emits: [
     // 兼容老方法
-    'add-panel', 'tab-change', 'remove-panel', 'sort-change', 'on-drag-tab',
+    'add-panel',
+    'tab-change',
+    'remove-panel',
+    'sort-change',
+    'on-drag-tab',
     // 新方法
-    'add', 'change', 'remove', 'update:active', 'sort', 'drag',
+    'add',
+    'change',
+    'remove',
+    'update:active',
+    'sort',
+    'drag',
   ],
-  setup(_props: Record<string, any>, { slots, emit }) {
+  setup(_props, { slots, emit }) {
     const isMounted = ref(false);
     const panels = ref([]);
     const instance = getCurrentInstance();
     // 动态插入tabPanel
     const getPaneInstanceFromSlot = (vnode: VNode, panelInstanceList: ComponentInternalInstance[] = []) => {
       const { children } = vnode;
-      ((children || []) as Array<VNode>).forEach((node) => {
+      ((children || []) as Array<VNode>).forEach(node => {
         let { type } = node;
         type = (type as Component).name || type;
         if (type === 'TabPanel' && node.component) {
@@ -85,13 +94,19 @@ export default defineComponent({
     };
 
     onMounted(() => {
+      /* 如果是列表模式，直接渲染
+      if (props.panels?.length) {
+        panels.value = props.panels;
+        return;
+      }
+      */
       setPanelInstances();
       isMounted.value = true;
+      onUpdated(() => {
+        setPanelInstances();
+      });
     });
 
-    onUpdated(() => {
-      setPanelInstances();
-    });
     const methods = {
       tabAdd(e: MouseEvent) {
         emit('add', { e });
@@ -138,21 +153,24 @@ export default defineComponent({
       },
     };
 
+    const { resolveClassName } = usePrefix();
+
     return {
       ...methods,
       isMounted,
       panels,
+      resolveClassName,
     };
   },
   render() {
     const getTabBoxClass = () => {
-      const arr = [resolveClassName('tab'), this.extCls];
+      const arr = [this.resolveClassName('tab'), this.extCls];
       if (this.tabPosition === PositionEnum.TOP) {
-        arr.push(resolveClassName(`tab--${this.tabPosition}`), resolveClassName(`tab--${this.type}`));
+        arr.push(this.resolveClassName(`tab--${this.tabPosition}`), this.resolveClassName(`tab--${this.type}`));
       } else {
-        arr.push(resolveClassName(`tab--${this.tabPosition}`));
+        arr.push(this.resolveClassName(`tab--${this.tabPosition}`));
         if (this.type === TabTypeEnum.CARD_TAB) {
-          arr.push(resolveClassName('tab--vertical-tab'));
+          arr.push(this.resolveClassName('tab--vertical-tab'));
         }
       }
       return arr;
@@ -208,16 +226,17 @@ export default defineComponent({
         return null;
       }
       return (
-        <TabNav v-slots={this.$slots} {...props} />
+        <TabNav
+          v-slots={this.$slots}
+          {...props}
+        />
       );
     };
 
     return (
       <div class={getTabBoxClass()}>
         {getTabHeader()}
-        <div class={resolveClassName('tab-content')}>
-          {this.$slots.default?.()}
-        </div>
+        <div class={this.resolveClassName('tab-content')}>{this.$slots.default?.()}</div>
       </div>
     );
   },

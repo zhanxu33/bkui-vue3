@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { program } from 'commander';
 
@@ -35,7 +35,7 @@ export const run = async () => {
     .command('lib')
     .option('-a, --analyze', 'analyze all components bunlders')
     .description('build components')
-    .action(async (cmd) => {
+    .action(async cmd => {
       await excuteTask(libTask)({
         analyze: !!cmd.analyze,
       });
@@ -48,9 +48,12 @@ export const run = async () => {
     });
   program
     .command('release')
+    .option('-t, --tag <tag>', 'release tag')
     .description('release bkui check')
-    .action(async () => {
-      await excuteTask(releaseTask)();
+    .action(async cmd => {
+      await excuteTask(releaseTask)({
+        tag: cmd.tag,
+      });
     });
   program.on('command:*', () => {
     console.error('Invalid command. Please check bkui-vue package.json', program.args.join(' '));

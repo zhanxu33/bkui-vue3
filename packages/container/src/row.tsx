@@ -22,27 +22,36 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent, inject, provide } from 'vue';
+
+import { usePrefix } from '@bkui-vue/config-provider';
+
+import { containerKey } from './interface';
 
 export default defineComponent({
   name: 'Row',
   emits: [],
   setup(_props, ctx) {
-    const { col, gutter, flex } = inject('containerProps');
+    const { col, gutter, flex } = inject(containerKey);
     provide('containerProps', {
       col,
       gutter,
       flex,
     });
 
+    const { resolveClassName } = usePrefix();
+
     const style: any = computed(() => {
       const o = flex ? { display: ['-webkit-box', '-ms-flexbox', 'flex'] } : {};
       return { ...o, 'margin-right': `-${gutter / 2}px`, 'margin-left': `-${gutter / 2}px` };
     });
     return () => (
-      <div class="bk-grid-row" style={style.value}>
+      <div
+        style={style.value}
+        class={`${resolveClassName('grid-row')}`}
+      >
         {ctx.slots.default?.()}
       </div>
     );

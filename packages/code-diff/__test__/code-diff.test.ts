@@ -22,18 +22,16 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { mount, shallowMount } from '@vue/test-utils';
 
 import CodeDiff from '../src';
 import { LANGUAGES } from '../src/code-diff';
-
 import { NEW_STR, OLD_STR } from './diffFile';
 
-
 describe('CodeDiff.tsx', () => {
-  it('test', (done) => {
+  it('test', done => {
     const wrapper = mount(CodeDiff);
     // todo
     wrapper.vm.$nextTick(() => {
@@ -52,8 +50,7 @@ describe('CodeDiff.tsx', () => {
   });
 
   it('renders light theme', async () => {
-    const wrapper = await shallowMount(CodeDiff, {
-    });
+    const wrapper = await shallowMount(CodeDiff, {});
     expect(wrapper.classes('dark')).toBe(false);
   });
 
@@ -67,8 +64,8 @@ describe('CodeDiff.tsx', () => {
     expect(wrapper.classes('dark')).toBe(false);
   });
 
-  LANGUAGES.forEach((l) => {
-    it(`renders language ${l}`, (done) => {
+  LANGUAGES.forEach(l => {
+    it(`renders language ${l}`, done => {
       const wrapper = shallowMount(CodeDiff, {
         props: {
           newContent: NEW_STR,

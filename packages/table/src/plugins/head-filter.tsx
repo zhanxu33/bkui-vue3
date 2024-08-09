@@ -23,41 +23,54 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent, nextTick, reactive, ref } from 'vue';
+import { computed, defineComponent, reactive, ref } from 'vue';
 
-import BkCheckbox, { BkCheckboxGroup } from '@bkui-vue/checkbox';
-import { useLocale } from '@bkui-vue/config-provider';
+import Button from '@bkui-vue/button';
+import Checkbox, { BkCheckboxGroup } from '@bkui-vue/checkbox';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { Funnel } from '@bkui-vue/icon';
+import Input from '@bkui-vue/input';
 import Popover from '@bkui-vue/popover';
-import { classes, PropTypes, RenderType, resolveClassName } from '@bkui-vue/shared';
+import { classes, PropTypes, RenderType } from '@bkui-vue/shared';
 import VirtualRender from '@bkui-vue/virtual-render';
 
-import { LINE_HEIGHT } from '../const';
-import { getRowText, resolvePropVal } from '../utils';
+import { Column, IColumnType, IFilterShape } from '../props';
+
+type IHeadFilterPropType = {
+  column: Column;
+  height: number;
+};
+
+const ROW_HEIGHT = 32;
 
 export default defineComponent({
   name: 'HeadFilter',
   props: {
-    column: PropTypes.any.def({}),
-    height: PropTypes.number.def(LINE_HEIGHT),
+    column: IColumnType,
+    height: PropTypes.number.def(ROW_HEIGHT),
   },
-  emits: ['change', 'filterSave'],
+  emits: ['change', 'filterSave', 'reset'],
 
-  setup(props, { emit }) {
+  setup(props: IHeadFilterPropType, { emit }) {
+    const { resolveClassName } = usePrefix();
     const t = useLocale('table');
-    const { column } = props;
+    const filter = computed(() => props.column?.filter);
+    const checked = computed(() => (filter.value as IFilterShape)?.checked ?? []);
+    const searchValue = ref('');
     const state = reactive({
       isOpen: false,
-      checked: [],
+      checked: checked.value,
     });
 
-    const headClass = computed(() => classes({
-      [resolveClassName('table-head-action')]: true,
-      'column-filter': true,
-      '--row-height': `${props.height}px`,
-      active: state.checked.length,
-      opened: state.isOpen,
-    }));
+    const headClass = computed(() =>
+      classes({
+        [resolveClassName('table-head-action')]: true,
+        'column-filter': true,
+        '--row-height': `${props.height}px`,
+        active: state.checked.length,
+        opened: state.isOpen,
+      }),
+    );
 
     const headFilterContentClass = classes({
       [resolveClassName('table-head-filter')]: true,
@@ -67,38 +80,44 @@ export default defineComponent({
 
     const handlePopShow = (isOpen: boolean) => {
       state.isOpen = isOpen;
-      isOpen
-        && setTimeout(() => {
+      isOpen &&
+        setTimeout(() => {
           refVirtualRender.value.reset();
         });
+
+      if (!isOpen) {
+        searchValue.value = '';
+      }
     };
 
     const theme = `light ${resolveClassName('table-head-filter')}`;
     const localData = computed(() => {
-      const { list = [] } = column.filter;
-      return list;
+      const { list = [] } = filter.value as IFilterShape;
+      const filterList = list.filter(l => {
+        const reg = getRegExp(searchValue.value);
+        return reg.test(l.label) || reg.test(l.value);
+      });
+      return filterList;
     });
 
-    const getRegExp = (searchValue: string | number | boolean, flags = 'ig') => new RegExp(`${searchValue}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
-
-    const defaultFilterFn = (checked: string[], row: any) => {
-      const { match } = column.filter;
-      const matchText = getRowText(row, resolvePropVal(column, 'field', [column, row]), column);
-      if (match === 'full') {
-        checked.includes(matchText);
+    const maxLength = 5;
+    const maxHeight = computed(() => (filter.value as IFilterShape)?.maxHeight ?? ROW_HEIGHT * maxLength);
+    const height = computed(() => (filter.value as IFilterShape)?.height || '100%');
+    const minHeight = computed(() => {
+      const defaultMin = ROW_HEIGHT * 2;
+      if (localData.value.length > maxLength) {
+        return maxHeight.value;
       }
 
-      return checked.some((str: string) => getRegExp(str, 'img').test(matchText));
-    };
+      return defaultMin;
+    });
 
-    const filterFn =      typeof column.filter.filterFn === 'function'
-      // eslint-disable-next-line max-len
-      ? (checked: string[], row: any, index: number, data: any[]) => column.filter.filterFn(checked, row, props.column, index, data)
-      : (checked: string[], row: any) => (checked.length ? defaultFilterFn(checked, row) : true);
+    const getRegExp = (val: boolean | number | string, flags = 'ig') =>
+      new RegExp(`${val}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
 
     const handleBtnSaveClick = () => {
       handleFilterChange(true);
-      emit('filterSave', [...state.checked]);
+      emit('filterSave', state.checked);
       state.isOpen = false;
     };
 
@@ -106,13 +125,12 @@ export default defineComponent({
       const { disabled } = resolveBtnOption(btnSave, t.value.confirm);
 
       if (disabled || btnSaveClick) {
-        if (props.column.filter === 'custom') {
-          emit('change', [...state.checked], null);
+        if (filter.value === 'custom') {
+          emit('change', state.checked, null);
           state.isOpen = false;
           return;
         }
-
-        emit('change', [...state.checked], filterFn);
+        emit('change', state.checked);
       }
     };
 
@@ -120,17 +138,18 @@ export default defineComponent({
       if (state.checked.length) {
         state.checked.length = 0;
         state.isOpen = false;
-        nextTick(() => emit('change', state.checked, filterFn));
+        emit('change', state.checked);
+        emit('reset', state.checked);
       }
     };
 
-    const resolveBtnOption = (opt: string | boolean, defText: string) => {
+    const resolveBtnOption = (opt: boolean | string, defText: string) => {
       const disabled = opt === 'disabled' || opt === false;
       const text = typeof opt === 'string' ? opt : defText;
       return { disabled, text };
     };
 
-    const { btnSave, btnReset } = column.filter;
+    const { btnSave, btnReset } = filter.value as IFilterShape;
 
     const renderSaveBtn = () => {
       const { disabled, text } = resolveBtnOption(btnSave, t.value.confirm);
@@ -139,9 +158,14 @@ export default defineComponent({
       }
 
       return (
-        <span class='btn-filter-save' onClick={handleBtnSaveClick}>
+        <Button
+          style='width: 56px; margin-right: 8px;'
+          size='small'
+          theme='primary'
+          onClick={handleBtnSaveClick}
+        >
           {text}
-        </span>
+        </Button>
       );
     };
 
@@ -152,9 +176,14 @@ export default defineComponent({
       }
 
       return (
-        <span class={['btn-filter-reset', state.checked.length ? '' : 'disable']} onClick={handleBtnResetClick}>
+        <Button
+          style='width: 56px;'
+          disabled={state.checked.length === 0}
+          size='small'
+          onClick={handleBtnResetClick}
+        >
           {text}
-        </span>
+        </Button>
       );
     };
 
@@ -171,47 +200,59 @@ export default defineComponent({
       handleFilterChange();
     };
 
-    const renderFilterList = (scope) => {
+    const renderFilterList = scope => {
       if (scope.data.length) {
-        return scope.data.map((item: any) => <div class="list-item">
-          <BkCheckbox label={item.value}
-            key={ item.$index }
-            immediateEmitChange = {false}
-            checked={ state.checked.includes(item.value) }
-            modelValue={ state.checked.includes(item.value) }
-            onChange={ val => handleValueChange(val, item) }>
-              { `${item.text}` }
-          </BkCheckbox>
-        </div>);
+        return scope.data.map((item: { value: string; text: string }) => (
+          <div
+            key={item.value}
+            class='list-item'
+          >
+            <Checkbox
+              checked={state.checked.includes(item.value)}
+              immediateEmitChange={false}
+              label={item.value}
+              modelValue={state.checked.includes(item.value)}
+              onChange={val => handleValueChange(val, item)}
+            >
+              {`${item.text}`}
+            </Checkbox>
+          </div>
+        ));
       }
 
-      return <div class="list-item is-empty">{t.value.emptyText}</div>;
+      return <div class='list-item is-empty'>{t.value.emptyText}</div>;
     };
 
     return () => (
       <Popover
-        trigger='click'
+        arrow={false}
         isShow={state.isOpen}
+        offset={0}
         placement='bottom-start'
         renderType={RenderType.SHOWN}
-        arrow={false}
-        offset={0}
+        trigger='click'
         {...{ theme }}
-        onAfterShow={() => handlePopShow(true)}
         onAfterHidden={() => handlePopShow(false)}
+        onAfterShow={() => handlePopShow(true)}
       >
         {{
           default: () => <Funnel class={headClass.value} />,
           content: () => (
             <div class={headFilterContentClass}>
+              <div style='padding: 4px 10px;'>
+                <Input v-model={searchValue.value}></Input>
+              </div>
               <BkCheckboxGroup class='content-list'>
                 <VirtualRender
+                  ref={refVirtualRender}
+                  height={height.value}
+                  className='content-items'
                   lineHeight={32}
                   list={localData.value}
-                  throttleDelay={0}
+                  maxHeight={maxHeight.value}
+                  minHeight={minHeight.value}
                   scrollEvent={true}
-                  ref={refVirtualRender}
-                  className="content-items"
+                  throttleDelay={0}
                 >
                   {{
                     default: renderFilterList,
@@ -220,7 +261,6 @@ export default defineComponent({
               </BkCheckboxGroup>
               <div class='content-footer'>
                 {renderSaveBtn()}
-                <span class='btn-filter-split'></span>
                 {renderResetBtn()}
               </div>
             </div>

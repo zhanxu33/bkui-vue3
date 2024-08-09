@@ -24,12 +24,12 @@
  * IN THE SOFTWARE.
  */
 
-/* eslint-disable arrow-body-style */
 import { computed, defineComponent, ref, toRaw, toRefs, watch } from 'vue';
 
-import { useLocale } from '@bkui-vue/config-provider';
-import { ArrowsRight, Error, Search, Transfer } from '@bkui-vue/icon/';
-import BkInput from '@bkui-vue/input';
+import Checkbox, { BkCheckboxGroup } from '@bkui-vue/checkbox';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
+import { AngleLeft, AngleRight, ArrowsRight, Error, Search, Transfer } from '@bkui-vue/icon';
+import Input from '@bkui-vue/input';
 
 import { ArrayType } from './const';
 import { transferProps } from './props';
@@ -39,12 +39,13 @@ function useTransferData(sourceData, targetList, settingCode) {
   const selectList = ref([]);
   const selectedList = ref([]);
   const transformData = (isChange = false) => {
-    if (isChange) { // watch监听时需要清空重新按照targetList赋值
+    if (isChange) {
+      // watch监听时需要清空重新按照targetList赋值
       selectList.value = [];
       selectedList.value = [];
     }
 
-    sourceData.value.forEach((s) => {
+    sourceData.value.forEach(s => {
       const keyId = s[settingCode.value];
       if (targetList.value.includes(keyId)) {
         selectedList.value.push(s);
@@ -58,7 +59,8 @@ function useTransferData(sourceData, targetList, settingCode) {
     () => [sourceData, targetList, settingCode],
     () => {
       transformData(true);
-    }, { deep: true },
+    },
+    { deep: true },
   );
 
   return {
@@ -70,7 +72,7 @@ function useTransferData(sourceData, targetList, settingCode) {
 function useSelectListSearch(selectList, displayCode) {
   const selectSearchQuery = ref('');
   const selectListSearch = computed(() => {
-    return selectList.value.filter((select) => {
+    return selectList.value.filter(select => {
       const val = select[displayCode.value];
       if (val instanceof Object) return false;
       return val.toString().includes(selectSearchQuery.value);
@@ -88,6 +90,8 @@ export default defineComponent({
   emits: ['change', 'update:targetList'],
   setup(props, { emit }) {
     const t = useLocale('transfer');
+    const multipleSelectAllValue = ref({ source: false, target: false });
+    const multipleSelectList = ref({ source: [], target: [] });
     // 区分数据是基础数据数组(false)还是对象数组(true)
     const sourceListType = computed(() => {
       if (Array.isArray(props.sourceList)) {
@@ -98,7 +102,7 @@ export default defineComponent({
     });
     const settingCode = computed(() => (sourceListType.value === ArrayType.BASE_ARRAY ? 'value' : props.settingKey));
     const displayCode = computed(() => (sourceListType.value === ArrayType.BASE_ARRAY ? 'value' : props.displayKey));
-    const sortCode = computed(() => (props.sortKey || displayCode.value));
+    const sortCode = computed(() => props.sortKey || displayCode.value);
     // 处理为统一格式
     const sourceData = computed(() => {
       switch (sourceListType.value) {
@@ -132,9 +136,15 @@ export default defineComponent({
       });
     });
 
-    watch(() => [selectList, selectedList], () => {
-      handleEmitUpdateTargetList();
-    }, { deep: true });
+    watch(
+      () => [selectList, selectedList],
+      () => {
+        if (!props.multiple) {
+          handleEmitUpdateTargetList();
+        }
+      },
+      { deep: true },
+    );
 
     /** 全选、清空操作过滤禁用选项 */
     const handleCheckAllItemSelect = (list, source) => {
@@ -144,13 +154,17 @@ export default defineComponent({
     /** 全选 */
     const allToRight = () => {
       // 清空源列表 除源列表禁用选项
-      selectList.value = [...sourceData.value.filter((source) => {
-        return handleCheckAllItemSelect(selectList.value, source);
-      })];
+      selectList.value = [
+        ...sourceData.value.filter(source => {
+          return handleCheckAllItemSelect(selectList.value, source);
+        }),
+      ];
       // 填满目标列表 除源列表禁用选项
-      selectedList.value = [...sourceData.value.filter((source) => {
-        return !handleCheckAllItemSelect(selectList.value, source);
-      })];
+      selectedList.value = [
+        ...sourceData.value.filter(source => {
+          return !handleCheckAllItemSelect(selectList.value, source);
+        }),
+      ];
       // 全选搜索结果
       // selectedList.value.push(...selectListSearch.value)
       handleEmitUpdateTargetList();
@@ -158,16 +172,20 @@ export default defineComponent({
     /** 移除 */
     const allToLeft = () => {
       // 填满源列表 除目标列表禁用选项
-      selectList.value = [...sourceData.value.filter((source) => {
-        return !handleCheckAllItemSelect(selectedList.value, source);
-      })];
+      selectList.value = [
+        ...sourceData.value.filter(source => {
+          return !handleCheckAllItemSelect(selectedList.value, source);
+        }),
+      ];
       // 清空目标列表 除目标列表禁用选项
-      selectedList.value = [...sourceData.value.filter((source) => {
-        return handleCheckAllItemSelect(selectedList.value, source);
-      })];
+      selectedList.value = [
+        ...sourceData.value.filter(source => {
+          return handleCheckAllItemSelect(selectedList.value, source);
+        }),
+      ];
       handleEmitUpdateTargetList();
     };
-      /**
+    /**
      * @desc 列表项 click 事件
      * @param { string } itemKey settingCode值
      * @param { boolean } isLeft 左右面板
@@ -193,6 +211,40 @@ export default defineComponent({
         targetList,
       );
     };
+    /**
+     * @desc checkboxGroup 变化事件
+     * @param { string } dirct 左右面板
+     */
+    const handleItemChecked = dirct => {
+      const target = dirct === 'source' ? selectList : selectedList;
+      multipleSelectAllValue.value[dirct] = multipleSelectList.value[dirct].length === target.value.length;
+    };
+    /**
+     * @desc checkbox 全选
+     * @param { boolean } value checked
+     * @param { string } dirct 左右面板
+     */
+    const handleAllChecked = (value, dirct) => {
+      const target = dirct === 'source' ? selectList : selectedList;
+      multipleSelectList.value[dirct] = value ? target.value.map(item => item[settingCode.value]) : [];
+    };
+    /**
+     * @desc 多选后点击穿梭事件
+     * @param { string } dirct 左右面板
+     */
+    const handleMultipleChange = dirct => {
+      const isLeft = dirct === 'left';
+      const from = isLeft ? selectList : selectedList;
+      const to = isLeft ? selectedList : selectList;
+      const checkeds = multipleSelectList.value[isLeft ? 'source' : 'target'];
+      const items = from.value.filter(val => checkeds.includes(val[settingCode.value]));
+      from.value = from.value.filter(val => !checkeds.includes(val[settingCode.value]));
+      to.value.push(...items);
+      multipleSelectList.value[isLeft ? 'source' : 'target'] = [];
+      handleEmitUpdateTargetList();
+    };
+
+    const { resolveClassName } = usePrefix();
 
     return {
       selectSearchQuery,
@@ -206,41 +258,71 @@ export default defineComponent({
       allToLeft,
       handleItemClick,
       t,
+      handleAllChecked,
+      multipleSelectAllValue,
+      multipleSelectList,
+      handleMultipleChange,
+      handleItemChecked,
+      resolveClassName,
     };
   },
+
   render() {
+    const { multiple } = this.$props;
     const leftList = this.sortable ? this.selectListSort : this.selectListSearch;
     const rightList = this.sortable ? this.selectedListSort : this.selectedList;
-    const getHeaderHtml = (dirct) => {
+    const getHeaderHtml = dirct => {
       const isLeft = dirct === 'left-header';
+      const selectField = isLeft ? 'source' : 'target';
       const titleText = isLeft ? `${this.title[0] ?? this.t.sourceList}` : `${this.title[1] ?? this.t.targetList}`;
       const isDisabled = isLeft ? !leftList.length : !rightList.length;
+
+      const isIndeterminate =
+        !!this.multipleSelectList[selectField].length && !this.multipleSelectAllValue[selectField];
+      const selectCount = this.multipleSelectList[selectField].length;
       const headerClick = () => {
         if (isDisabled) return;
         isLeft ? this.allToRight() : this.allToLeft();
       };
 
-      return this.$slots[dirct]
-        ? <div class="slot-header">
-            {this.$slots[dirct]()}
-          </div>
-        : <div class="header">
-            {`${titleText}（${isLeft ? leftList.length : rightList.length}）`}
+      return this.$slots[dirct] ? (
+        <div class='slot-header'>{this.$slots[dirct]()}</div>
+      ) : (
+        <div class='header'>
+          {this.multiple ? (
+            <Checkbox
+              class='header-checkbox'
+              v-model={this.multipleSelectAllValue[selectField]}
+              indeterminate={isIndeterminate}
+              label={titleText}
+              onChange={val => this.handleAllChecked(val, selectField)}
+            />
+          ) : (
+            <>{`${titleText}（${isLeft ? leftList.length : rightList.length}）`}</>
+          )}
+          {this.multiple ? (
+            <div class='select-total-count'>
+              <span class='select-count'>{selectCount}</span>
+              <span class='count-delimiter'>/</span>
+              <span class='total-count'>{isLeft ? leftList.length : rightList.length}</span>
+            </div>
+          ) : (
             <span
-              class={{ disabled: isDisabled }}
-              onClick={() => headerClick()}>
+              class={{ 'select-all': true, disabled: isDisabled }}
+              onClick={() => headerClick()}
+            >
               {isLeft ? this.t.selectAll : this.t.removeAll}
-              </span>
-          </div>;
+            </span>
+          )}
+        </div>
+      );
     };
-    const getEmptyHtml = (dirct) => {
+    const getEmptyHtml = dirct => {
       const isLeft = dirct === 'left-empty-content';
-      const emptyText = (isLeft ? this.emptyContent[0] : this.emptyContent[1])
-        ?? (isLeft ? this.t.noData : this.t.noSelected);
+      const emptyText =
+        (isLeft ? this.emptyContent[0] : this.emptyContent[1]) ?? (isLeft ? this.t.noData : this.t.noSelected);
 
-      return this.$slots[dirct]
-        ? <div>{this.$slots[dirct]()}</div>
-        : <div class="empty">{emptyText}</div>;
+      return this.$slots[dirct] ? <div>{this.$slots[dirct]()}</div> : <div class='empty'>{emptyText}</div>;
     };
     const getDefaultListHtml = (item, isLeft = true) => {
       return (
@@ -259,58 +341,101 @@ export default defineComponent({
               </span>
           } */}
           <span
-            class="content-text"
-            title={item[this.displayCode]}>
+            class='content-text'
+            title={item[this.displayCode]}
+          >
             {item[this.displayCode]}
           </span>
-          <span class="icon-wrapper">
-            {isLeft ? <ArrowsRight class="bk-icon icon-move" /> : <Error class="bk-icon icon-delete" />}
-          </span>
+          {!multiple && (
+            <span class='icon-wrapper'>
+              {isLeft ? (
+                // <ArrowsRight class={`${this.resolveClassName('icon')} icon-move`} />
+                <ArrowsRight class={this.resolveClassName('icon')} />
+              ) : (
+                // <Error class={`${this.resolveClassName('icon')} icon-delete`} />
+                <Error class={[this.resolveClassName('icon'), this.resolveClassName('icon-delete')]} />
+              )}
+            </span>
+          )}
         </div>
       );
     };
-    const getListContentHtml = (dirct) => {
+    const getListContentHtml = dirct => {
       const isLeft = dirct === 'left';
+      const selectField = dirct === 'left' ? 'source' : 'target';
       const list = isLeft ? leftList : rightList;
       const slotName = isLeft ? 'source-option' : 'target-option';
       const emptySlotName = isLeft ? 'left-empty-content' : 'right-empty-content';
-
-      return list.length
-        ? <ul class={['content', this.searchable && isLeft ? 'is-search' : '']}>
-            {list.map(item => (
-              <li
-                key={item[this.settingCode]}
-                class={[this.$slots[slotName] ? 'custom-item' : '']}
-                onClick={() => this.handleItemClick(item, isLeft)}>
-                {this.$slots[slotName]?.(item) ?? (getDefaultListHtml(item, isLeft))}
-              </li>
-            ))}
-          </ul>
-        : getEmptyHtml(emptySlotName);
+      const contentMode = multiple ? (
+        <BkCheckboxGroup
+          class='content is-flex'
+          v-model={this.multipleSelectList[selectField]}
+          onChange={() => this.handleItemChecked(selectField)}
+        >
+          {list.map((item: any) => (
+            <div>
+              <Checkbox
+                class='checkbox-item'
+                label={item[this.settingCode]}
+              >
+                {this.$slots[slotName]?.(item) ?? getDefaultListHtml(item, isLeft)}
+              </Checkbox>
+            </div>
+          ))}
+        </BkCheckboxGroup>
+      ) : (
+        <ul class={['content', this.searchable && isLeft ? 'is-search' : '']}>
+          {list.map(item => (
+            <li
+              key={item[this.settingCode]}
+              class={[this.$slots[slotName] ? 'custom-item' : '']}
+              onClick={() => this.handleItemClick(item, isLeft)}
+            >
+              {this.$slots[slotName]?.(item) ?? getDefaultListHtml(item, isLeft)}
+            </li>
+          ))}
+        </ul>
+      );
+      return list.length ? contentMode : getEmptyHtml(emptySlotName);
     };
 
     return (
-      <div class={['bk-transfer', this.extCls]}>
-        <div class="source-list">
+      <div class={[`${this.resolveClassName('transfer')}`, this.extCls]}>
+        <div class='source-list'>
           {getHeaderHtml('left-header')}
-          {
-            this.searchable
-              && <BkInput
-                v-model={this.selectSearchQuery}
-                class="transfer-search-input"
-                clearable={true}
-                placeholder={this.searchPlaceholder || this.t.search}>
-                {{
-                  prefix: () => (
-                    <Search class="icon-search" />
-                  ),
-                }}
-                </BkInput>
-          }
+          {this.searchable && (
+            <Input
+              class='transfer-search-input'
+              v-model={this.selectSearchQuery}
+              clearable={true}
+              placeholder={this.searchPlaceholder || this.t.search}
+            >
+              {{
+                prefix: () => <Search class={this.resolveClassName('icon-search')} />,
+              }}
+            </Input>
+          )}
           {getListContentHtml('left')}
         </div>
-        <Transfer class="transfer" />
-        <div class="target-list">
+        {multiple ? (
+          <div class='transfer-button-group'>
+            <div
+              class={['transfer-button', { disabled: !this.multipleSelectList.source.length }]}
+              onClick={() => this.handleMultipleChange('left')}
+            >
+              <AngleRight />
+            </div>
+            <div
+              class={['transfer-button', { disabled: !this.multipleSelectList.target.length }]}
+              onClick={() => this.handleMultipleChange('right')}
+            >
+              <AngleLeft />
+            </div>
+          </div>
+        ) : (
+          <Transfer class={this.resolveClassName('transfer-icon')} />
+        )}
+        <div class='target-list'>
           {getHeaderHtml('right-header')}
           {getListContentHtml('right')}
         </div>

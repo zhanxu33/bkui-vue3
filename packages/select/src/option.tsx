@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import {
   computed,
@@ -33,34 +33,49 @@ import {
   onBeforeUnmount,
   reactive,
   toRefs,
+  VNode,
 } from 'vue';
 
+import Checkbox from '@bkui-vue/checkbox';
+import { usePrefix } from '@bkui-vue/config-provider';
 import { Done } from '@bkui-vue/icon';
-import { classes, PropTypes, resolveClassName } from '@bkui-vue/shared';
+import { classes, PropTypes, SelectedTypeEnum } from '@bkui-vue/shared';
+import isEqual from 'lodash/isEqual';
 
 import { optionGroupKey, selectKey } from './common';
 
 export default defineComponent({
   name: 'Option',
   props: {
-    value: PropTypes.any,
-    label: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).def(''),
+    id: {
+      type: [String, Number, Object],
+      require: true,
+    },
+    name: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     disabled: PropTypes.bool.def(false),
+    order: PropTypes.number.def(0),
   },
-  setup(props) {
+  setup(props, { attrs }) {
     const { proxy } = getCurrentInstance() as any;
 
     const states = reactive({
       visible: true,
     });
 
-    const { disabled, value } = toRefs(props);
+    const { disabled, id, name } = toRefs(props);
+    // 兼容label
+    const optionName = computed(() => (name.value !== undefined ? name.value : (attrs.label as string)));
+    // 兼容value
+    const optionID = computed(() => (id.value !== undefined ? id.value : attrs.value));
     const select = inject(selectKey, null);
     const group = inject(optionGroupKey, null);
-    const selected = computed<boolean>(() => select?.selected?.some(item => item.value === value.value as string));
+    const selected = computed<boolean>(() => select?.selected?.some(item => isEqual(item.value, optionID.value)));
     const multiple = computed<boolean>(() => select?.multiple);
-    const isHover = computed(() => select?.activeOptionValue === value.value);
-    const showSelectedIcon = computed(() => select?.showSelectedIcon);
+    const isHover = computed(() => select?.activeOptionValue === optionID.value);
+    const showSelectedIcon = computed(() => select?.showSelectedIcon && multiple.value);
+    const selectedStyle = computed(() => select?.selectedStyle);
+    const searchValue = computed(() => select?.curSearchValue);
+    const highlightKeyword = computed(() => select?.highlightKeyword);
 
     const handleOptionClick = () => {
       if (disabled.value) return;
@@ -68,18 +83,44 @@ export default defineComponent({
     };
 
     const handleMouseEnter = () => {
-      select.activeOptionValue = value.value;
+      select.activeOptionValue = optionID.value;
+    };
+
+    const transformNode = (str: string): (VNode | string)[] | string => {
+      if (!str) return str;
+      let keyword = searchValue.value;
+      const len = keyword.length;
+      if (!keyword?.trim().length || !str.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())) return str;
+      const list = [];
+      let lastIndex = -1;
+      keyword = keyword.replace(/([.*/]{1})/gim, '\\$1');
+      str.replace(new RegExp(`${keyword}`, 'igm'), (key, index) => {
+        if (list.length === 0 && index !== 0) {
+          list.push(str.slice(0, index));
+        } else if (lastIndex >= 0) {
+          list.push(str.slice(lastIndex + key.length, index));
+        }
+        list.push(<span class='is-keyword'>{key}</span>);
+        lastIndex = index;
+        return key;
+      });
+      if (lastIndex >= 0) {
+        list.push(str.slice(lastIndex + len));
+      }
+      return list.length ? list : str;
     };
 
     onBeforeMount(() => {
-      select?.register(value.value, proxy);
-      group?.register(value.value, proxy);
+      select?.register(optionID.value, proxy);
+      group?.register(optionID.value, proxy);
     });
 
     onBeforeUnmount(() => {
-      select?.unregister(value.value);
-      group?.unregister(value.value);
+      select?.unregister(optionID.value);
+      group?.unregister(optionID.value);
     });
+
+    const { resolveClassName } = usePrefix();
 
     return {
       ...toRefs(states),
@@ -87,8 +128,14 @@ export default defineComponent({
       multiple,
       isHover,
       showSelectedIcon,
+      selectedStyle,
+      optionName,
+      optionID,
+      highlightKeyword,
       handleOptionClick,
       handleMouseEnter,
+      resolveClassName,
+      transformNode,
     };
   },
   render() {
@@ -97,27 +144,38 @@ export default defineComponent({
       'is-disabled': this.disabled,
       'is-multiple': this.multiple,
       'is-hover': this.isHover,
-      [resolveClassName('select-option')]: true,
+      'is-checkbox': this.selectedStyle === SelectedTypeEnum.CHECKBOX,
+      [this.resolveClassName('select-option')]: true,
     });
     return (
-      <li v-show={this.visible}
+      <li
         class={selectItemClass}
+        v-show={this.visible}
         onClick={this.handleOptionClick}
-        onMouseenter={this.handleMouseEnter}>
-        {
-          this.$slots.default?.()
-          ?? (
-            <span class={resolveClassName('select-option-item')} title={String(this.label)}>
-              {this.label}
-            </span>
-          )
-        }
-        {
-          this.multiple
-            && this.selected
-            && this.showSelectedIcon
-            && <Done class={resolveClassName('select-selected-icon')} width={22} height={22}></Done>
-        }
+        onMouseenter={this.handleMouseEnter}
+      >
+        {this.showSelectedIcon && this.selectedStyle === SelectedTypeEnum.CHECKBOX && (
+          <Checkbox
+            class={this.resolveClassName('select-checkbox')}
+            disabled={this.disabled}
+            modelValue={this.selected}
+          />
+        )}
+        {this.$slots.default?.() ?? (
+          <span
+            class={this.resolveClassName('select-option-item')}
+            title={String(this.optionName)}
+          >
+            {this.highlightKeyword ? this.transformNode(String(this.optionName)) : this.optionName}
+          </span>
+        )}
+        {this.showSelectedIcon && this.selected && this.selectedStyle === SelectedTypeEnum.CHECK && (
+          <Done
+            width={22}
+            height={22}
+            class={this.resolveClassName('select-selected-icon')}
+          />
+        )}
       </li>
     );
   },

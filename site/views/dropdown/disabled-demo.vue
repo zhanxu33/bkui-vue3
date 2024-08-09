@@ -1,12 +1,18 @@
 <template>
   <div>
+    <bk-button
+      style="display: block; margin-bottom: 10px"
+      theme="primary"
+      text
+      @click="handleClick"
+    >
+      {{ `点击切换disabled(${disabled})状态` }}
+    </bk-button>
     <bk-dropdown
       :disabled="disabled"
       placement="bottom-start"
     >
-      <bk-button @click="handleClick">
-        {{ `点击切换disabled(${disabled})状态` }}
-      </bk-button>
+      <bk-button :disabled="disabled"> 下拉菜单 </bk-button>
       <template #content>
         <bk-dropdown-menu>
           <bk-dropdown-item
@@ -32,4 +38,3 @@
     disabled.value = !disabled.value;
   };
 </script>
-

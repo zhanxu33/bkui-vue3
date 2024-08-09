@@ -22,9 +22,9 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { withInstallProps } from '@bkui-vue/shared';
+import { formItemKey, formKey, useFormItem, withInstallProps } from '@bkui-vue/shared';
 
 import ComposeFormItem from './compose-form-item';
 import Form, { formProps } from './form';
@@ -36,12 +36,6 @@ const BkForm = withInstallProps(Form, { FormItem, ComposeFormItem });
 
 export default BkForm;
 
-export {
-  BkForm,
-  FormItem as BkFormItem,
-  ComposeFormItem as BkComposeFormItem,
-};
+export { BkForm, FormItem as BkFormItem, ComposeFormItem as BkComposeFormItem, formItemKey, formKey, useFormItem };
 
-export type {
-  formProps,
-};
+export type { formProps };

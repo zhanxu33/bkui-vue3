@@ -1,47 +1,41 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-import type { ExtractPropTypes, PropType } from 'vue';
-import {
-  computed,
-  defineComponent,
-  inject,
-  onMounted,
-  reactive,
-  ref,
-  toRefs,
-  watch,
-} from 'vue';
+import { computed, defineComponent, inject, onMounted, reactive, ref, toRefs, watch } from 'vue';
 
-import { capitalize, resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { capitalize } from '@bkui-vue/shared';
 
 import TimeSpinner from '../base/time-spinner';
 import fecha from '../fecha';
+import { SelectionModeType } from '../interface';
 import { datePickerProps, timePanelProps } from '../props';
 import { initTime, timePickerKey } from '../utils';
+
+import type { ExtractPropTypes, PropType } from 'vue';
 
 const timeRangeProps = {
   steps: {
@@ -60,6 +54,17 @@ const timeRangeProps = {
   allowCrossDay: {
     type: Boolean,
     default: false,
+  },
+  selectionMode: {
+    type: String as PropType<SelectionModeType>,
+    default: 'date',
+    validator(v) {
+      if (['year', 'month', 'date', 'time'].indexOf(v) < 0) {
+        console.error(`selectionMode property is not valid: '${v}'`);
+        return false;
+      }
+      return true;
+    },
   },
 };
 
@@ -84,17 +89,23 @@ export default defineComponent({
     const parentProvide = inject(timePickerKey);
 
     const showSeconds = computed(() => !(props.format || '').match(/mm$/));
-    const leftDatePanelLabel = computed(() => fecha.format(parentProvide.dates[0], props.format));
-    const rightDatePanelLabel = computed(() => fecha.format(parentProvide.dates[1], props.format));
+    const leftDatePanelLabel = computed(() => fecha.format(dateStart, props.format));
+    const rightDatePanelLabel = computed(() => fecha.format(dateEnd, props.format));
 
-    watch(() => props.value, (dates) => {
-      const [dateStart, dateEnd] = dates.slice();
-      state.dateStart = (dateStart || initTime()) as any;
-      state.dateEnd = (dateEnd || initTime()) as any;
-    });
+    watch(
+      () => props.value,
+      dates => {
+        const [dateStart, dateEnd] = dates.slice();
+        state.dateStart = (dateStart || initTime()) as any;
+        state.dateEnd = (dateEnd || initTime()) as any;
+      },
+    );
 
     onMounted(() => {
-      if (parentProvide && parentProvide.parentName === 'DatePanel') {
+      if (
+        parentProvide &&
+        (parentProvide.parentName === 'DatePanel' || parentProvide.parentName === 'DateRangePanel')
+      ) {
         state.showDate = true;
       }
     });
@@ -157,15 +168,14 @@ export default defineComponent({
       let dateStart = new Date(state.dateStart);
       let dateEnd = new Date(state.dateEnd);
 
-      Object.keys(start).forEach((type) => {
+      Object.keys(start).forEach(type => {
         dateStart[`set${capitalize(type)}`](start[type]);
       });
 
-      Object.keys(end).forEach((type) => {
+      Object.keys(end).forEach(type => {
         dateEnd[`set${capitalize(type)}`](end[type]);
       });
-
-      if (!props.allowCrossDay && (dateEnd < dateStart)) {
+      if (!props.allowCrossDay && dateEnd < dateStart) {
         // 左边变化
         if (idx === 'start') {
           dateEnd = dateStart;
@@ -177,7 +187,8 @@ export default defineComponent({
       }
 
       if (isEmit) {
-        emit('pick', [dateStart, dateEnd], true, 'time');
+        // pick 参数：dates, visible, type, isUseShortCut
+        emit('pick', [dateStart, dateEnd], true, props.selectionMode);
       }
     }
 
@@ -197,6 +208,8 @@ export default defineComponent({
       timeSpinnerEndRef?.value?.updateScroll();
     }
 
+    const { resolveClassName } = usePrefix();
+
     return {
       ...toRefs(state),
       showSeconds,
@@ -209,74 +222,72 @@ export default defineComponent({
 
       timeSpinnerRef,
       timeSpinnerEndRef,
+      resolveClassName,
     };
   },
   render() {
     return (
       <div
         class={[
-          resolveClassName('picker-panel-body-wrapper'),
-          resolveClassName('time-picker-with-range'),
-          (this.showSeconds) ? resolveClassName('time-picker-with-seconds') : '',
+          this.resolveClassName('picker-panel-body-wrapper'),
+          this.resolveClassName('time-picker-with-range'),
+          this.showSeconds ? this.resolveClassName('time-picker-with-seconds') : '',
         ]}
-        onMousedown={(e) => {
+        onMousedown={e => {
           e.preventDefault();
         }}
       >
-        <div class={resolveClassName('picker-panel-body')} style={{ width: `${this.width * 2}px` }}>
+        <div
+          style={{ width: `${this.width * 2}px` }}
+          class={this.resolveClassName('picker-panel-body')}
+        >
           <div
-            class={[
-              resolveClassName('picker-panel-content'),
-              resolveClassName('picker-panel-content-left')]
-            }
-            style={{ width: `${this.width}px` }}>
-            {
-              this.showDate
-                ? (
-                  <div class="bk-time-picker-header">{this.leftDatePanelLabel}</div>
-                )
-                : ''
-            }
+            style={{ width: `${this.width}px` }}
+            class={[this.resolveClassName('picker-panel-content'), this.resolveClassName('picker-panel-content-left')]}
+          >
+            {this.showDate ? (
+              <div class={`${this.resolveClassName('time-picker-header')}`}>{this.leftDatePanelLabel}</div>
+            ) : (
+              ''
+            )}
             <TimeSpinner
-              ref="timeSpinnerRef"
-              steps={this.steps}
-              showSeconds={this.showSeconds}
+              ref='timeSpinnerRef'
+              disabledHours={this.disabledHours}
+              disabledMinutes={this.disabledMinutes}
+              disabledSeconds={this.disabledSeconds}
+              hideDisabledOptions={this.hideDisabledOptions}
               hours={this.value[0] && this.dateStart.getHours()}
               minutes={this.value[0] && this.dateStart.getMinutes()}
               seconds={this.value[0] && this.dateStart.getSeconds()}
+              showSeconds={this.showSeconds}
+              steps={this.steps}
+              onChange={this.handleStartChange}
+              onPick-click={this.handlePickClick}
+            />
+          </div>
+          <div
+            style={{ width: `${this.width}px` }}
+            class={[this.resolveClassName('picker-panel-content'), this.resolveClassName('picker-panel-content-right')]}
+          >
+            {this.showDate ? (
+              <div class={this.resolveClassName('time-picker-header')}>{this.rightDatePanelLabel}</div>
+            ) : (
+              ''
+            )}
+            <TimeSpinner
+              ref='timeSpinnerEndRef'
               disabledHours={this.disabledHours}
               disabledMinutes={this.disabledMinutes}
               disabledSeconds={this.disabledSeconds}
               hideDisabledOptions={this.hideDisabledOptions}
-              onChange={this.handleStartChange}
-              onPick-click={this.handlePickClick} />
-          </div>
-          <div
-            class={[
-              resolveClassName('picker-panel-content'),
-              resolveClassName('picker-panel-content-right'),
-            ]}
-            style={{ width: `${this.width}px` }}>
-            {
-              this.showDate
-                ? (
-                  <div class={resolveClassName('time-picker-header')}>{this.rightDatePanelLabel}</div>
-                )
-                : ''
-            }
-            <TimeSpinner
-              ref="timeSpinnerEndRef"
-              steps={this.steps}
-              showSeconds={this.showSeconds}
               hours={this.value[1] && this.dateEnd.getHours()}
               minutes={this.value[1] && this.dateEnd.getMinutes()}
               seconds={this.value[1] && this.dateEnd.getSeconds()}
-              disabledHours={this.disabledHours}
-              disabledMinutes={this.disabledMinutes}
-              disabledSeconds={this.disabledSeconds}
-              hideDisabledOptions={this.hideDisabledOptions}
+              showSeconds={this.showSeconds}
+              steps={this.steps}
               onChange={this.handleEndChange}
-              onPick-click={this.handlePickClick} />
+              onPick-click={this.handlePickClick}
+            />
           </div>
         </div>
       </div>

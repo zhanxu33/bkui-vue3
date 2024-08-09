@@ -24,12 +24,13 @@
  * IN THE SOFTWARE.
  */
 
-import { resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
 
 import { NODE_ATTRIBUTES } from './constant';
 import { TreePropTypes } from './props';
 
 const DEFAULT_LEVLE_LINE = '1px dashed #c3cdd7';
+export type IFlatData = { data: any[]; schema: WeakMap<Object, any> };
 
 /**
  * 获取配置项可为Bool|String|Function类型，如果为Bool则配置默认值
@@ -96,11 +97,6 @@ const getStringOrFuncStr = (item: any, props: TreePropTypes, key: string, args: 
  */
 export const getLabel = (item: any, props: TreePropTypes) => getStringOrFuncStr(item, props, 'label');
 
-
-const getSchemaVal = (schema: Map<string, any>, uuid: string) => ((schema as Map<string, any>).get(uuid) || {});
-
-const getNodeAttr = (schema: Map<string, any>, uuid: string, key: string) => getSchemaVal(schema, uuid)?.[key];
-
 /**
  * 根据Props获取Tree样式设置
  * @param item
@@ -109,7 +105,9 @@ const getNodeAttr = (schema: Map<string, any>, uuid: string, key: string) => get
  */
 export const getTreeStyle = (item: any, props: TreePropTypes) => {
   // 处理Props回调函数，参数 [tree] 表示 levelLine 回调参数第二个，此次渲染请求为Tree外层样式
-  const levelLine: any = getPropsOneOfBoolValueWithDefault(props, 'levelLine', item, DEFAULT_LEVLE_LINE, null, ['tree']);
+  const levelLine: any = getPropsOneOfBoolValueWithDefault(props, 'levelLine', item, DEFAULT_LEVLE_LINE, null, [
+    'tree',
+  ]);
   return {
     '--level-line': levelLine,
     '--lineHeight': `${props.lineHeight}px`,
@@ -124,19 +122,23 @@ export const getTreeStyle = (item: any, props: TreePropTypes) => {
  * @param props
  * @returns
  */
-export const getNodeItemStyle: any = (item: any, props: TreePropTypes, flatData: any = {}) => {
-  const {  schema } = flatData;
-  const depth = getNodeAttr(schema as Map<string, any>, item[NODE_ATTRIBUTES.UUID], NODE_ATTRIBUTES.DEPTH);
-  return {
-    '--depth': depth,
-    ...(typeof props.levelLine === 'function'
-      ? {
-        '--level-line': getPropsOneOfBoolValueWithDefault(props, 'levelLine', item, DEFAULT_LEVLE_LINE, null, [
-          'node',
-        ]),
-      }
-      : {}),
-  };
+export const getNodeItemStyle: any = (item: any, props: TreePropTypes, flatData: IFlatData, showTree = true) => {
+  const { schema } = flatData;
+  const depth = schema.get(item)?.[NODE_ATTRIBUTES.DEPTH];
+  if (showTree) {
+    return {
+      '--depth': depth,
+      ...(typeof props.levelLine === 'function'
+        ? {
+            '--level-line': getPropsOneOfBoolValueWithDefault(props, 'levelLine', item, DEFAULT_LEVLE_LINE, null, [
+              'node',
+            ]),
+          }
+        : {}),
+    };
+  }
+
+  return {};
 };
 
 /**
@@ -144,15 +146,16 @@ export const getNodeItemStyle: any = (item: any, props: TreePropTypes, flatData:
  * @param item
  * @returns
  */
-export const getNodeItemClass = (item: any, schema: any, props: TreePropTypes) => {
+export const getNodeItemClass = (item: any, schema: WeakMap<Object, any>, props: TreePropTypes, showTree = true) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { __is_root, __is_open } = getSchemaVal(schema as Map<string, any>, item[NODE_ATTRIBUTES.UUID]) || {};
+  const { __is_root, __is_open } = schema.get(item) || {};
+  const { resolveClassName } = usePrefix();
   return {
     'is-root': __is_root,
-    'bk-tree-node': true,
+    [`${resolveClassName('tree-node')}`]: true,
     'is-open': __is_open,
     'is-virtual-render': props.virtualRender,
-    'level-line': props.levelLine,
+    'level-line': props.levelLine && showTree,
   };
 };
 
@@ -161,15 +164,16 @@ export const getNodeItemClass = (item: any, schema: any, props: TreePropTypes) =
  * @param item
  * @returns
  */
-export const getNodeRowClass = (item: any, schema: any) => {
+export const getNodeRowClass = (item: any, schema: WeakMap<Object, any>) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { __is_checked, __is_selected } = getSchemaVal(schema as Map<string, any>, item[NODE_ATTRIBUTES.UUID]) || {};
+  const { __is_checked, __is_selected } = schema.get(item) || {};
+  const { resolveClassName } = usePrefix();
   return {
     'is-checked': __is_checked,
     'is-selected': __is_selected,
     'node-folder': item.is_folder,
     'node-leaf': item.is_leaf,
-    [resolveClassName('node-row')]: true,
+    [`${resolveClassName('node-row')}`]: true,
   };
 };
 
@@ -196,7 +200,7 @@ export const assignTreeNode = (path: string, treeData: any[], childKey: string, 
   const paths = path.split('-');
   const targetNode = paths.reduce((pre: any, nodeIndex: string) => {
     const index = Number(nodeIndex);
-    return  Array.isArray(pre) ? pre[index] : pre[childKey][index];
+    return Array.isArray(pre) ? pre[index] : pre[childKey][index];
   }, treeData);
 
   Object.assign(targetNode, assignVal || {});
@@ -207,14 +211,25 @@ export const resolveNodeItem = (node: any) => {
     return { __IS_NULL: true };
   }
 
-  if (typeof node === 'string' || typeof node === 'number' ||  typeof node === 'symbol') {
-    return { [NODE_ATTRIBUTES.UUID]: node };
-  }
-
-  if (Object.prototype.hasOwnProperty.call(node, NODE_ATTRIBUTES.UUID)) {
-    return node;
-  }
-
-  console.error('setNodeAction Error: node id cannot found');
   return node;
+};
+
+export const resolvePropIsMatched = (node, prop, id) => {
+  if (Array.isArray(prop)) {
+    return prop.some(item => resolvePropIsMatched(node, item, id));
+  }
+
+  if (typeof prop === 'string' || typeof prop === 'number') {
+    return prop === id;
+  }
+
+  return node === prop;
+};
+
+export const showCheckbox = (props: TreePropTypes, node?: any) => {
+  if (typeof props.showCheckbox === 'function') {
+    return props.showCheckbox(node);
+  }
+
+  return props.showCheckbox;
 };

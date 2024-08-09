@@ -1,53 +1,69 @@
 <template>
   <div class="demo">
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
+      v-model="selectedValue"
       multiple
+      show-select-all
+      @deselect="handleDeselect"
+      @select="handleSelect"
+    >
+      <bk-option
+        v-for="(item, index) in datasource"
+        :id="item.value"
+        :key="index"
+        :name="item.label"
+      />
+    </bk-select>
+    <bk-select
+      selected-style="checkbox"
+      class="bk-select"
+      v-model="selectedValue"
+      all-option-id="all"
+      filterable
+      multiple
+      show-all
       show-select-all
     >
       <bk-option
         v-for="(item, index) in datasource"
+        :disabled="item.disabled"
+        :id="item.value"
         :key="index"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
       />
     </bk-select>
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
-      filterable
-      multiple
-      show-select-all
+      v-model="selectedValue"
       multiple-mode="tag"
+      filterable
+      multiple
+      show-all
+      show-select-all
+      @tag-remove="tagRemove"
     >
       <bk-option
         v-for="(item, index) in datasource"
+        :id="item.value"
         :key="index"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
       />
     </bk-select>
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
-      filterable
-      multiple
-      show-select-all
+      v-model="listValue"
+      :list="datasourceList"
       multiple-mode="tag"
       collapse-tags
-    >
-      <bk-option
-        v-for="(item, index) in datasource"
-        :key="index"
-        :value="item.value"
-        :label="item.label"
-      />
-    </bk-select>
+      filterable
+      multiple
+      show-select-all
+    />
   </div>
 </template>
 <script setup>
-  import { ref } from 'vue';
+  import { onBeforeMount, ref } from 'vue';
   const datasource = ref([
     {
       value: 'climbing',
@@ -80,15 +96,38 @@
     },
   ]);
   const selectedValue = ref(['dancing', 'bike']);
+
+  const listValue = ref([1, 2, 3, 4, 5, 6, 7, 8]);
+  const datasourceList = ref([]);
+
+  const tagRemove = val => {
+    console.log(val);
+  };
+
+  const handleSelect = v => {
+    console.log('select', v);
+  };
+
+  const handleDeselect = v => {
+    console.log('deselect', v);
+  };
+
+  onBeforeMount(() => {
+    new Array(100).fill(0).forEach((item, index) => {
+      datasourceList.value.push({
+        value: index,
+        label: `list-${index}`,
+      });
+    });
+  });
 </script>
 <style scoped>
-.demo {
-  display: flex;
-}
+  .demo {
+    display: flex;
+  }
 
-.bk-select {
-  width: 300px;
-  margin-right: 20px;
-}
+  .bk-select {
+    width: 300px;
+    margin-right: 20px;
+  }
 </style>
-

@@ -22,26 +22,18 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import {
-  computed,
-  defineComponent,
-  onBeforeUnmount,
-  onMounted,
-  Ref,
-  ref,
-  toRefs,
-  watch,
-} from 'vue';
+import { computed, defineComponent, onBeforeUnmount, onMounted, Ref, ref, toRefs, watch } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes } from '@bkui-vue/shared';
 
 interface IRenderData {
-  link?: String,
-  url?: String,
-  color?: String,
-  class?: String
+  link?: string;
+  url?: string;
+  color?: string;
+  class?: string;
 }
 
 export default defineComponent({
@@ -60,14 +52,7 @@ export default defineComponent({
 
   setup(props, { emit, slots }) {
     // 属性
-    const {
-      isLoop,
-      loopTime,
-      pics,
-      list,
-      height,
-      width,
-    } = toRefs(props);
+    const { isLoop, loopTime, pics, list, height, width } = toRefs(props);
 
     // 声明变量
     const swiperRef: Ref<HTMLElement> = ref();
@@ -76,6 +61,8 @@ export default defineComponent({
     const renderHeight: Ref<number> = ref(0);
     const loopId: Ref<number> = ref(0);
     let resizeObserver;
+
+    const { resolveClassName } = usePrefix();
 
     // 计算属性
     const computedRenderDataList = computed<IRenderData[]>(() => (list.value?.length > 0 ? list.value : pics.value));
@@ -89,7 +76,7 @@ export default defineComponent({
     }));
 
     // 方法
-    const changeIndex = (index) => {
+    const changeIndex = index => {
       let showIndex = index;
       // 边界处理
       if (index >= computedRenderDataList.value.length) {
@@ -102,14 +89,14 @@ export default defineComponent({
       emit('index-change', showIndex);
     };
 
-    const goToLink = (link) => {
+    const goToLink = link => {
       if (!link) return;
       window.open(link, '_blank');
     };
 
     const getRenderItemClass = renderData => [
-      'bk-swiper-img',
-      { 'bk-swiper-link': renderData.link },
+      `${resolveClassName('swiper-img')}`,
+      { [`${resolveClassName('swiper-link')}`]: renderData.link },
       renderData.class,
     ];
 
@@ -119,7 +106,7 @@ export default defineComponent({
     });
 
     const getRenderIndexStyle = index => ({
-      'bk-current-index': swiperIndex.value === index,
+      [`${resolveClassName('current-index')}`]: swiperIndex.value === index,
     });
 
     const startLoop = () => {
@@ -151,7 +138,7 @@ export default defineComponent({
       resizeObserver.disconnect?.();
     };
 
-    const getElementSize = (node) => {
+    const getElementSize = node => {
       if (node === undefined) {
         return {
           height: 0,
@@ -190,56 +177,48 @@ export default defineComponent({
     // render
     return () => (
       <section
-        class="bk-swiper-home"
         ref={swiperRef}
         style={computedSwiperRenderStyle.value}
+        class={`${resolveClassName('swiper-home')}`}
       >
         <hgroup
           style={computedSwiperTranslateStyle.value}
-          class="bk-transition bk-swiper-main"
+          class={`${resolveClassName('transition')} ${resolveClassName('swiper-main')}`}
         >
-          {
-            computedRenderDataList.value.map(renderData => (
-              <h3
-                class="bk-swiper-card"
-                style={computedSwiperRenderStyle.value}
-              >
-                {
-                  slots.default?.(renderData) ?? (
-                    <span
-                      class={getRenderItemClass(renderData)}
-                      style={getRenderItemStyle(renderData)}
-                      onClick={() => goToLink(renderData.link)}
-                    >
-                    </span>
-                  )
-                }
-              </h3>
-            ))
-          }
+          {computedRenderDataList.value.map(renderData => (
+            <h3
+              style={computedSwiperRenderStyle.value}
+              class={`${resolveClassName('swiper-card')}`}
+            >
+              {slots.default?.(renderData) ?? (
+                <span
+                  style={getRenderItemStyle(renderData)}
+                  class={getRenderItemClass(renderData)}
+                  onClick={() => goToLink(renderData.link)}
+                ></span>
+              )}
+            </h3>
+          ))}
         </hgroup>
-        <ul class="bk-swiper-index">
-          {
-            computedRenderDataList.value.map((_, index) => (
-              <li
-                class={getRenderIndexStyle(index)}
-                onMouseover={() => changeIndex(index)}
-              >
-              </li>
-            ))
-          }
+        <ul class={`${resolveClassName('swiper-index')}`}>
+          {computedRenderDataList.value.map((_, index) => (
+            <li
+              class={getRenderIndexStyle(index)}
+              onMouseover={() => changeIndex(index)}
+            ></li>
+          ))}
         </ul>
         <span
-          class="bk-swiper-nav bk-nav-prev"
+          class={`${resolveClassName('swiper-nav')} ${resolveClassName('nav-prev')}`}
           onClick={() => changeIndex(swiperIndex.value - 1)}
         >
-          <i class="bk-swiper-nav-icon"></i>
+          <i class={`${resolveClassName('swiper-nav-icon')}`}></i>
         </span>
         <span
-          class="bk-swiper-nav bk-nav-next"
+          class={`${resolveClassName('swiper-nav')} ${resolveClassName('nav-next')}`}
           onClick={() => changeIndex(swiperIndex.value + 1)}
         >
-          <i class="bk-swiper-nav-icon"></i>
+          <i class={`${resolveClassName('swiper-nav-icon')}`}></i>
         </span>
       </section>
     );

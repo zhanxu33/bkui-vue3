@@ -1,4 +1,3 @@
-/* eslint-disable codecc/comment-ratio */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -58,6 +57,18 @@ const routes: RouteRecordRaw[] = [
     meta: {
       group: NavGroupMeta.Nav,
       navName: 'Menu 菜单',
+    },
+  },
+  /**
+   * @description:图钉
+   */
+  {
+    path: '/affix',
+    name: 'affix',
+    component: () => import('../views/affix/index'),
+    meta: {
+      group: NavGroupMeta.Nav,
+      navName: 'Affix 图钉',
     },
   },
   /**
@@ -547,7 +558,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/time-picker'),
     meta: {
       group: NavGroupMeta.Nav,
-      navName: 'TimePicker 日期选择器',
+      navName: 'TimePicker 时间选择器',
     },
   },
   /**
@@ -590,13 +601,13 @@ const routes: RouteRecordRaw[] = [
    * @description:侧边栏
    */
   {
-  	  path: '/sideslider',
-  	  name: 'sideslider',
-  	  component: () => import('../views/sideslider'),
-  	  meta: {
-  	    group: NavGroupMeta.Feedback,
-  	    navName: 'Sideslider 侧栏',
-  	  },
+    path: '/sideslider',
+    name: 'sideslider',
+    component: () => import('../views/sideslider'),
+    meta: {
+      group: NavGroupMeta.Feedback,
+      navName: 'Sideslider 侧栏',
+    },
   },
   /**
    * @description:穿梭框
@@ -719,6 +730,33 @@ const routes: RouteRecordRaw[] = [
       navName: 'Popconfirm 弹出确认框',
     },
     component: () => import('../views/pop-confirm/index'),
+  },
+  {
+    path: '/bk/date-piker',
+    name: 'BluekingDatePicker',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Date Picker 时间选择器',
+    },
+    component: () => import('../views/blueking/date-picker/index'),
+  },
+  {
+    path: '/bk/log-search',
+    name: 'BluekingLogSearch',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Log Search 日志检索',
+    },
+    component: () => import('../views/blueking/log-search/index'),
+  },
+  {
+    path: '/bk/functional-deps',
+    name: 'FunctionalDeps',
+    meta: {
+      group: NavGroupMeta.Business,
+      navName: 'Functional Deps 功能依赖展示',
+    },
+    component: () => import('../views/blueking/functional-deps/index'),
   },
 ];
 

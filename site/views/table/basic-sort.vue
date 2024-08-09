@@ -5,7 +5,7 @@
       :columns="columns"
       :data="tableData"
       :pagination="pagination"
-      @column-sort="handleSortBy"
+      draggable
     />
   </div>
   <div class="cell">
@@ -14,7 +14,7 @@
       :columns="columns1"
       :data="tableData"
       :pagination="pagination"
-      @dblclick="handleDblClick"
+      @column-sort="handleSortBy"
     />
   </div>
 </template>
@@ -23,26 +23,25 @@
   import { defineComponent } from 'vue';
 
   import { DATA_COLUMNS, DATA_COLUMNS1 } from './options';
-  const DATA_ROWS = new Array(Math.ceil(Math.random() * 9000) + 1000).fill('')
-    .map((_, index) => ({
-      ip: `${index}--192.168.0.x`,
-      source: `${index}_QQ`,
-      status: '创建中',
-      create_time: `2018-05-25 15:02:24.${index}`,
-    }));
+  const DATA_ROWS = new Array(Math.ceil(Math.random() * 100) + 100).fill('').map((_, index) => ({
+    ip: `${index}--192.168.0.x`,
+    source: `${index}_QQ`,
+    status: '创建中',
+    create_time: `2018-05-25 15:02:24.${index}`,
+    priority: index,
+  }));
   export default defineComponent({
     components: {},
     data() {
       return {
         columns: [...DATA_COLUMNS],
-        columns1: [...DATA_COLUMNS1],
+        columns1: DATA_COLUMNS1.map(col => Object.assign({}, col, { sort: { sortScope: 'all' } })),
         tableData: DATA_ROWS,
         pagination: { count: DATA_ROWS.length, limit: 10 },
       };
     },
 
     methods: {
-
       handleSortBy(arg) {
         console.log('handleSortBy', arg);
       },
@@ -53,13 +52,13 @@
   });
 </script>
 <style scoped>
-.row {
-  display: flex;
-  width: 100%;
-}
+  .row {
+    display: flex;
+    width: 100%;
+  }
 
-.cell {
-  flex: 1;
-  margin: 0px 5px 20px  5px;
-}
+  .cell {
+    flex: 1;
+    margin: 0px 5px 20px 5px;
+  }
 </style>

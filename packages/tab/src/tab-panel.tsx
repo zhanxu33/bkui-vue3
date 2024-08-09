@@ -22,11 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { defineComponent, h, VNodeChild } from 'vue';
 
-import { resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
 
 import { tabPanelProps } from './props';
 
@@ -52,8 +52,14 @@ export default defineComponent({
       return null;
     };
 
+    const { resolveClassName } = usePrefix();
+
     return (
-      <div v-show={active} ref='content' class={resolveClassName('tab-panel')}>
+      <div
+        ref='content'
+        class={resolveClassName('tab-panel')}
+        v-show={active}
+      >
         {getContent()}
       </div>
     );

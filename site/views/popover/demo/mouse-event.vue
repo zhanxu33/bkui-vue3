@@ -1,19 +1,14 @@
 <template>
-  <bk-button
-    v-bk-ellipsis="'xxccxcxc'"
-    @click="handlePopMsgBtn"
+  <bk-button @click="handlePopMsgBtn"> 点击初始化Popover </bk-button>
+  <bk-button @click="handleShowPop"> show </bk-button>
+  <bk-button @click="handleShowPop"> show 2 </bk-button>
+  <bk-button @click="handleHidePop"> hide </bk-button>
+  <div
+    ref="refContentTable"
+    style="width: 400px; display: none"
   >
-    点击初始化Popover
-  </bk-button>
-  <bk-button @click="handleShowPop">
-    show
-  </bk-button>
-  <bk-button
-    @click="handleHidePop"
-    @mousemove="handleMouseMove"
-  >
-    close
-  </bk-button>
+    <content-table />
+  </div>
 </template>
 <script>
   import { defineComponent } from 'vue';
@@ -21,7 +16,10 @@
   import { bkEllipsis } from '@bkui-vue/directives';
   import { $bkPopover } from '@bkui-vue/popover';
 
+  import ContentTable from '../../table/column-template.vue';
+
   export default defineComponent({
+    components: { ContentTable },
     directives: {
       bkEllipsis,
     },
@@ -32,21 +30,19 @@
     },
     methods: {
       handlePopMsgBtn(e) {
-        this.popInstance = $bkPopover({
-          target: e,
-          content: 'create mode 100644 packages/icon/icons/left-turn-line.tsx',
-        });
+        if (!this.popInstance) {
+          this.popInstance = $bkPopover({
+            target: e,
+            content: this.$refs.refContentTable.children[0],
+          });
+        }
       },
-      handleShowPop() {
-        this.popInstance?.show();
+      handleShowPop(e) {
+        this.popInstance?.show(e);
       },
       handleHidePop() {
-        this.popInstance?.close();
-      },
-      handleMouseMove(e) {
-        this.popInstance?.update(e);
+        this.popInstance?.hide();
       },
     },
   });
 </script>
-

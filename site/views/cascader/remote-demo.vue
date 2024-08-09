@@ -2,8 +2,8 @@
   <bk-cascader
     v-model="area"
     :list="list"
-    is-remote
     :remote-method="remoteMethod"
+    is-remote
   />
 </template>
 <script setup>
@@ -15,10 +15,12 @@
     {
       id: 'hunan',
       name: '湖南',
-    }, {
+    },
+    {
       id: 'guangxi',
       name: '广西',
-    }, {
+    },
+    {
       id: 'yunnan',
       name: '云南',
     },
@@ -32,12 +34,11 @@
         id = id + 1;
         return {
           id,
-          name: `Option - ${id}`,
+          name: `Option${id}`,
           leaf: level >= 2, // 为了更准确渲染，尽量通过`leaf`字段，告知是否是叶子节点；
         };
       });
       resolve(nodes);
     }, 1000);
   };
-
 </script>

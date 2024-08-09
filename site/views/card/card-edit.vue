@@ -2,10 +2,10 @@
   <div class="card-demo">
     <div class="card-demo-item">
       <bk-card
-        title="Card卡片标题"
         position="right"
-        is-edit
+        title="Card卡片标题"
         is-collapse
+        is-edit
       >
         <div class="card-content-wrapper">
           <p>卡片内容 1</p>
@@ -31,7 +31,7 @@
     margin: 0 auto;
 
     .card-content-wrapper {
-      padding: 20px 0;
+      padding: 16px 0 24px 0;
 
       p {
         margin: 0;
@@ -45,7 +45,7 @@
     .card-demo-item {
       display: inline-block;
       width: 400px;
-      margin-left: 30px
+      margin-left: 30px;
     }
 
     .card-demo-foot {

@@ -1,69 +1,138 @@
 <template>
-  <div class="row">
-    <bk-table
-      :columns="columns"
-      :data="tableData"
-      row-hover="auto"
-      settings
-      show-overflow-tooltip
-      @dblclick="handleDblClick"
-      @column-sort="handleSortBy"
-      @cell-click="handleCellClick"
-      @cell-dblclick="handleCellDblclick"
-    />
+  <div style="display: grid;">
+    <div>
+      <bk-table max-height="464" :data="projectTable" height="300" stripe :fixedBottom="fixedBottom"
+        show-overflow-tooltip :pagination="pagination">
+        <bk-table-column type="selection" :min-width="30" width="30" align="center" />
+        <bk-table-column label="用户组" prop="groupName" :sort="true" />
+        <bk-table-column label="用户描述" prop="groupDesc" />
+        <bk-table-column label="有效期" prop="validityPeriod" />
+        <bk-table-column label="加入时间" prop="joinedTime" />
+        <bk-table-column label="加入方式/操作人" prop="operateSource">
+          <template #default="{ row }">
+            {{ row.operateSource }}/{{ row.operator }}
+          </template>
+        </bk-table-column>
+      </bk-table>
+    </div>
   </div>
 </template>
 
-<script>
-  import { defineComponent } from 'vue';
+<script setup>
 
-  import { DATA_COLUMNS, DATA_TABLE } from './options';
-  export default defineComponent({
-    components: {},
-    data() {
-      return {
-        isLoading: false,
-        tableData: [...DATA_TABLE],
-        columns: [...DATA_COLUMNS],
-        settings: {
-          fields: [{
-                     label: '序号',
-                     field: 'index',
-                     disabled: true,
-                   },
-                   {
-                     label: '名称/内网IP',
-                     field: 'ip',
-                   },
-                   {
-                     label: '来源',
-                     field: 'source',
-                   },
-                   {
-                     label: '创建时间',
-                     field: 'create_time',
-                   }],
-          checked: ['ip', 'index'],
-        },
-      };
-    },
-    methods: {
-      handleCellClick(arg) {
-        const { cell, row, column } = arg;
-        console.log('handleCellClick', cell, row, column, cell.getValue());
-      },
-      handleCellDblclick(arg) {
-        const { cell, row, column } = arg;
-        console.log('handleCellDblclick', cell, row, column, cell.getValue());
-      },
-      handleSortBy(arg) {
-        console.log('handleSortBy', arg);
-      },
-      handleDblClick(...args) {
-        console.log(args);
-      },
-    },
-  });
+import { ref, reactive } from 'vue'
+const pagination = ref({ count: 11, limit: 10, current: 1 });
+
+const fixedBottom = reactive({
+  position: 'relative',
+  height: 42
+})
+const projectTable = ref([{
+  groupId: 1,
+  groupName: '11',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: true,
+},
+{
+  groupId: 2,
+  groupName: '22',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+}, {
+  groupId: 3,
+  groupName: '33',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+},
+{
+  groupId: 4,
+  groupName: '44',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+}, {
+  groupId: 5,
+  groupName: '55',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+},
+{
+  groupId: 6,
+  groupName: '66',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+}, {
+  groupId: 7,
+  groupName: '77',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+},
+{
+  groupId: 8,
+  groupName: '88',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+}, {
+  groupId: 9,
+  groupName: '99',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+},
+{
+  groupId: 10,
+  groupName: '1010',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+},
+{
+  groupId: 11,
+  groupName: '1111',
+  groupDesc: 'kjkjkjk',
+  validityPeriod: '0505',
+  joinedTime: '08-18',
+  operateSource: '加入组',
+  operator: '张三',
+  removeMemberButtonControl: false,
+}]);
 </script>
 <style scoped>
 .row {

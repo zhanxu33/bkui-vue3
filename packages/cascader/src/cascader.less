@@ -1,7 +1,7 @@
 @import '@bkui-vue/styles/themes/themes.less';
 @import '@bkui-vue/styles/mixins/mixins.less';
 
-.@{bk-prefix}-cascader-popover.bk-pop2-content {
+.@{bk-prefix}-cascader-popover.@{bk-prefix}-pop2-content.@{bk-prefix}-popover {
   padding: 0;
 }
 .@{bk-prefix}-cascader-popover-wrapper {
@@ -38,7 +38,7 @@
     border-color: @disable-color;
     opacity: 1;
 
-    .bk-cascader-name,
+    .@{bk-prefix}-cascader-name,
     input {
       cursor: not-allowed;
       background-color: @input-disabled-bg;
@@ -67,7 +67,7 @@
     z-index: 1;
     border: 1px solid #3a84ff;
 
-    .bk-cascader-name {
+    .@{bk-prefix}-cascader-name {
       .cascader-selected-text {
         white-space: pre-wrap;
       }
@@ -87,10 +87,8 @@
     }
   }
 
-  &.@{bk-prefix}-is-show-panel {
-    .@{bk-prefix}-icon-angle-up {
-      transform: rotate(0);
-    }
+  .@{bk-prefix}-icon-angle-up.active {
+    transform: rotate(0);
   }
 
   &.is-unselected:before {
@@ -155,7 +153,7 @@
         color: #c3cdd7;
       }
     }
-    
+
     .cascader-selected-text {
       display: block;
       width: 100%;
@@ -209,7 +207,7 @@
   box-shadow: 0px 2px 6px 0px rgba(0,0,0,.10);
   .@{bk-prefix}-cascader-panel {
     min-width: 160px;
-    padding: 6px 0;
+    padding: 4px 0;
     background: @white-color;
     border-right: 1px solid @cascader-panel-border-color;
 
@@ -242,12 +240,12 @@
         cursor: not-allowed;
         background-color: @white-color;
 
-        .icon-angle-right {
+        .@{bk-prefix}-icon-angle-right {
           color: @light-gray;
         }
       }
 
-      .icon-angle-right {
+      .@{bk-prefix}-icon-angle-right {
         position: absolute;
         top: 50%;
         right: 0;
@@ -256,7 +254,7 @@
         transform: translateY(-50%);
       }
 
-      .icon-spinner {
+      .@{bk-prefix}-icon-spinner {
         position: absolute;
         top: 50%;
         right: 5px;
@@ -265,6 +263,13 @@
         transform: translateY(-50%);
       }
     }
+  }
+  .@{bk-prefix}-cascader-panel-empty-wrapper {
+    display: flex;
+    height: 100%;
+    color: #63656e;
+    align-items: center;
+    justify-content: center;
   }
   .@{bk-prefix}-cascader-search-empty {
     display: flex;

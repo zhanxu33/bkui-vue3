@@ -22,9 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { defineComponent } from 'vue';
+
+import { usePrefix } from '@bkui-vue/config-provider';
 
 export default defineComponent({
   name: 'MenuGroup',
@@ -35,12 +37,11 @@ export default defineComponent({
     },
   },
   setup(props, { slots }) {
+    const { resolveClassName } = usePrefix();
     return () => (
-      <div class="bk-menu-group">
-        <div class="group-name">{props.name}</div>
-        <ul class="group-wrap">
-          {slots.default?.()}
-        </ul>
+      <div class={`${resolveClassName('menu-group')}`}>
+        <div class='group-name'>{props.name}</div>
+        <ul class='group-wrap'>{slots.default?.()}</ul>
       </div>
     );
   },

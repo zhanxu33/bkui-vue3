@@ -22,13 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent, h, onMounted, PropType, ref } from 'vue';
 
 import { bkTooltips } from '@bkui-vue/directives';
 import { IOptions } from '@bkui-vue/directives/src/tooltips';
 import { checkOverflow, PropTypes } from '@bkui-vue/shared';
+import _ from 'lodash';
 
 export default defineComponent({
   name: 'TagRender',
@@ -38,6 +39,7 @@ export default defineComponent({
   props: {
     node: PropTypes.object,
     displayKey: PropTypes.string,
+    tooltipKey: PropTypes.string,
     tpl: {
       type: Function,
     },
@@ -57,8 +59,8 @@ export default defineComponent({
       boundary: 'window',
       theme: 'light',
       distance: 12,
-      content: props.node[props.displayKey],
-      disabled: props.hasTips || !isOverflow.value,
+      content: props.node[props.tooltipKey],
+      disabled: !_.has(props.node, props.tooltipKey) || !isOverflow.value,
       ...props.tagOverflowTips,
     }));
 
@@ -77,8 +79,12 @@ export default defineComponent({
     }
 
     return (
-      <div class="tag" ref="tagRef" v-bk-tooltips={this.overflowTips}>
-        <span class="text">{this.node[this.displayKey]}</span>
+      <div
+        ref='tagRef'
+        class='tag'
+        v-bk-tooltips={this.overflowTips}
+      >
+        <span class='text'>{this.node[this.displayKey]}</span>
       </div>
     );
   },

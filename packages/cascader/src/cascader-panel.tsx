@@ -27,9 +27,10 @@
 import { defineComponent, reactive, ref, watch } from 'vue';
 import { array, object } from 'vue-types';
 
-import BkCheckbox from '@bkui-vue/checkbox';
+import Checkbox from '@bkui-vue/checkbox';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { AngleRight, Spinner } from '@bkui-vue/icon';
-import { arrayEqual, PropTypes, resolveClassName } from '@bkui-vue/shared';
+import { arrayEqual, PropTypes } from '@bkui-vue/shared';
 
 import { IData, INode } from './interface';
 
@@ -47,6 +48,9 @@ export default defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
+    const t = useLocale('cascader');
+    const { resolveClassName } = usePrefix();
+
     const { store } = props;
     const menus = reactive({
       list: [props.store.getNodes()],
@@ -54,7 +58,7 @@ export default defineComponent({
     const activePath = ref([]);
     const checkValue = ref<(number | string | string[])[]>([]);
 
-    const getSizeComputed = (value: string | number) => {
+    const getSizeComputed = (value: number | string) => {
       if (typeof value === 'number') {
         return `${value}px`;
       }
@@ -69,11 +73,27 @@ export default defineComponent({
         menus.list = menus.list.slice(0, 1);
         activePath.value = [];
       }
-      value.forEach((id: number | string | string[]) => {
+      expandByNodeList(value);
+      checkValue.value = value;
+    };
+
+    const expandByNodeList = (value: Array<number | string | string[]>) => {
+      let targetList = [];
+      // 如果配置了多选，找出最长的序列，即其最远的路径，以展开所有面板
+      if (store.config.multiple) {
+        for (const subArray of value as Array<string[]>) {
+          if (subArray.length > targetList.length) {
+            targetList = subArray;
+          }
+        }
+      } else {
+        targetList = value;
+      }
+      // 遍历最长路径的节点，如果节点有children，展开子面板
+      targetList.forEach((id: number | string | string[]) => {
         const node = store.getNodeById(id);
         nodeExpandHandler(node);
       });
-      checkValue.value = value;
     };
 
     /** 节点选中回调
@@ -85,7 +105,9 @@ export default defineComponent({
         return;
       }
       if (node.config.multiple) {
-        checkValue.value = store.getCheckedNodes().map(node => node.path);
+        // 如果checkAnyLevel，返回所有check的节点； 否则只check 叶子节点
+        const targets = store.config.checkAnyLevel ? store.getCheckedNodes() : store.getCheckedLeafNodes();
+        checkValue.value = targets.map(node => node.path); // 如果任意级别可选，当前节点即为所选内容
       } else {
         checkValue.value = node.path;
       }
@@ -151,12 +173,15 @@ export default defineComponent({
       return events;
     };
 
+    const noDataText = t.value.noData;
+    const { emptyText } = t.value;
+
     const isNodeInPath = (node: INode) => {
       const currentLevel = activePath.value[node.level - 1] || {};
       return currentLevel.id === node.id;
     };
 
-    const isCheckedNode = (node: INode, checkValue: (string | number | string[])[]) => {
+    const isCheckedNode = (node: INode, checkValue: (number | string | string[])[]) => {
       const { multiple } = node.config;
       if (multiple) {
         return (checkValue as string[][]).some((val: string[]) => arrayEqual(val, node.path as string[]));
@@ -170,11 +195,16 @@ export default defineComponent({
       nodeCheckHandler(node);
     };
 
-    const iconRender = node => (node.loading ? <Spinner class="icon-spinner"></Spinner> : <AngleRight class="icon-angle-right"></AngleRight>);
+    const iconRender = node =>
+      node.loading ? (
+        <Spinner class={resolveClassName('icon-spinner')}></Spinner>
+      ) : (
+        <AngleRight class={resolveClassName('icon-angle-right')}></AngleRight>
+      );
 
     watch(
       () => props.modelValue,
-      (value: Array<string | number | string[]>) => {
+      (value: Array<number | string | string[]>) => {
         updateCheckValue(value);
       },
       { immediate: true },
@@ -182,7 +212,7 @@ export default defineComponent({
 
     watch(
       () => props.store,
-      (value) => {
+      value => {
         menus.list = [value.getNodes()];
       },
     );
@@ -200,58 +230,80 @@ export default defineComponent({
       panelWidth,
       panelHeight,
       searchPanelEvents,
+      expandByNodeList,
+      noDataText,
+      emptyText,
+      resolveClassName,
     };
   },
   render() {
     const emptyWidth = parseInt(this.panelWidth, 10) > 200 ? this.panelWidth : `${200}px`;
-    const searchPanelRender = () => (
-      this.suggestions.length ? <ul
-        class={[resolveClassName('cascader-panel'), 'bk-scroll-y']}
-        style={{ height: this.panelHeight, width: this.panelWidth }}>
+    const searchPanelRender = () =>
+      this.suggestions.length ? (
+        <ul
+          style={{ height: this.panelHeight, width: this.panelWidth }}
+          class={[this.resolveClassName('cascader-panel'), this.resolveClassName('scroll-y')]}
+        >
           {this.suggestions.map(node => (
-            <li class={[
-              resolveClassName('cascader-node'),
-              { 'is-selected': this.isNodeInPath(node) },
-              { 'is-disabled': node.isDisabled },
-              { 'is-checked': this.isCheckedNode(node, this.checkValue) },
-            ]}
-            {...this.searchPanelEvents(node)}>
+            <li
+              class={[
+                this.resolveClassName('cascader-node'),
+                { 'is-selected': this.isNodeInPath(node) },
+                { 'is-disabled': node.isDisabled },
+                { 'is-checked': this.isCheckedNode(node, this.checkValue) },
+              ]}
+              {...this.searchPanelEvents(node)}
+            >
               {node.pathNames.join(this.separator)}
             </li>
           ))}
-      </ul> : <div class={resolveClassName('cascader-search-empty')} style={{ width: emptyWidth }}>
-        <span>暂无搜索结果</span>
-      </div>
-    );
+        </ul>
+      ) : (
+        <div
+          style={{ width: emptyWidth }}
+          class={this.resolveClassName('cascader-search-empty')}
+        >
+          <span>{this.noDataText}</span>
+        </div>
+      );
     return (
-      <div class={resolveClassName('cascader-panel-wrapper')}>
-        {this.isFiltering ? searchPanelRender() : this.menus.list.map(menu => (
-          <ul class={[resolveClassName('cascader-panel'), 'bk-scroll-y']}
-            style={{ height: this.panelHeight, width: this.panelWidth }}>
-            {menu.map(node => (
-              <li
-                class={[
-                  resolveClassName('cascader-node'),
-                  { 'is-selected': this.isNodeInPath(node) },
-                  { 'is-disabled': node.isDisabled },
-                  { 'is-checked': !node.config.multiple && this.isCheckedNode(node, this.checkValue) },
-                ]}
-                {...Object.assign(this.nodeEvent(node), node.config.multiple ? {} : {})}
+      <div class={this.resolveClassName('cascader-panel-wrapper')}>
+        {this.isFiltering
+          ? searchPanelRender()
+          : this.menus.list.map(menu => (
+              <ul
+                style={{ height: this.panelHeight, width: this.panelWidth }}
+                class={[this.resolveClassName('cascader-panel'), this.resolveClassName('scroll-y')]}
               >
-                {node.config.multiple && (
-                  <BkCheckbox
-                    disabled={node.isDisabled}
-                    v-model={node.checked}
-                    indeterminate={node.isIndeterminate}
-                    style="margin-right: 5px"
-                    onChange={(val: boolean) => this.checkNode(node, val)}></BkCheckbox>
+                {menu.length ? (
+                  menu.map(node => (
+                    <li
+                      class={[
+                        this.resolveClassName('cascader-node'),
+                        { 'is-selected': this.isNodeInPath(node) },
+                        { 'is-disabled': node.isDisabled },
+                        { 'is-checked': !node.config.multiple && this.isCheckedNode(node, this.checkValue) },
+                      ]}
+                      {...Object.assign(this.nodeEvent(node), node.config.multiple ? {} : {})}
+                    >
+                      {node.config.multiple && (
+                        <Checkbox
+                          style='margin-right: 5px'
+                          v-model={node.checked}
+                          disabled={node.isDisabled}
+                          indeterminate={node.isIndeterminate}
+                          onChange={(val: unknown) => this.checkNode(node, !!val)}
+                        ></Checkbox>
+                      )}
+                      {this.$slots.default?.({ node, data: node.data })}
+                      {!node.isLeaf ? this.iconRender(node) : ''}
+                    </li>
+                  ))
+                ) : (
+                  <div class={this.resolveClassName('cascader-panel-empty-wrapper')}>{this.noDataText}</div>
                 )}
-                {this.$slots.default?.({ node, data: node.data })}
-                {!node.isLeaf ? this.iconRender(node) : ''}
-              </li>
+              </ul>
             ))}
-          </ul>
-        ))}
       </div>
     );
   },

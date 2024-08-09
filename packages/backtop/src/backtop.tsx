@@ -22,22 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { throttle } from 'lodash';
-import {
-  type Ref,
-  defineComponent,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  Transition,
-  watch,
-} from 'vue';
+import { defineComponent, onBeforeUnmount, onMounted, type Ref, ref, Transition, watch } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { AngleUp } from '@bkui-vue/icon';
 import { bkZIndexManager, PropTypes } from '@bkui-vue/shared';
-
+import throttle from 'lodash/throttle';
 
 export default defineComponent({
   name: 'Backtop',
@@ -68,9 +60,12 @@ export default defineComponent({
       });
     };
 
-    watch(() => visible, () => {
-      zIndex.value = bkZIndexManager.getModalNextIndex();
-    });
+    watch(
+      () => visible,
+      () => {
+        zIndex.value = bkZIndexManager.getModalNextIndex();
+      },
+    );
 
     onMounted(() => {
       container.value = document;
@@ -89,21 +84,25 @@ export default defineComponent({
       container.value!.removeEventListener('scroll', scrollHandler);
     });
 
+    const { resolveClassName } = usePrefix();
+
     return () => (
-      <Transition name="bk-fade">
-        { visible.value
-          ? <div
-            class={`bk-backtop ${props.extCls}`}
+      <Transition name='bk-fade'>
+        {visible.value ? (
+          <div
             style={{
               right: styleRight,
               bottom: styleBottom,
               zIndex: zIndex.value,
             }}
-            onClick={scrollTop}>
-            {slots.default?.() ?? <AngleUp class="bk-backtop-icon"></AngleUp>}
+            class={`${resolveClassName('backtop')} ${props.extCls}`}
+            onClick={scrollTop}
+          >
+            {slots.default?.() ?? <AngleUp class={`${resolveClassName('backtop-icon')}`}></AngleUp>}
           </div>
-          : ''
-        }
+        ) : (
+          ''
+        )}
       </Transition>
     );
   },

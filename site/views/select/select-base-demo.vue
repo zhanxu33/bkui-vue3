@@ -1,45 +1,44 @@
 <template>
-  <bk-select
-    v-model="selectedValue"
-    class="bk-select"
-    filterable
-    auto-focus
-    no-data-text="sdsd"
-    no-match-text="kkk"
-    @toggle="handleToggle"
-  >
-    <bk-option
-      v-for="(item, index) in datasource"
-      :key="index"
-      :value="item.value"
-      :label="item.label"
-      :disabled="item.disabled"
-    />
-    <template #extension>
-      <bk-input
-        v-if="showEdit"
-        @enter="handleEnter"
+  <div style="display: flex">
+    <bk-select
+      class="bk-select"
+      v-model="selectedValue"
+      auto-focus
+      filterable
+      @select="handleSelect"
+    >
+      <bk-option
+        v-for="(item, index) in datasource"
+        :disabled="item.disabled"
+        :id="item.value"
+        :key="index"
+        :name="item.label"
       />
-      <span
-        v-else
-        @click="showEdit = true"
-      ><i class="bk-icon icon-plus-circle" />新增</span>
-    </template>
-  </bk-select>
+    </bk-select>
+    <bk-select
+      style="margin-left: 10px"
+      class="bk-select"
+      v-model="listValue"
+      :list="datasourceList"
+      disable-focus-behavior
+      filterable
+      multiple
+    />
+  </div>
 </template>
 <script setup>
-  import { ref } from 'vue';
+  import { onBeforeMount, ref } from 'vue';
   const datasource = ref([
     {
       value: 'climbing',
       label: '爬山',
     },
     {
-      value: 'running',
+      value: { a: 123 },
       label: '跑步',
     },
     {
-      value: 'unknow',
+      value: { b: 456 },
       label: '未知',
     },
     {
@@ -60,18 +59,57 @@
       disabled: true,
     },
   ]);
-  const showEdit = ref(false);
-  const selectedValue = ref('sleep');
-  const handleToggle = (value) => {
-    console.log(value);
+
+  const selectedValue = ref({ b: 456 });
+
+  const listValue = ref(1);
+  const datasourceList = ref([
+    {
+      value: 'climbing',
+      label: '爬山',
+    },
+    {
+      value: { a: 123 },
+      label: '跑步',
+    },
+    {
+      value: { b: 456 },
+      label: '未知',
+    },
+    {
+      value: 'fitness',
+      label: '健身',
+    },
+    {
+      value: 'bike',
+      label: '骑车',
+    },
+    {
+      value: 'dancing',
+      label: '跳舞',
+    },
+    {
+      value: 'sleep',
+      label: '睡觉',
+      disabled: true,
+    },
+  ]);
+
+  const handleSelect = v => {
+    console.log(v);
   };
-  const handleEnter = (v, e) => {
-    e.stopPropagation();
-    showEdit.value = false;
-  };
+
+  onBeforeMount(() => {
+    new Array(100).fill(0).forEach((item, index) => {
+      datasourceList.value.push({
+        value: index,
+        label: `list-${index}`,
+      });
+    });
+  });
 </script>
 <style scoped>
-.bk-select {
-  width: 300px;
-}
+  .bk-select {
+    width: 300px;
+  }
 </style>

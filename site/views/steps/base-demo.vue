@@ -1,5 +1,8 @@
 <template>
   <div>
-    <bk-steps />
+    <bk-steps
+      :cur-step="2"
+      status="error"
+    />
   </div>
 </template>

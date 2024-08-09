@@ -22,24 +22,14 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import {
-  type Ref,
-  computed,
-  defineComponent,
-  ref,
-  watch,
-} from 'vue';
+import { computed, defineComponent, type Ref, ref, watch } from 'vue';
 
-import {
-  classes,
-  PropTypes,
-  useFormItem,
-} from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { classes, PropTypes, useFormItem } from '@bkui-vue/shared';
 
 import star from './star';
-
 export default defineComponent({
   name: 'Rate',
 
@@ -54,32 +44,36 @@ export default defineComponent({
     withValidate: PropTypes.bool.def(true),
   },
 
-  emits: ['change', 'update:modelValue'],
+  emits: ['change', 'hover-change', 'update:modelValue'],
 
   setup(props, { emit }) {
+    const { resolveClassName } = usePrefix();
     const formItem = useFormItem();
     const hoverRate: Ref<number> = ref(0);
 
-    const chooseRate = (val) => {
+    const chooseRate = val => {
       if (!props.editable) return;
 
       emit('update:modelValue', val);
       emit('change', val);
     };
 
-    const changeHover = (val) => {
+    const changeHover = val => {
       hoverRate.value = val;
+
+      emit('hover-change', val);
     };
 
     const rateClass = classes({
-      'bk-rate': true,
+      [`${resolveClassName('rate')}`]: true,
     });
 
     const sizeMap = {
       small: { width: 12, height: 12 },
       large: { width: 18, height: 18 },
+      huge: { width: 24, height: 24 },
     };
-    const rateSize = sizeMap[props.size] || { width: 15, height: 16 };
+    const rateSize = sizeMap[props.size] || { width: 16, height: 16 };
 
     const starStyle = computed(() => {
       const integer = Math.floor(props.modelValue);
@@ -93,39 +87,42 @@ export default defineComponent({
       height: rateSize.height,
     };
 
-    watch(() => props.modelValue, () => {
-      if (props.withValidate) {
-        formItem?.validate?.('change');
-      }
-    });
+    watch(
+      () => props.modelValue,
+      () => {
+        if (props.withValidate) {
+          formItem?.validate?.('change');
+        }
+      },
+    );
 
     return () => (
       <p class={rateClass}>
-        {
-          props.editable ? (
+        {props.editable ? (
+          <star
+            hover-rate={hoverRate.value}
+            rate={props.modelValue}
+            onChangeHover={changeHover}
+            onChooseRate={chooseRate}
+            onMouseleave={() => changeHover(0)}
+            {...commonAttrs}
+          ></star>
+        ) : (
+          [
             <star
-              rate={props.modelValue}
-              hover-rate={hoverRate.value}
-              onChooseRate={chooseRate}
-              onChangeHover={changeHover}
-              onMouseleave={() => changeHover(0)}
-              {...commonAttrs}
-            ></star>
-          ) : [
-            <star
-              rate={5}
               style={starStyle.value}
-              class="bk-score-real"
+              class={`${resolveClassName('score-real')}`}
               editable={false}
+              rate={5}
               {...commonAttrs}
             ></star>,
             <star
-              rate={0}
               editable={false}
+              rate={0}
               {...commonAttrs}
             ></star>,
           ]
-        }
+        )}
       </p>
     );
   },

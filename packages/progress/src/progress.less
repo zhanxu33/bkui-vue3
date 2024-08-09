@@ -19,16 +19,21 @@
     background: #f0f1f5;
     border-radius: 50px;
 
-    &.bk-progress-small {
-      height: 2px;
-    }
-
-    &.bk-progress-normal {
+    &.@{bk-prefix}-progress-small {
       height: 4px;
     }
 
-    &.bk-progress-large {
+    &.@{bk-prefix}-progress-normal,
+    &.@{bk-prefix}-progress-default {
+      height: 8px;
+    }
+
+    &.@{bk-prefix}-progress-large {
       height: 12px;
+    }
+
+    &.@{bk-prefix}-progress-huge {
+      height: 16px;
     }
   }
 
@@ -41,19 +46,19 @@
     border-radius: 50px;
     transition: width .5s ease;
 
-    &.bk-primary {
+    &.@{bk-prefix}-primary {
       background: @primary-color;
     }
 
-    &.bk-success {
+    &.@{bk-prefix}-success {
       background: @success-color;
     }
 
-    &.bk-warning {
+    &.@{bk-prefix}-warning {
       background: @warning-color;
     }
 
-    &.bk-danger {
+    &.@{bk-prefix}-danger {
       background: @danger-color;
     }
   }

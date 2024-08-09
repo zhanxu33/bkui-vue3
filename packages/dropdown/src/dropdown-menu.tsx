@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
@@ -35,19 +36,13 @@ export default defineComponent({
     extCls: PropTypes.string,
   },
   setup(props: any) {
-    const wrapperCLasses = computed(() => [
-      'bk-dropdown-menu',
-      props.extCls,
-    ]);
+    const { resolveClassName } = usePrefix();
+    const wrapperCLasses = computed(() => [resolveClassName('dropdown-menu'), props.extCls]);
     return {
       wrapperCLasses,
     };
   },
   render() {
-    return (
-      <ul class={this.wrapperCLasses}>
-        {this.$slots.default?.()}
-      </ul>
-    );
+    return <ul class={this.wrapperCLasses}>{this.$slots.default?.()}</ul>;
   },
 });

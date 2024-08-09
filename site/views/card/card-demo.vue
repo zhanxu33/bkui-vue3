@@ -4,6 +4,7 @@
       <bk-card
         title="Card卡片标题"
         is-collapse
+        @edit="editHandler"
       >
         <div class="card-content-wrapper">
           <p>卡片内容 1</p>
@@ -14,8 +15,8 @@
     </div>
     <div class="card-demo-item">
       <bk-card
-        title="Card卡片标题"
         class="mr40"
+        title="Card卡片标题"
         show-footer
         show-header
       >
@@ -26,12 +27,9 @@
         </div>
         <template #footer>
           <div class="card-demo-foot">
-            <span class="card-demo-foot-item">
-              <help-document-fill /></span>
-            <span class="card-demo-foot-item">
-              <help /></span>
-            <span class="card-demo-foot-item">
-              <help-fill /></span>
+            <span class="card-demo-foot-item"> <help-document-fill /></span>
+            <span class="card-demo-foot-item"> <help /></span>
+            <span class="card-demo-foot-item"> <help-fill /></span>
           </div>
         </template>
       </bk-card>
@@ -39,17 +37,13 @@
   </div>
 </template>
 
-<script>
+<script setup>
   import { Help, HelpDocumentFill, HelpFill } from 'bkui-vue/lib/icon';
-  import { defineComponent } from 'vue';
-  export default defineComponent({
-    components: {
-      Help,
-      HelpDocumentFill,
-      HelpFill,
-    },
-  });
+  const editHandler = v => {
+    console.log(v);
+  };
 </script>
+
 <style lang="less" scoped>
   .card-demo {
     display: flex;
@@ -58,7 +52,7 @@
     margin: 0 auto;
 
     .card-content-wrapper {
-      padding: 20px 0;
+      padding: 16px 0 24px 0;
 
       p {
         margin: 0;
@@ -72,7 +66,7 @@
     .card-demo-item {
       display: inline-block;
       width: 400px;
-      margin-left: 30px
+      margin-left: 30px;
     }
 
     .card-demo-foot {

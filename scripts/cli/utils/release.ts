@@ -22,18 +22,18 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import childProcess from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
 import { BKUI_DIR } from '../compiler/helpers';
+import { IReleaseTaskOption } from '../typings/task';
 
 const packagePath = path.resolve(BKUI_DIR, './package.json');
 const packageTmpPath = `${packagePath}.bak`;
-
-export default async function () {
+export default async function (options?: IReleaseTaskOption) {
   if (fs.existsSync(packageTmpPath)) fs.unlinkSync(packageTmpPath);
   const originalData = fs.readFileSync(packagePath, { encoding: 'utf8' });
   fs.writeFileSync(packageTmpPath, originalData);
@@ -42,11 +42,13 @@ export default async function () {
   delete packageData.private;
   delete packageData.scripts.preinstall;
   delete packageData.scripts.cc;
-  fs.writeFileSync(packagePath, `${JSON.stringify(packageData, null, 2)}\n`);;
+  fs.writeFileSync(packagePath, `${JSON.stringify(packageData, null, 2)}\n`);
   try {
     childProcess.execSync(
-      `cd ${BKUI_DIR} && npm publish --access=public --unsafe-perm --registry https://registry.npmjs.org`
-      , {
+      `cd ${BKUI_DIR} && npm publish --access=public --unsafe-perm --registry https://registry.npmjs.org ${
+        options?.tag ? `--tag ${options.tag}` : ''
+      }`,
+      {
         stdio: [0, 1, 2],
       },
     );
@@ -56,4 +58,4 @@ export default async function () {
     fs.unlinkSync(packageTmpPath);
     fs.writeFileSync(packagePath, originalData);
   }
-};
+}

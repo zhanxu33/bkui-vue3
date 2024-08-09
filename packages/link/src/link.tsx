@@ -22,19 +22,20 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { defineComponent } from 'vue';
 import { toType } from 'vue-types';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { classes, PropTypes } from '@bkui-vue/shared';
 
 enum LinkThemeEnum {
   DANGER = 'danger',
-  SUCCESS = 'success',
-  PRIMARY = 'primary',
-  WARNING = 'warning',
   DEFAULT = 'default',
+  PRIMARY = 'primary',
+  SUCCESS = 'success',
+  WARNING = 'warning',
 }
 export default defineComponent({
   name: 'Link',
@@ -55,24 +56,30 @@ export default defineComponent({
       emit('click', event);
     };
 
+    const { resolveClassName } = usePrefix();
+
     return {
       handleClick,
+      resolveClassName,
     };
   },
   render() {
-    const linkClass = classes({
-      'is-disabled': this.disabled,
-      'has-underline': this.underline,
-    }, `${this.theme} bk-link`);
+    const linkClass = classes(
+      {
+        'is-disabled': this.disabled,
+        'has-underline': this.underline,
+      },
+      `${this.theme} ${this.resolveClassName('link')}`,
+    );
 
     return (
-      <a href={this.href}
-        target={this.target}
+      <a
         class={linkClass}
-        onClick={this.handleClick}>
-        <span>
-          {this.$slots.default?.()}
-        </span>
+        href={this.href}
+        target={this.target}
+        onClick={this.handleClick}
+      >
+        <span>{this.$slots.default?.()}</span>
       </a>
     );
   },

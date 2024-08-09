@@ -1,55 +1,40 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-import type {
-  ComponentInternalInstance,
-} from 'vue';
-import {
-  computed,
-  getCurrentInstance,
-  nextTick,
-  ref,
-  watch,
-} from 'vue';
+import { computed, getCurrentInstance, nextTick, ref, watch } from 'vue';
 
-import {
-  AngleLeft,
-  AngleRight,
-} from '@bkui-vue/icon';
-import BkPopover2 from '@bkui-vue/popover';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { AngleLeft, AngleRight } from '@bkui-vue/icon';
+import Popover from '@bkui-vue/popover';
 
-import type {
-  IPaginationInstance,
-} from './type';
+import type { IPaginationInstance } from './type';
+import type { ComponentInternalInstance } from 'vue';
 
 export default () => {
-  const {
-    proxy,
-  } = getCurrentInstance() as ComponentInternalInstance &  { proxy: IPaginationInstance};
-
+  const { proxy } = getCurrentInstance() as ComponentInternalInstance & { proxy: IPaginationInstance };
 
   const inputRef = ref<HTMLInputElement>(null);
   const isFocused = ref<boolean>(false);
@@ -70,35 +55,45 @@ export default () => {
     return stack;
   });
 
-  watch(() => proxy.modelValue, (modelValue) => {
-    // nextTick延后执行，保证proxy.totalPageNum计算正确
-    nextTick(() => {
-      if (modelValue >= 1 && modelValue <= proxy.totalPageNum) {
-        localCurrent.value = modelValue;
-      } else if (modelValue < 1) {
-        localCurrent.value = 1;
-      } else {
-        localCurrent.value = proxy.totalPageNum;
-      }
-      inputMemo = localCurrent.value;
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => proxy.modelValue,
+    modelValue => {
+      // nextTick延后执行，保证proxy.totalPageNum计算正确
+      nextTick(() => {
+        if (modelValue >= 1 && modelValue <= proxy.totalPageNum) {
+          localCurrent.value = modelValue;
+        } else if (modelValue < 1) {
+          localCurrent.value = 1;
+        } else {
+          localCurrent.value = proxy.totalPageNum;
+        }
+        inputMemo = localCurrent.value;
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 切换limit时会导致totalPageNum变小旧的current可能会超出范围，修正localCurrent
   nextTick(() => {
-    watch(() => proxy.totalPageNum, (totalPageNum) => {
-      if (localCurrent.value > totalPageNum) {
-        localCurrent.value = totalPageNum;
-      }
-    });
+    watch(
+      () => proxy.totalPageNum,
+      totalPageNum => {
+        if (localCurrent.value > totalPageNum) {
+          localCurrent.value = totalPageNum;
+        }
+      },
+    );
   });
 
   /**
    * @desc 上一页
    */
   const handlePrePage = () => {
+    if (proxy.disabled) {
+      return;
+    }
     if (isPagePreDisabled.value) {
       return;
     }
@@ -108,6 +103,9 @@ export default () => {
    * @desc 下一页
    */
   const handleNextPage = () => {
+    if (proxy.disabled) {
+      return;
+    }
     if (isPageNextDisabled.value) {
       return;
     }
@@ -118,6 +116,9 @@ export default () => {
    * @desc 获得焦点
    */
   const handlePageEditorFocus = () => {
+    if (proxy.disabled) {
+      return;
+    }
     isFocused.value = true;
   };
   /**
@@ -125,7 +126,6 @@ export default () => {
    */
   const handlePageEditorBlur = () => {
     isFocused.value = false;
-    inputRef.value.textContent = `${inputMemo}`;
     if (inputMemo !== localCurrent.value) {
       localCurrent.value = inputMemo;
     }
@@ -138,9 +138,9 @@ export default () => {
     const $target = event.target as HTMLElement;
     const value = Number($target.textContent);
     // 无效值不抛出事件
-    if (!value || value < 1 || value > proxy.totalPageNum || (value === localCurrent.value)) {
+    if (!value || value < 1 || value > proxy.totalPageNum || value === localCurrent.value) {
       return;
-    };
+    }
     inputMemo = value;
   };
   /**
@@ -162,68 +162,78 @@ export default () => {
     handlePageEditorBlur();
   };
 
+  const { resolveClassName } = usePrefix();
+
   const render = () => (
-    <div class="bk-pagination-small-list">
+    <div class={`${resolveClassName('pagination-small-list')}`}>
       <div
         class={{
-          'bk-pagination-btn-pre': true,
+          [`${resolveClassName('pagination-btn-pre')}`]: true,
           'is-disabled': isPagePreDisabled.value,
         }}
-        onClick={handlePrePage}>
-          <AngleLeft />
+        onClick={handlePrePage}
+      >
+        <AngleLeft />
       </div>
-      <BkPopover2
-        theme="light"
-        trigger="click"
-        arrow={false}
+      <Popover
         width={56}
-        boundary="body"
-        placement="bottom">
+        arrow={false}
+        boundary='body'
+        disabled={proxy.disabled}
+        placement='bottom'
+        theme='light'
+        trigger='click'
+      >
         {{
           default: () => (
-            <div class={{
-              'bk-pagination-picker': true,
-              'is-focused': isFocused.value,
-            }}>
+            <div
+              class={{
+                [`${resolveClassName('pagination-picker')}`]: true,
+                'is-focused': isFocused.value,
+              }}
+            >
               <span
                 ref={inputRef}
-                class="bk-pagination-editor"
-                contenteditable
-                spellcheck="false"
-                onFocus={handlePageEditorFocus}
+                class={`${resolveClassName('pagination-editor')}`}
+                contenteditable={!proxy.disabled}
+                spellcheck='false'
                 onBlur={handlePageEditorBlur}
+                onFocus={handlePageEditorFocus}
                 onInput={handlePageEditorInput}
-                onKeydown={handlePageEditorKeydown}>
+                onKeydown={handlePageEditorKeydown}
+              >
                 {localCurrent.value}
               </span>
               <span>/</span>
-              <span class="bk-pagination-small-list-total">{proxy.totalPageNum}</span>
+              <span class={`${resolveClassName('pagination-small-list-total')}`}>{proxy.totalPageNum}</span>
             </div>
           ),
           content: () => (
-            <div class="bk-pagination-picker-list">
+            <div class={`${resolveClassName('pagination-picker-list')}`}>
               {list.value.map(item => (
                 <div
+                  key={item}
                   class={{
                     item: true,
                     'is-actived': item === localCurrent.value,
                   }}
-                  key={item}
-                  onClick={() => handlePageChange(item)}>
+                  onClick={() => handlePageChange(item)}
+                >
                   {item}
                 </div>
               ))}
             </div>
           ),
         }}
-      </BkPopover2>
+      </Popover>
       <div
         class={{
-          'bk-pagination-btn-next': true,
+          [`${resolveClassName('pagination-btn-next')}`]: true,
           'is-disabled': isPageNextDisabled.value,
         }}
-        onClick={handleNextPage}>
-          <AngleRight />
+        onClick={handleNextPage}
+      >
+        <AngleRight />
       </div>
     </div>
   );

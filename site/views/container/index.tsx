@@ -1,28 +1,28 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
 import { defineComponent } from 'vue';
 
@@ -30,7 +30,6 @@ import DemoBox from '../../components/demo-box';
 import DemoTitle from '../../components/demo-title';
 import PropsBox from '../../components/props-box';
 import { type IPropsTableItem } from '../../typings';
-
 import AllDemo from './demo/all.vue';
 import BaseDemo from './demo/base.vue';
 import CustomColDemo from './demo/custom-col.vue';
@@ -112,60 +111,69 @@ export default defineComponent({
     return (
       <div>
         <DemoTitle
-          name="Grid 栅格"
-          desc="通过栅格系统，迅速简便地创建布局。"
+          desc='通过栅格系统，迅速简便地创建布局。'
+          designLink='https://bkdesign.bk.tencent.com/design/3'
           link={`${import.meta.env.VITE_APP_BASE_URL ?? ''}/grid`}
+          name='Grid 栅格'
         />
         <DemoBox
-          title="基础布局"
-          desc="创建基础的栅格布局。默认采用 24 栅格系统，将区域进行 24 等分。"
-          componentName="container"
-          demoName="demo/base">
-            <BaseDemo />
+          componentName='container'
+          demoName='demo/base'
+          desc='创建基础的栅格布局。默认采用 24 栅格系统，将区域进行 24 等分。'
+          title='基础布局'
+        >
+          <BaseDemo />
         </DemoBox>
         <DemoBox
-          title="自定义设置栅格数以及整个栅格容器的左右边距"
-          desc="通过 bk-container 的 col 属性来设置栅格数，这里设置成 12，将区域进行 12 等分，通过 bk-container 的 margin 属性来整个栅格容器的左右边距。"
-          componentName="container"
-          demoName="demo/custom-col">
-            <CustomColDemo />
+          componentName='container'
+          demoName='demo/custom-col'
+          desc='通过 bk-container 的 col 属性来设置栅格数，这里设置成 12，将区域进行 12 等分，通过 bk-container 的 margin 属性来整个栅格容器的左右边距。'
+          title='自定义设置栅格数以及整个栅格容器的左右边距'
+        >
+          <CustomColDemo />
         </DemoBox>
         <DemoBox
-          title="自定义设置栅格之间的边距以及每个栅格的占位数"
-          desc="通过 bk-container 的 gutter 属性来设置栅格之间的间隔，通过 bk-col 的 span 属性来设置栅格的占位数。"
-          componentName="container"
-          demoName="demo/custom-gutter">
-            <CustomGutterDemo />
+          componentName='container'
+          demoName='demo/custom-gutter'
+          desc='通过 bk-container 的 gutter 属性来设置栅格之间的间隔，通过 bk-col 的 span 属性来设置栅格的占位数。'
+          title='自定义设置栅格之间的边距以及每个栅格的占位数'
+        >
+          <CustomGutterDemo />
         </DemoBox>
         <DemoBox
-          title="自定义设置栅格的顺序以及栅格的偏移"
-          desc="通过 bk-col 的 push 和 pull 属性来设置栅格的顺序。通过 bk-col 的 offset 属性设置栅格的偏移。"
-          componentName="container"
-          demoName="demo/custom-push-pull">
-            <CustomPushPullDemo />
+          componentName='container'
+          demoName='demo/custom-push-pull'
+          desc='通过 bk-col 的 push 和 pull 属性来设置栅格的顺序。通过 bk-col 的 offset 属性设置栅格的偏移。'
+          title='自定义设置栅格的顺序以及栅格的偏移'
+        >
+          <CustomPushPullDemo />
         </DemoBox>
         <DemoBox
-          title="flex 布局"
-          desc="通过 bk-container 的 flex 属性来开启 flex 布局，配合 bk-col, bk-row 的嵌套使用来实现更复杂的布局。"
-          componentName="container"
-          demoName="demo/flex">
-            <FlexDemo />
+          componentName='container'
+          demoName='demo/flex'
+          desc='通过 bk-container 的 flex 属性来开启 flex 布局，配合 bk-col, bk-row 的嵌套使用来实现更复杂的布局。'
+          title='flex 布局'
+        >
+          <FlexDemo />
         </DemoBox>
         <DemoBox
-          title="栅格布局集合"
-          desc="栅格布局集合。"
-          componentName="container"
-          demoName="demo/all">
-            <AllDemo />
+          componentName='container'
+          demoName='demo/all'
+          desc='栅格布局集合。'
+          title='栅格布局集合'
+        >
+          <AllDemo />
         </DemoBox>
         <PropsBox
-          title="bk-container 属性"
-          subtitle=""
-          propsData={containerProps}/>
+          propsData={containerProps}
+          subtitle=''
+          title='bk-container 属性'
+        />
         <PropsBox
-          title="bk-col 属性"
-          subtitle=""
-          propsData={colProps}/>
+          propsData={colProps}
+          subtitle=''
+          title='bk-col 属性'
+        />
       </div>
     );
   },

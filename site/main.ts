@@ -22,28 +22,29 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { createApp } from 'vue';
 
-import bkuiVue from '../packages/bkui-vue/index';
-import en from '../packages/locale/src/lang/en';
+// import bkuiVue from '../lib/index';
+// import { zhCn } from '../lib/locale';
+import bkuiVue, { version } from '../packages/bkui-vue/index';
 import zhCn from '../packages/locale/src/lang/zh-cn';
-
+import '../packages/styles/src/index';
 import App from './app';
 import router from './router';
 
-import '../packages/styles/src/index';
 import './reset.less';
-console.log(en);
-console.log(zhCn);
+console.log(
+  `%c当前bkui-vue版本: %c${version}`,
+  'color:#333;font-weight:bold;font-size:18px;',
+  'color:red;font-weight:bold;font-size:18px;',
+);
 const app = createApp(App);
 app.use(bkuiVue, {
-  locale: en,
+  locale: zhCn,
+  // prefix: 'aabb',
 });
 app.use(router);
 
-if (process.env.NODE_ENV === 'development') {
-  (app.config as any).devtools = true;
-}
 app.mount('#app');

@@ -22,31 +22,18 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
+import { defineComponent, onMounted, provide, watch } from 'vue';
+
+import { usePrefix } from '@bkui-vue/config-provider';
+import { PropTypes, useFormItem } from '@bkui-vue/shared';
+
+import { checkboxGroupKey } from './common';
+
+import type { ICheckboxGroupContext, ICheckboxInstance } from './type';
 import type { ExtractPropTypes } from 'vue';
-import {
-  defineComponent,
-  onMounted,
-  provide,
-  watch,
-} from 'vue';
-
-import {
-  PropTypes,
-  useFormItem,
-} from '@bkui-vue/shared';
-
-import {
-  checkboxGroupKey,
-} from './common';
-import type {
-  ICheckboxGroupContext,
-  ICheckboxInstance,
-} from './type';
-
 const checkboxGroupProps = {
-  name: PropTypes.string.def(''),
   modelValue: PropTypes.array,
   disabled: PropTypes.bool,
   withValidate: PropTypes.bool.def(true),
@@ -57,18 +44,18 @@ export type CheckboxGroupProps = Readonly<ExtractPropTypes<typeof checkboxGroupP
 export default defineComponent({
   name: 'CheckboxGroup',
   props: checkboxGroupProps,
-  emits: [
-    'change',
-    'update:modelValue',
-  ],
+  emits: {
+    'update:modelValue': (value: any[]) => value !== undefined,
+    change: (value: any[]) => value !== undefined,
+  },
   setup(props, context) {
     const formItem = useFormItem();
 
     const checkboxInstanceList: ICheckboxInstance[] = [];
-    const register: ICheckboxGroupContext['register'] = (checkboxContext) => {
+    const register: ICheckboxGroupContext['register'] = checkboxContext => {
       checkboxInstanceList.push(checkboxContext);
     };
-    const unregister: ICheckboxGroupContext['unregister'] = (checkboxContext) => {
+    const unregister: ICheckboxGroupContext['unregister'] = checkboxContext => {
       const index = checkboxInstanceList.indexOf(checkboxContext);
       if (index > -1) {
         checkboxInstanceList.splice(index, 1);
@@ -95,28 +82,31 @@ export default defineComponent({
       handleChange,
     });
 
-    watch(() => props.modelValue, () => {
-      if (props.withValidate) {
-        formItem?.validate?.('change');
-      }
-    });
+    watch(
+      () => props.modelValue,
+      () => {
+        if (props.withValidate) {
+          formItem?.validate?.('change');
+        }
+      },
+    );
 
     onMounted(() => {
       const modelValue = props.modelValue || [];
-      checkboxInstanceList.forEach((checkboxInstance) => {
+      checkboxInstanceList.forEach(checkboxInstance => {
         if (modelValue.includes(checkboxInstance.label)) {
           checkboxInstance.setChecked(true);
         }
       });
     });
 
-    return {};
+    const { resolveClassName } = usePrefix();
+
+    return {
+      resolveClassName,
+    };
   },
   render() {
-    return  (
-      <div class="bk-checkbox-group">
-        {this.$slots?.default()}
-      </div>
-    );
+    return <div class={`${this.resolveClassName('checkbox-group')}`}>{this.$slots?.default()}</div>;
   },
 });

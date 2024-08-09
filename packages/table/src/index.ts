@@ -22,13 +22,20 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
-import { withInstall } from '@bkui-vue/shared';
+ */
+import { ExtractPropTypes } from 'vue';
+
+import { withInstallProps } from '@bkui-vue/shared';
 
 import Column from './components/table-column';
+import { tableProps } from './props';
 import Component from './table';
-const BkTable = withInstall(Component);
-export default BkTable;
 
-const BkColumn = withInstall(Column);
-export { BkColumn };
+export type TableProps = Partial<ExtractPropTypes<typeof tableProps>>;
+
+export type { Column as TableIColumn, Settings as TableSettings } from './props';
+const BkTable = withInstallProps(Component, {
+  Column,
+});
+export default BkTable;
+export { BkTable, Column as BkTableColumn };

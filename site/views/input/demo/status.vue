@@ -1,12 +1,12 @@
 <template>
   <div>
     <bk-input
+      class="mb8"
       v-model="val"
-      class="mb10"
       disabled
     />
     <bk-input
-      class="mb10"
+      class="mb8"
       readonly
     />
   </div>
@@ -16,3 +16,8 @@
   import { ref } from 'vue';
   const val = ref('hello world');
 </script>
+<style lang="postcss" scoped>
+  .mb8 {
+    margin-bottom: 8px;
+  }
+</style>

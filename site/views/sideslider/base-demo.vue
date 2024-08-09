@@ -1,29 +1,28 @@
 <template>
   <div>
-    <bk-button @click="handleOpenSlider">
-      默认配置
+    <bk-button
+      theme="primary"
+      text
+      @click="handleOpen"
+    >
+      打开侧栏
     </bk-button>
+
     <bk-sideslider
       v-model:isShow="isShow"
       title="我是标题"
-      quick-close
-    />
+      renderDirective="if"
+    >
+      hello world!!!
+    </bk-sideslider>
   </div>
 </template>
+<script setup lang="ts">
+  import { ref } from 'vue';
 
-<script>
-  import  { defineComponent, ref  } from 'vue';
-  export default defineComponent({
-    name: 'SiteSideslider',
-    setup() {
-      const isShow = ref(false);
-      const handleOpenSlider = () => {
-        isShow.value = !isShow.value;
-      };
-      return {
-        handleOpenSlider,
-        isShow,
-      };
-    },
-  });
+  const isShow = ref(false);
+
+  const handleOpen = () => {
+    isShow.value = true;
+  };
 </script>

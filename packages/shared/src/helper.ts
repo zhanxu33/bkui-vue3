@@ -22,9 +22,8 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-/* eslint-disable no-underscore-dangle */
 /**
  * Returns true if `value` is neither null nor undefined, else returns false.
  * @param {*} value - The value to test.
@@ -63,7 +62,7 @@ export function isArray(value: any) {
  * @since 2.7.0
  */
 export function isObject(value: any) {
-  return value !== null && /^\[object (Object|Module)\]/.test(Object.prototype.toString.call(value));
+  return value !== null && /^\[object (Object|Module|Promise)\]/.test(Object.prototype.toString.call(value));
 }
 
 /**
@@ -72,9 +71,7 @@ export function isObject(value: any) {
  * @returns {boolean}
  */
 const isNumberFinite = (value: any) => (typeof value === 'number' || value instanceof Number) && isFinite(+value);
-export {
-  isNumberFinite as isFinite,
-};
+export { isNumberFinite as isFinite };
 
 /**
  * Returns `value` if finite, else returns `defaultValue`.
@@ -96,7 +93,6 @@ export function valueOrDefault(value: any, defaultValue: any) {
   return typeof value === 'undefined' ? defaultValue : value;
 }
 
-
 /**
  * Returns true if the `a0` and `a1` arrays have the same content, else returns false.
  * @param {Array} a0 - The array to compare
@@ -105,7 +101,10 @@ export function valueOrDefault(value: any, defaultValue: any) {
  * @private
  */
 export function elementsEqual(a0: any, a1: any) {
-  let i; let ilen; let v0; let v1;
+  let i;
+  let ilen;
+  let v0;
+  let v1;
 
   if (!a0 || !a1 || a0.length !== a1.length) {
     return false;
@@ -167,10 +166,8 @@ export function mergerFn(key: string, target: any, source: any, options: any) {
   const sval = source[key];
 
   if (isObject(tval) && isObject(sval)) {
-    // eslint-disable-next-line no-use-before-define
     merge(tval, sval, options);
   } else {
-    // eslint-disable-next-line no-param-reassign
     target[key] = clone(sval);
   }
 }
@@ -192,12 +189,10 @@ export function merge(target: any, source: any, options?: any) {
     return target;
   }
 
-  // eslint-disable-next-line no-param-reassign
   options = options || {};
   const merger = options.merger || mergerFn;
 
   for (let i = 0; i < ilen; ++i) {
-    // eslint-disable-next-line no-param-reassign
     source = sources[i];
     if (!isObject(source)) {
       continue;
@@ -220,7 +215,6 @@ export function merge(target: any, source: any, options?: any) {
  * @returns {object} The `target` object.
  */
 export function mergeIf(target: any, source: any) {
-  // eslint-disable-next-line no-use-before-define
   return merge(target, source, { merger: mergerIfFn });
 }
 
@@ -239,11 +233,9 @@ export function mergerIfFn(key: string, target: any, source: any) {
   if (isObject(tval) && isObject(sval)) {
     mergeIf(tval, sval);
   } else if (!Object.prototype.hasOwnProperty.call(target, key)) {
-    // eslint-disable-next-line no-param-reassign
     target[key] = clone(sval);
   }
 }
-
 
 /**
  * 检查当前元素是否为Html元素
@@ -255,10 +247,10 @@ export function isElement(obj: any) {
     return obj instanceof HTMLElement;
   } catch (e) {
     return (
-      typeof obj === 'object'
-        && obj.nodeType === 1
-        && typeof obj.style === 'object'
-        && typeof obj.ownerDocument === 'object'
+      typeof obj === 'object' &&
+      obj.nodeType === 1 &&
+      typeof obj.style === 'object' &&
+      typeof obj.ownerDocument === 'object'
     );
   }
 }
@@ -267,6 +259,10 @@ export function isElement(obj: any) {
  * Whether the text content is clipped due to CSS overflow, as in showing `...`.
  */
 export function hasOverflowEllipsis(element: HTMLElement) {
+  if (!element) {
+    return false;
+  }
+
   return element.offsetWidth < element.scrollWidth || element.offsetHeight < element.scrollHeight;
 }
 
@@ -281,3 +277,10 @@ export function maybeShowTooltip(target: HTMLElement, title: string) {
     target.removeAttribute('title');
   }
 }
+
+export const isFunction = (val: unknown): val is Function => typeof val === 'function';
+export const isString = (val: unknown): val is string => typeof val === 'string';
+export const isSymbol = (val: unknown): val is symbol => typeof val === 'symbol';
+export const isPromise = <T = any>(val: any): val is Promise<T> => {
+  return isObject(val) && isFunction(val.then) && isFunction(val.catch);
+};

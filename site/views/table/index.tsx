@@ -1,55 +1,63 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
 import { defineComponent } from 'vue';
 
 import DemoBox from '../../components/demo-box';
 import DemoTitle from '../../components/demo-title';
 import PropsBox from '../../components/props-box';
-
 import basic from './basic.vue';
 import basicFilter from './basic-filter.vue';
 import basicSort from './basic-sort.vue';
+import basicSortBehavior from './basic-sort-behavior.vue';
 import BasicSpan from './basic-span.vue';
 import bordered from './bordered.vue';
 import cellRender from './cell-render';
+import TableTplTsx from './column-template';
 import ColumnTemplate from './column-template.vue';
+import ColumnTplIndex from './column-template-index.vue';
 import configList from './config';
+import CustomHead from './custom-head.vue';
 import DataEmpty from './data-empty.vue';
+import DataEmptyCell from './data-empty-cell.vue';
 import event from './event.vue';
 import Expand from './expand.vue';
 import filterScope from './filter-scope.vue';
 import fixed from './fixed.vue';
+import flexLayout from './flex-layout.vue';
+import MultiHeader from './multi-header.vue';
 import * as TABLE_DATA from './options';
 import pagination from './pagination.vue';
 import RemotePagination from './remotePagination.vue';
+import ScrollHorizontal from './scroll-horizontal.vue';
 import ScrollLoading from './scroll-loading.vue';
 import ScrollLoadingSlot from './scroll-loading-slot.vue';
 import Selection from './selection.vue';
 import virtualRender from './virtual-render.vue';
+
 export default defineComponent({
   components: {
     basic,
@@ -60,6 +68,7 @@ export default defineComponent({
     pagination,
     RemotePagination,
     DataEmpty,
+    DataEmptyCell,
     fixed,
     ScrollLoading,
     ScrollLoadingSlot,
@@ -70,6 +79,13 @@ export default defineComponent({
     ColumnTemplate,
     Selection,
     BasicSpan,
+    ColumnTplIndex,
+    TableTplTsx,
+    CustomHead,
+    flexLayout,
+    basicSortBehavior,
+    ScrollHorizontal,
+    MultiHeader,
   },
   render() {
     const configs = [
@@ -77,7 +93,7 @@ export default defineComponent({
         attrs: {
           title: '基础用法',
           subtitle: '基础用法，用于表单内容的录入',
-          desc: 'props: --',
+          desc: '通过 stripe 设置是否为斑马纹',
           componentName: 'table',
           demoName: 'basic',
         },
@@ -86,6 +102,20 @@ export default defineComponent({
          * @returns
          */
         component: () => <basic></basic>,
+      },
+      {
+        attrs: {
+          title: '基础用法: min-width',
+          subtitle: 'min-width',
+          desc: '通过 min-width 设置最小列宽',
+          componentName: 'table',
+          demoName: 'scroll-horizontal',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <ScrollHorizontal></ScrollHorizontal>,
       },
       {
         attrs: {
@@ -103,6 +133,50 @@ export default defineComponent({
       },
       {
         attrs: {
+          title: '多表头',
+          subtitle: '基础用法，用于表单内容的录入',
+          desc: 'props: 支持 `field` 和 `prop`两种配置，配置效果一样',
+          componentName: 'table',
+          demoName: 'multi-header',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <MultiHeader></MultiHeader>,
+      },
+      {
+        attrs: {
+          title: '自定义Column index渲染',
+          subtitle: 'column.index <bk-table-column></bk-table-column>',
+          desc: '如果需要通过<bk-table-column></bk-table-column>方式渲染列表，但是列是动态可变的，可以通过指定列的index来保证表格列的排序，一般情况组件会自动获取排序，如果是深度定制的表格组件，可以通过指定index保证排序的正确性',
+          componentName: 'table',
+          demoName: 'column-template-index',
+          suffix: '.vue',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <ColumnTplIndex></ColumnTplIndex>,
+      },
+      {
+        attrs: {
+          title: '自定义Column index渲染',
+          subtitle: 'column.index <bk-table-column></bk-table-column>',
+          desc: '如果需要通过<bk-table-column></bk-table-column>方式渲染列表，但是列是动态可变的，可以通过指定列的index来保证表格列的排序，一般情况组件会自动获取排序，如果是深度定制的表格组件，可以通过指定index保证排序的正确性',
+          componentName: 'table',
+          demoName: 'column-template',
+          suffix: '.tsx',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <TableTplTsx></TableTplTsx>,
+      },
+      {
+        attrs: {
           title: '设置边框',
           subtitle: '设置边框显示样式',
           desc: 'props: border',
@@ -114,6 +188,20 @@ export default defineComponent({
          * @returns
          */
         component: () => <bordered></bordered>,
+      },
+      {
+        attrs: {
+          title: '自定义头部',
+          subtitle: 'custom head',
+          desc: 'props: border',
+          componentName: 'table',
+          demoName: 'custom-head',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <CustomHead></CustomHead>,
       },
       {
         attrs: {
@@ -144,11 +232,12 @@ export default defineComponent({
          */
         component: () => <cell-render></cell-render>,
       },
+
       {
         attrs: {
           title: 'Events',
-          subtitle: '自定义Column渲染',
-          desc: 'props: column.render',
+          subtitle: 'table select event',
+          desc: 'event: select',
           componentName: 'table',
           demoName: 'event',
         },
@@ -199,6 +288,20 @@ export default defineComponent({
          * @returns
          */
         component: () => <data-empty></data-empty>,
+      },
+      {
+        attrs: {
+          title: '单元格空数据展示',
+          subtitle: '',
+          desc: 'props: --',
+          componentName: 'table',
+          demoName: 'data-empty-cell',
+        },
+        /**
+         * Table
+         * @returns
+         */
+        component: () => <data-empty-cell></data-empty-cell>,
       },
       {
         attrs: {
@@ -300,6 +403,20 @@ export default defineComponent({
       },
       {
         attrs: {
+          title: '列排序行为',
+          subtitle: '* independent：列与列之间的排序是独立的，互斥的 * interdependent：列排序是相互影响、依赖的',
+          desc: '',
+          componentName: 'table',
+          demoName: 'basic-sort-behavior',
+        },
+        /**
+         * basicSort
+         * @returns
+         */
+        component: () => <basicSortBehavior></basicSortBehavior>,
+      },
+      {
+        attrs: {
           title: 'Selection',
           subtitle: '内置选择功能',
           desc: '',
@@ -338,33 +455,40 @@ export default defineComponent({
       params: '参数',
     };
 
+    const qAColumMap = {
+      name: '问题',
+      desc: '说明',
+    };
+
+    const renderMap = {
+      QA: qAColumMap,
+      events: eventColumnMap,
+    };
     return (
       <div>
         <DemoTitle
-          name="Table"
-          desc="Table组件， 为页面和功能提供列表。"
-          link="https://www.google.com.hk/"/>
-          {
-            configs.map(cfg => <DemoBox { ...cfg.attrs } optionData={ TABLE_DATA }>
-                 {
-                   cfg.component()
-                 }
-              </DemoBox>)
-          }
-        {
-          configList.map(cfg => <div>
-            {
-              cfg.type === 'events'
-                ? <PropsBox
-                    title={ cfg.title }
-                     columnMap={ eventColumnMap }
-                     subtitle={ cfg.subTile }
-                     propsData={ cfg.config }/>
-                : <PropsBox title={ cfg.title } subtitle={ cfg.subTile }
-                     propsData={ cfg.config }/>
-            }
-          </div>)
-        }
+          desc='Table组件， 为页面和功能提供列表。'
+          designLink='https://bkdesign.bk.tencent.com/design/35'
+          name='Table'
+        />
+        {configs.map(cfg => (
+          <DemoBox
+            {...cfg.attrs}
+            optionData={TABLE_DATA}
+          >
+            {cfg.component()}
+          </DemoBox>
+        ))}
+        {configList.map(cfg => (
+          <div>
+            <PropsBox
+              columnMap={renderMap[cfg.type]}
+              propsData={cfg.config}
+              subtitle={cfg.subTile}
+              title={cfg.title}
+            />
+          </div>
+        ))}
       </div>
     );
   },

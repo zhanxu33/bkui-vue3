@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
@@ -40,10 +41,8 @@ export default defineComponent({
       evt.stopPropagation();
       emit('click', evt);
     };
-    const wrapperCLasses = computed(() => [
-      'bk-dropdown-item',
-      props.extCls,
-    ]);
+    const { resolveClassName } = usePrefix();
+    const wrapperCLasses = computed(() => [resolveClassName('dropdown-item'), props.extCls]);
     return {
       wrapperCLasses,
       handleClick,
@@ -51,7 +50,12 @@ export default defineComponent({
   },
   render() {
     return (
-      <li class={this.wrapperCLasses} onClick={this.handleClick}>{ this.$slots.default?.() }</li>
+      <li
+        class={this.wrapperCLasses}
+        onClick={this.handleClick}
+      >
+        {this.$slots.default?.()}
+      </li>
     );
   },
 });

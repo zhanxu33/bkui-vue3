@@ -1,36 +1,36 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { format as dateFnsFormat, toDate } from 'date-fns';
-import type { InjectionKey } from 'vue';
-
-import { resolveClassName } from '@bkui-vue/shared';
 
 import fecha from './fecha';
+
 import type { IDatePickerCtx, ITimePickerCtx, PickerTypeType } from './interface';
+import type { InjectionKey } from 'vue';
 
 export const RANGE_SEPARATOR = ' - ';
 
@@ -138,18 +138,28 @@ export const typeValueResolver = {
     formatter: (value, format) => dateFormat(value, format),
     parser: (text, format) => fecha.parse(text, format || 'yyyy-MM-dd'),
   },
+  monthrange: {
+    formatter: rangeFormatter,
+    parser: rangeParser,
+  },
   year: {
     formatter: (value, format) => dateFormat(value, format),
     parser: (text, format) => fecha.parse(text, format || 'yyyy-MM-dd'),
   },
+  yearrange: {
+    formatter: rangeFormatter,
+    parser: rangeParser,
+  },
   multiple: {
     formatter(value, format) {
-      return value.filter(Boolean).map(date => dateFormat(date, format))
+      return value
+        .filter(Boolean)
+        .map(date => dateFormat(date, format))
         .join(',');
     },
     parser(v, format) {
       const values = typeof v === 'string' ? v.split(',') : v;
-      return values.map((value) => {
+      return values.map(value => {
         if (value instanceof Date) {
           return value;
         }
@@ -206,7 +216,8 @@ export const initTime = () => {
  *
  * @return {boolean} 判断结果
  */
-export const isAllEmptyArr = (arr: any[]): boolean => arr.every(item => !item || (typeof item === 'string' && item.trim() === ''));
+export const isAllEmptyArr = (arr: any[]): boolean =>
+  arr?.every(item => !item || (typeof item === 'string' && item.trim() === ''));
 
 export const keyValueMapper = {
   40: 'up',
@@ -234,15 +245,15 @@ export const extractTime = (date: Date) => {
   if (!date) {
     return [0, 0, 0];
   }
-  return [
-    date.getHours(), date.getMinutes(), date.getSeconds(),
-  ];
+  return [date.getHours(), date.getMinutes(), date.getSeconds()];
 };
 
 export const DEFAULT_FORMATS: Record<PickerTypeType, string> = {
   date: 'yyyy-MM-dd',
   month: 'yyyy-MM',
+  monthrange: 'yyyy-MM',
   year: 'yyyy',
+  yearrange: 'yyyy',
   datetime: 'yyyy-MM-dd HH:mm:ss',
   time: 'HH:mm:ss',
   timerange: 'HH:mm:ss',
@@ -285,7 +296,7 @@ export const parseDate = (val, type, multiple, format) => {
     value = parser(val, f) || null;
   }
 
-  return (isRange || multiple) ? (value || []) : [value];
+  return isRange || multiple ? value || [] : [value];
 };
 
 export const formatDate = (val, type, multiple, format) => {
@@ -295,7 +306,7 @@ export const formatDate = (val, type, multiple, format) => {
     const { formatter } = typeValueResolver.multiple;
     return formatter(val, format || f);
   }
-  const { formatter } = (typeValueResolver[type] || typeValueResolver.default);
+  const { formatter } = typeValueResolver[type] || typeValueResolver.default;
   return formatter(val, format || f);
 };
 
@@ -321,6 +332,7 @@ export const timePickerKey: InjectionKey<ITimePickerCtx> = Symbol('time-picker')
 // }
 
 export function iconBtnCls(direction, type = '') {
+  const { resolveClassName } = usePrefix();
   return [
     resolveClassName('picker-panel-icon-btn'),
     resolveClassName(`date-picker-${direction}-btn`),
@@ -357,7 +369,7 @@ export const formatDateLabels = (() => {
   const formats = {
     yyyy: date => date.getFullYear(),
     m: date => date.getMonth() + 1,
-    mm: date => (`0${date.getMonth() + 1}`).slice(-2),
+    mm: date => `0${date.getMonth() + 1}`.slice(-2),
     mmm: (date, locale) => {
       const monthName = date.toLocaleDateString(locale, {
         month: 'long',
@@ -370,9 +382,10 @@ export const formatDateLabels = (() => {
       });
       return (monthName[0].toUpperCase() + monthName.slice(1).toLowerCase()).slice(0, 3);
     },
-    mmmm: (date, locale) => date.toLocaleDateString(locale, {
-      month: 'long',
-    }),
+    mmmm: (date, locale) =>
+      date.toLocaleDateString(locale, {
+        month: 'long',
+      }),
     Mmmm: (date, locale) => {
       const monthName = date.toLocaleDateString(locale, {
         month: 'long',
@@ -386,8 +399,10 @@ export const formatDateLabels = (() => {
     const componetsRegex = /(\[[^\]]+\])([^\\[\]]+)(\[[^\]]+\])/;
     const components = format.match(componetsRegex).slice(1);
     const separator = components[1];
-    const labels = [components[0], components[2]].map((component) => {
-      const label = component.replace(/\[[^\]]+\]/, str => str.slice(1, -1).replace(formatRegex, match => formats[match](date, locale)));
+    const labels = [components[0], components[2]].map(component => {
+      const label = component.replace(/\[[^\]]+\]/, str =>
+        str.slice(1, -1).replace(formatRegex, match => formats[match](date, locale)),
+      );
       return {
         label,
         type: component.indexOf('yy') !== -1 ? 'year' : 'month',
@@ -400,8 +415,7 @@ export const formatDateLabels = (() => {
   };
 })();
 
-
-export const clearHours = (time) => {
+export const clearHours = time => {
   const cloneDate = new Date(time);
   cloneDate.setHours(0, 0, 0, 0);
   return cloneDate.getTime();
@@ -411,7 +425,15 @@ export const isInRange = (time, a, b) => {
   if (!a || !b) {
     return false;
   }
-  const [start, end] = [a, b].sort();
+  const [start, end] = [a, b].sort((x, y) => {
+    if (x - y > 0) {
+      return 1;
+    }
+    if (x - y < 0) {
+      return -1;
+    }
+    return 0;
+  });
   return time >= start && time <= end;
 };
 

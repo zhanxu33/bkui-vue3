@@ -22,9 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, createVNode, defineComponent, provide, ref, renderSlot, watch } from 'vue';
+
+import { usePrefix } from '@bkui-vue/config-provider';
 
 import CollapsePanel from './collapse-panel';
 import { propsCollapse as props } from './props';
@@ -37,19 +39,23 @@ export default defineComponent({
   setup(props, { emit, slots }) {
     const localActiveItems = ref([]);
     // 以保证当前的设置生效
-    watch(() => [props.modelValue], () => {
-      const value = props.modelValue;
-      if (Array.isArray(value)) {
-        localActiveItems.value = [...value];
-      } else if (typeof value !== 'undefined') {
-        localActiveItems.value = [value];
-      } else {
-        localActiveItems.value = [];
-      }
-    }, {
-      immediate: true,
-    });
-    const handleItemClick = (item) => {
+    watch(
+      () => [props.modelValue],
+      () => {
+        const value = props.modelValue;
+        if (Array.isArray(value)) {
+          localActiveItems.value = [...value];
+        } else if (typeof value !== 'undefined') {
+          localActiveItems.value = [value];
+        } else {
+          localActiveItems.value = [];
+        }
+      },
+      {
+        immediate: true,
+      },
+    );
+    const handleItemClick = item => {
       // 手风琴模式，只有一个Active，移除一个新增一个
       const { name } = item;
       if (props.accordion) {
@@ -72,72 +78,87 @@ export default defineComponent({
     };
     provide('localActiveItems', localActiveItems);
     provide('handleItemClick', handleItemClick);
-    let className = 'bk-collapse-wrapper';
+
+    const { resolveClassName } = usePrefix();
+
+    let className = resolveClassName('collapse-wrapper');
     // 线条样式
     if (props.hasHeaderBorder) {
-      className += ' bk-collapse-header-border';
+      className += ` ${resolveClassName('collapse-header-border')}`;
     }
 
     // hover效果
     if (props.hasHeaderHover) {
-      className += ' bk-collapse-header-hover';
+      className += ` ${resolveClassName('collapse-header-hover')}`;
     }
 
     // 卡片样式
     if (props.useCardTheme) {
-      className += ' bk-collapse-card';
+      className += ` ${resolveClassName('collapse-card')}`;
+    }
+
+    // 色块样式
+    if (props.useBlockTheme) {
+      className += ` ${resolveClassName('collapse-block')}`;
     }
 
     // 图标位置
     if (props.headerIconAlign === 'left') {
-      className += ' bk-collapse-icon-left';
+      className += ` ${resolveClassName('collapse-icon-left')}`;
     } else {
-      className += ' bk-collapse-icon-right';
+      className += ` ${resolveClassName('collapse-icon-right')}`;
     }
     if (!Array.isArray(props.list) || !props.list.length) {
-      return () => createVNode('div', {
-        class: className,
-      }, [renderSlot(slots, 'default', { props: { isList: true } })]);
+      return () =>
+        createVNode(
+          'div',
+          {
+            class: className,
+          },
+          [renderSlot(slots, 'default', { props: { isList: true } })],
+        );
     }
     // 统一格式化传入数据格式为标准渲染格式
-    const collapseData = computed(() => (props.list || []).map((item, index) => {
-      if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
-        return { $index: index, name: item };
-      }
-      return { $index: index, ...item };
-    }));
-    // 判定当前Item是否为激活状态
-    const renderItems = () => collapseData.value.map((item, index) => {
-      const name = item[props.idFiled] || index;
-      let title = item[props.titleField];
-      const icon = props.headerIcon || 'angle-right';
-      if (slots.title) {
-        if (typeof slots.title === 'function') {
-          title = slots.title(item, index);
-        } else {
-          title = slots.title;
+    const collapseData = computed(() =>
+      (props.list || []).map((item, index) => {
+        if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
+          return { $index: index, name: item };
         }
-      }
-      if (slots.default) {
-        title = slots.default?.(item, index);
-      }
-      return  (
-        <CollapsePanel
-          key={index}
-          item-click={handleItemClick}
-          disabled={item.disabled}
-          name={name}
-          icon={icon}
-          isFormList={true}
-          title={title}
-          content={slots.content?.(item, index) ?? item[props.contentField]}
-        />
-      );
-    });
-    return () => (
-      <div class={className}>
-        {renderItems()}
-      </div>
+        return { $index: index, ...item };
+      }),
     );
+    // 判定当前Item是否为激活状态
+    const renderItems = () =>
+      collapseData.value.map((item, index) => {
+        const name = item[props.idFiled] || index;
+        let title = item[props.titleField];
+        const icon = props.headerIcon || 'angle-right';
+        if (slots.title) {
+          if (typeof slots.title === 'function') {
+            title = slots.title(item, index);
+          } else {
+            title = slots.title;
+          }
+        }
+        if (slots.default) {
+          title = slots.default?.(item, index);
+        }
+        return (
+          <CollapsePanel
+            key={index}
+            disabled={item.disabled}
+            icon={icon}
+            isFormList={true}
+            item-click={handleItemClick}
+            name={name}
+            title={title}
+          >
+            {{
+              content: () => slots.content?.(item, index) ?? item[props.contentField],
+            }}
+          </CollapsePanel>
+        );
+      });
+    return () => <div class={className}>{renderItems()}</div>;
   },
 });

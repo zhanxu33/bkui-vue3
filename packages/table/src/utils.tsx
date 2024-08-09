@@ -1,37 +1,39 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-import { debounce, get as objGet, throttle } from 'lodash';
+import { isProxy, toRaw } from 'vue';
+
+import { throttle } from '@bkui-vue/shared';
+import debounce from 'lodash/debounce';
+import objGet from 'lodash/get';
 import ResizeObserver from 'resize-observer-polyfill';
 import { v4 as uuidv4 } from 'uuid';
-import { unref } from 'vue';
 
-import { BORDER_OPTION, BORDER_OPTIONS, COL_MIN_WIDTH, COLUMN_ATTRIBUTE, SORT_OPTION, TABLE_ROW_ATTRIBUTE } from './const';
-import { Column, GroupColumn, TablePropTypes } from './props';
-
+import { BORDER_OPTION, BORDER_OPTIONS, SORT_OPTION, TABLE_ROW_ATTRIBUTE } from './const';
+import { Column, GroupColumn, ISortPropShape, TablePropTypes } from './props';
 
 /**
  * 解析Prop值 | 可能为多种类型 & 函数返回的场景
@@ -40,11 +42,15 @@ import { Column, GroupColumn, TablePropTypes } from './props';
  * @param args 如果是函数，传递参数
  * @returns
  */
-export const resolvePropVal = (prop: any, key: string | string[], args: any[]) => {
+export const resolvePropVal = (prop: Record<string, unknown>, key: string | string[], args: unknown[]) => {
+  if (prop === undefined || prop === null) {
+    return undefined;
+  }
+
   if (typeof key === 'string') {
     if (Object.prototype.hasOwnProperty.call(prop, key)) {
       if (typeof prop[key] === 'function') {
-        return prop[key].call(this, ...args);
+        return (prop[key] as (...args) => unknown).call(this, ...args);
       }
 
       return prop[key];
@@ -54,8 +60,9 @@ export const resolvePropVal = (prop: any, key: string | string[], args: any[]) =
   }
 
   if (Array.isArray(key)) {
-    return key.map((_key: string) => resolvePropVal(prop, _key, args))
-      .filter((val: any) => val !== undefined)
+    return key
+      .map((_key: string) => resolvePropVal(prop, _key, args))
+      .filter((val: unknown) => val !== undefined)
       .at(0);
   }
 };
@@ -96,7 +103,7 @@ export const resolveNumberToNumArray = (prop: number) => {
  * @param propWidth
  * @returns
  */
-export const resolveWidth = (propWidth: string | number) => resolveNumberOrStringToPix(propWidth, 'auto');
+export const resolveWidth = (propWidth: number | string) => resolveNumberOrStringToPix(propWidth, 'auto');
 
 /**
  * 解析可为数字或者字符串设置的样式配置
@@ -105,12 +112,16 @@ export const resolveWidth = (propWidth: string | number) => resolveNumberOrStrin
  * @param offset 偏移量
  * @returns 标准化px string
  */
-export const resolveNumberOrStringToPix = (val: string | number, defaultValue: string | number = '100%', offset = null) => {
-  let target: string | number = '';
-  if (/^auto|null|undefined$/ig.test(`${val}`)) {
+export const resolveNumberOrStringToPix = (
+  val: number | string,
+  defaultValue: number | string = '100%',
+  offset = null,
+) => {
+  let target: number | string = '';
+  if (/^null|undefined$/gi.test(`${val}`)) {
     target = defaultValue;
   } else {
-    target = (/^\d+\.?\d+$/.test(`${val}`) ? `${val}px` : val);
+    target = /^\d+\.?\d+$/.test(`${val}`) ? `${val}px` : val;
   }
 
   if (offset) {
@@ -135,8 +146,7 @@ export const resolvePropBorderToClassStr = (val: string | string[]) => {
     defaultVal.push(...val.filter((str: string) => BORDER_OPTIONS.includes(str as BORDER_OPTION)));
   }
 
-  return [...new Set(defaultVal)].map((item: string) => `bordered-${item}`)
-    .join(' ');;
+  return [...new Set(defaultVal)].map((item: string) => `bordered-${item}`).join(' ');
 };
 
 /**
@@ -148,119 +158,8 @@ export const resolvePropBorderToClassStr = (val: string | string[]) => {
  * @param orders 获取宽度顺序
  * @returns
  */
-export const getColumnReactWidth = (colmun: GroupColumn, orders = ['resizeWidth', 'calcWidth', 'width']) => colmun[orders[0]] ?? colmun[orders[1]] ?? colmun[orders[2]];
-
-/**
- * 根据Props Column配置计算并设置列宽度
- * @param root 当前根元素
- * @param colgroups Columns配置
- * @param autoWidth 自动填充宽度
- * @param offsetWidth 需要减掉的偏移量（滚动条|外层边框）
- */
-export const resolveColumnWidth = (
-  root: HTMLElement,
-  colgroups: GroupColumn[],
-  autoWidth = COL_MIN_WIDTH,
-  offsetWidth = 0,
-) => {
-  const { width } = root.getBoundingClientRect() || {};
-  const availableWidth = width - offsetWidth;
-  // 可用来平均的宽度
-  let avgWidth = availableWidth;
-
-  // 需要平均宽度的列数
-  const avgColIndexList = [];
-
-  const getMinWidth = (col: GroupColumn, computedWidth: number) => {
-    const { minWidth = undefined } = col;
-    if (minWidth === undefined) {
-      if (computedWidth < COL_MIN_WIDTH) {
-        return COL_MIN_WIDTH;
-      }
-
-      return computedWidth;
-    }
-
-    let calcMinWidth = computedWidth;
-    if (/^\d+\.?\d*$/.test(`${minWidth}`)) {
-      calcMinWidth = Number(minWidth);
-    }
-
-    if (/^\d+\.?\d*%$/.test(`${minWidth}`)) {
-      calcMinWidth = Number(minWidth) * availableWidth / 100;
-    }
-
-    if (/^\d+\.?\d*px$/i.test(`${minWidth}`)) {
-      calcMinWidth = Number(`${minWidth}`.replace(/px/i, ''));
-    }
-
-    return calcMinWidth;
-  };
-
-  /**
-   * 根据Props Column配置计算并设置列宽度
-   * @param col 当前Column设置
-   * @param numWidth 计算宽度
-   * @param resetAvgWidth 是否重置可用宽度
-   */
-  const resolveColNumberWidth = (col: GroupColumn, numWidth: number, resetAvgWidth = true) => {
-    const minWidth = getMinWidth(col, numWidth);
-    const computedWidth = numWidth < minWidth ? minWidth : numWidth;
-    Object.assign(col, { calcWidth: computedWidth });
-    if (resetAvgWidth) {
-      avgWidth = avgWidth - computedWidth;
-      if (avgWidth < 0) {
-        avgWidth = 0;
-      }
-    }
-  };
-
-  colgroups.forEach((col: GroupColumn, index: number) => {
-    if (!col.isHidden) {
-      const order = ['resizeWidth', 'width'];
-      const colWidth = String(getColumnReactWidth(col, order));
-      let isAutoWidthCol = true;
-      if (/^\d+\.?\d*(px)?$/.test(colWidth)) {
-        const numWidth = Number(colWidth.replace('px', ''));
-        resolveColNumberWidth(col, numWidth);
-        isAutoWidthCol = false;
-      }
-
-      if (/^\d+\.?\d*%$/.test(colWidth)) {
-        let perWidth = autoWidth;
-        if (avgWidth > 0) {
-          const percent = Number(colWidth.replace('%', ''));
-          perWidth = avgWidth * percent / 100;
-        }
-
-        resolveColNumberWidth(col, perWidth);
-        isAutoWidthCol = false;
-      }
-
-      if (isAutoWidthCol) {
-        avgColIndexList.push(index);
-      }
-    }
-  });
-
-  // 自适应宽度计算
-  if (avgColIndexList.length > 0) {
-    let autoAvgWidth = autoWidth;
-    if (avgWidth > 0) {
-      avgColIndexList.forEach((idx, index) => {
-        autoAvgWidth = avgWidth / (avgColIndexList.length - index);
-        resolveColNumberWidth(colgroups[idx], autoAvgWidth, false);
-        const { calcWidth } = colgroups[idx];
-        avgWidth = avgWidth - calcWidth;
-      });
-    } else {
-      avgColIndexList.forEach((idx) => {
-        const calcWidth = getMinWidth(colgroups[idx], COL_MIN_WIDTH);
-        Object.assign(colgroups[idx], { calcWidth });
-      });
-    }
-  }
-};
+export const getColumnReactWidth = (colmun: GroupColumn, orders = ['resizeWidth', 'calcWidth', 'width']) =>
+  colmun[orders[0]] ?? colmun[orders[1]] ?? colmun[orders[2]];
 
 /**
  * 监听目标元素的Resize事件
@@ -284,7 +183,7 @@ export const observerResize = (
       callbackFn();
     }
   };
-  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn, delay);
+  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn);
   const callFn = () => Reflect.apply(execFn, this, []);
 
   const resizeObserver = new ResizeObserver(() => {
@@ -312,7 +211,7 @@ export const observerResize = (
  * @param val
  * @returns
  */
-export const isPercentPixOrNumber = (val: string | number) => /^\d+\.?\d*(px|%)?$/.test(`${val}`);
+export const isPercentPixOrNumber = (val: number | string) => /^\d+\.?\d*(px|%)?$/.test(`${val}`);
 
 /**
  * Format Table Head Option
@@ -321,22 +220,55 @@ export const isPercentPixOrNumber = (val: string | number) => /^\d+\.?\d*(px|%)?
  */
 export const resolveHeadConfig = (props: TablePropTypes) => {
   const { showHead, headHeight, thead = {} } = props;
-  return Object.assign({}, { isShow: showHead, height: headHeight }, { ...thead });
+  return Object.assign({}, { isShow: showHead, height: headHeight }, thead);
+};
+
+const getRegExp = (val: boolean | number | string, flags = 'ig') =>
+  new RegExp(`${val}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
+
+/**
+ * 获取当前行指定列的内容
+ * @param row 当前行
+ * @param key 指定列名
+ * @param column 列配置
+ * @param index 当前行Index
+ * @returns
+ */
+export const getRowText = (row: any, key: string, format?: (() => boolean | number | string)[] | string[]) => {
+  let result;
+  if (typeof row === 'string' || typeof row === 'number' || typeof row === 'boolean') {
+    result = row;
+  }
+
+  if (typeof row === 'object') {
+    result = objGet(row, key);
+  }
+
+  if (format?.length) {
+    format.forEach(reg => {
+      if (typeof reg === 'function') {
+        result = reg(result, row, key);
+      } else if (typeof result === 'string') {
+        const matches = result.match(typeof reg === 'string' ? getRegExp(reg) : reg);
+        result = matches?.[1] ?? result;
+      }
+    });
+
+    if (/^-?\d+.?\d*$/.test(result)) {
+      result = Number(result);
+    }
+  }
+
+  return result;
 };
 
 /**
-   * 获取当前行指定列的内容
-   * @param row 当前行
-   * @param key 指定列名
-   * @param column 列配置
-   * @param index 当前行Index
-   * @returns
-   */
-export const getRowText = (row: any, key: string, column: Column) => {
-  if (column.type === 'index') {
-    return row[TABLE_ROW_ATTRIBUTE.ROW_INDEX] + 1;
-  }
-
+ * 获取当前行指定列的值
+ * @param row 当前行
+ * @param key 指定列名
+ * @returns
+ */
+export const getRowValue = (row: any, key: string) => {
   return objGet(row, key);
 };
 
@@ -346,7 +278,7 @@ export const getRowText = (row: any, key: string, column: Column) => {
  * @param args 如果是function参数
  * @returns
  */
-export const formatPropAsArray = (prop: string | object | (() => any), args: any[]) => {
+export const formatPropAsArray = (prop: (() => any) | object | string, args: any[]) => {
   if (Array.isArray(prop)) {
     return prop;
   }
@@ -371,27 +303,35 @@ export const isRenderScrollBottomLoading = (props: TablePropTypes) => {
 };
 
 export const getRowKey = (item: any, props: TablePropTypes, index: number) => {
+  const val = getRowKeyNull(item, props, index);
+  if (val !== null) {
+    return val;
+  }
+
+  return uuidv4();
+};
+
+export const getRowKeyNull = (item: any, props: TablePropTypes, index: number) => {
   if (typeof props.rowKey === 'string') {
     if (props.rowKey === TABLE_ROW_ATTRIBUTE.ROW_INDEX) {
       return `__ROW_INDEX_${index}`;
     }
 
-    return objGet(item, props.rowKey);
+    return props.rowKey;
   }
 
   if (typeof props.rowKey === 'function') {
     return Reflect.apply(props.rowKey, this, [item]);
   }
 
-  return uuidv4();
+  return null;
 };
 
-
-export const hasRootScrollY =  (root, querySelector: string, offsetHeight = 0) => {
+export const hasRootScrollY = (root, querySelector: string, offsetHeight = 0) => {
   if (root) {
     const tableBody = root.querySelector(querySelector) as HTMLElement;
     if (tableBody) {
-      return  tableBody.offsetHeight > (root.offsetHeight - offsetHeight);
+      return tableBody.offsetHeight > root.offsetHeight - offsetHeight;
     }
   }
 
@@ -407,15 +347,15 @@ export const getColumnClass = (column: Column, colIndex = 0, uuid: string = null
 
 export const getElementTextWidth = (element: HTMLElement, text?: string) => {
   /**
-  * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
-  *
-  * @param {String} text The text to be rendered.
-  * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
-  *
-  * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
-  */
+   * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
+   *
+   * @param {String} text The text to be rendered.
+   * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
+   *
+   * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
+   */
   function getTextWidth(text, font) {
-  // re-use canvas object for better performance
+    // re-use canvas object for better performance
     const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement('canvas'));
     const context = canvas.getContext('2d');
     context.font = font;
@@ -438,10 +378,13 @@ export const getElementTextWidth = (element: HTMLElement, text?: string) => {
   return getTextWidth(text || element?.innerHTML, getCanvasFont(element));
 };
 
-
 export const isColumnHidden = (settingFields, column, checked) => {
-  const isSettingField = (col: Column) => settingFields.some(field => field.field === resolvePropVal(col, ['field', 'type'], [col]));
-  return isSettingField(column) && checked.length && !checked.includes(resolvePropVal(column, ['field', 'type'], [column]));
+  const getFieldValue = field => field.field ?? field.id;
+  const isSettingField = (col: Column) =>
+    settingFields.some(field => getFieldValue(field) === resolvePropVal(col, ['field', 'type'], [col]));
+  return (
+    isSettingField(column) && checked.length && !checked.includes(resolvePropVal(column, ['field', 'type'], [column]))
+  );
 };
 
 export const resolveColumnSpan = (column: Column, colIndex: number, row: any, rowIndex: number, key: string) => {
@@ -463,53 +406,54 @@ export const resolveCellSpan = (column: Column, colIndex: number, row: any, rowI
 };
 
 export const skipThisColumn = (columns: Column[], colIndex: number, row: any, rowIndex: number) => {
-  let skip = false;
+  let skip: boolean | number = false;
 
   for (let i = colIndex; i > 0; i--) {
     const colspan = resolveColumnSpan(columns[i], i, row, rowIndex, 'colspan');
     if (colspan > 1) {
-      skip = (colspan - 1 + i) >= colIndex;
+      skip = colspan - 1;
       break;
     }
   }
   return skip;
 };
 
-export const getSortFn = (column, sortType) => {
+export const getSortFn = (column, sortType, format = []) => {
   const fieldName = column.field as string;
-  const getVal = (row: any) => getRowText(row, fieldName, column);
-  const sortFn0 = (a: any, b: any) => {
-    const val0 = getVal(a) || '';
-    const val1 = getVal(b) || '';
+  const getVal = (row: any) => getRowText(row, fieldName, format);
+  const isIndexCol = column.type === 'index';
+  const sortFn0 = (a: any, b: any, rowIndex0: number, rowIndex1: number) => {
+    const val0 = isIndexCol ? rowIndex0 : getVal(a) ?? '';
+    const val1 = isIndexCol ? rowIndex1 : getVal(b) ?? '';
     if (typeof val0 === 'number' && typeof val1 === 'number') {
       return val0 - val1;
     }
 
     return String.prototype.localeCompare.call(val0, val1);
   };
-  const sortFn = typeof (column.sort as any)?.sortFn === 'function'
-    ? (column.sort as any)?.sortFn : sortFn0;
 
-  return  sortType === SORT_OPTION.NULL
-    ? (() => true)
-    : (_a, _b) => sortFn(_a, _b) * (sortType === SORT_OPTION.DESC ? -1 : 1);
+  const sortFn = typeof (column.sort as any)?.sortFn === 'function' ? (column.sort as any)?.sortFn : sortFn0;
+
+  return sortType === SORT_OPTION.NULL
+    ? (_a, _b) => true
+    : (_a, _b, index0, index1) => sortFn(_a, _b, index0, index1) * (sortType === SORT_OPTION.DESC ? -1 : 1);
 };
 
 export const getNextSortType = (sortType: string) => {
   const steps = {
-    [SORT_OPTION.NULL]: 0,
+    [SORT_OPTION.NULL]: 3,
     [SORT_OPTION.ASC]: 1,
     [SORT_OPTION.DESC]: 2,
   };
 
-  if (sortType === undefined) {
-    return SORT_OPTION.NULL;
+  if (steps[sortType] === undefined) {
+    return SORT_OPTION.ASC;
   }
 
   return Object.keys(steps)[(steps[sortType] + 1) % 3];
 };
 
-export const resolveSort = (sort: string | boolean | any) => {
+export const resolveSort = (sort: ISortPropShape, column, format = []) => {
   if (typeof sort === 'string') {
     return {
       value: sort,
@@ -523,21 +467,23 @@ export const resolveSort = (sort: string | boolean | any) => {
   }
 
   if (typeof sort === 'object' && sort !== null) {
-    if (typeof sort.sortFn) {
+    if (typeof sort.sortFn === 'function') {
       return {
         value: 'custom',
         ...sort,
       };
     }
 
-    return sort;
+    return Object.assign({}, { sortFn: getSortFn(column, sort.value ?? SORT_OPTION.NULL, format) }, sort);
   }
 
   return null;
 };
 
-
-export const isRowSelectEnable = (props, { row, index, isCheckAll }) => {
+export const isRowSelectEnable = (
+  props,
+  { row, index, isCheckAll }: { row: any; index?: number; isCheckAll?: boolean },
+) => {
   if (typeof props.isRowSelectEnable === 'boolean') {
     return props.isRowSelectEnable !== false;
   }
@@ -549,20 +495,62 @@ export const isRowSelectEnable = (props, { row, index, isCheckAll }) => {
   return true;
 };
 
-
-export const getRowId = (row, index, props) => {
-  if (row[TABLE_ROW_ATTRIBUTE.ROW_UID] !== undefined) {
-    return row[TABLE_ROW_ATTRIBUTE.ROW_UID];
-  }
-
-  const key = getRowKey(row, props, index);
+export const getRowId = (row, defVal, props) => {
+  const key = getRowKey(row, props, defVal);
   if (key !== undefined && row[key] !== undefined) {
-    return row[key];
+    return objGet(row, key);
   }
 
-  return index;
+  return defVal;
 };
 
-export const getRowSourceData = row => unref(row[TABLE_ROW_ATTRIBUTE.ROW_SOURCE_DATA] || row);
-export const getColumnSourceData = column => unref(column[COLUMN_ATTRIBUTE.COL_SOURCE_DATA] || column);
+export const resolveColumnSortProp = (col: Column, props: TablePropTypes) => {
+  const { value, sortFn, sortScope } = resolveSort(col.sort ?? props.defaultSort, col) ?? {};
+  return {
+    type: value,
+    fn: sortFn,
+    scope: sortScope,
+    active: !!col.sort,
+    enabled: !!col.sort,
+  };
+};
 
+export const resolveColumnFilterProp = (col: Column) => {
+  if (typeof col.filter === 'object') {
+    return {
+      ...col.filter,
+      enabled: true,
+    };
+  }
+
+  return {
+    enabled: !!col.filter,
+    checked: [],
+  };
+};
+
+export const getRawData = data => {
+  if (isProxy(data)) {
+    return toRaw(data);
+  }
+
+  return data;
+};
+
+/**
+ * 转换 px | % 为实际数值
+ * @param val
+ * @param parentVal
+ * @returns
+ */
+export const getNumberOrPercentValue = (val: number | string, parentVal?: number) => {
+  if (/^\d+\.?\d+(px)?$/.test(`${val}`)) {
+    return Number(`${val}`.replace(/px/, ''));
+  }
+
+  if (/^\d+\.?\d+%$/.test(`${val}`)) {
+    return (Number(`${val}`.replace(/%/, '')) / 100) * (parentVal ?? 1);
+  }
+
+  return null;
+};

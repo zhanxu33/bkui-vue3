@@ -1,108 +1,112 @@
 <template>
-  <section class="x-table-wrapper">
-    <div class="click-span">
-      <span
-        v-for="(val, index) in slotTable"
-        :key="index"
-        :class="val.showLine ? 'click-show' : ''"
-        @click="clickShowLine(index)"
-      >{{ val.label }}</span>
-    </div>
-    {{ dataTable }}
-    -----------------------------
-    {{ renderSlotTable.filter(table => table.showLine) }}
-    <bk-table
-      :data="dataTable"
-    >
-      <bk-table-column
-        v-for="(val, index) in renderSlotTable.filter(table => table.showLine)"
-        :key="index"
-        :label="val.label"
-        :prop="val.prop"
-      />
+  <section>
+    <bk-button @click="handleColumnsIndexChange"> 打乱顺序 </bk-button>
+    <bk-table :data="tableData" :settings="settings" height="auto">
+      <template v-for="column in columns" :key="column.label">
+        <bk-table-column :field="column.field" :index="column.index" :label="column.label" :type="column.type"
+          :width="column.width" />
+      </template>
     </bk-table>
+    <h2>如何动态改变列的顺序</h2>
+    <h3>1、增加index属性(建议设置index，更新次数少，性能更好)，通过改变index属性触发`bk-table-column`更新</h3>
+    <code>
+  { label: '序号', type: 'index', width: '120px', index: 0 }, { label: '名称/内网IP', field: 'ip', width: '320px',
+  index: 1 }, ...
+</code>
+    <br />
+    <br />
+    <code>
+    {{ `<bk-table-column
+        :label="column.label"
+        :type="column.type"
+        :field="column.field"
+        :width="column.width"
+        :index="column.index"
+      />` }}
+    </code>
+    <br />
+    <br />
+    <code>
+    {{
+      `const targetIndex = this.columns[2].index;
+        this.columns[2].index = this.columns[3].index;
+        this.columns[3].index = targetIndex;`
+    }}
+    </code>
+    <h3>
+      2、通过nextTicket 或者
+      setTimeout更新Column数组，先删除，再追加，保证两次更新间隔，避免只是更新Column数组顺序，绑定组件属性不变
+    </h3>
+    <code> const target = this.columns.splice(2, 1); setTimeout(() => { this.columns.push(...target); }); </code>
   </section>
 </template>
 
 <script>
-  export default {
-    name: 'PocTable',
-
-    props: {
-      slotTable: {
-        type: Array,
-        default() {
-          return [
-            { label: '第一列', prop: 'prop1', sortable: false, builtIn: false },
-            { label: '第二列', prop: 'prop2', sortable: false, builtIn: 'table' },
-            { label: '第三列', prop: 'prop3', sortable: false, builtIn: false },
-          ];
+import { DATA_TABLE } from './options';
+export default {
+  data() {
+    return {
+      tableData: [...DATA_TABLE],
+      columns: [
+        {
+          label: '序号',
+          type: 'index',
+          width: '120px',
+          index: 0,
         },
-      },
-      dataTable: {
-        type: Array,
-        default() {
-          return [
-            { prop1: '1-1', prop2: { tp: '123', value: '12314234' }, prop3: '1-3' },
-            { prop1: '2-1', prop2: [{ sorts: [{ label: 'tp', prop: 'tp' }, { label: 'value', prop: 'value' }], data: [{ tp: '123', value: '1234' }] }], prop3: '2-3' },
-            { prop1: '3-1', prop2: [{ tp: '123', value: '12314234' }], prop3: '3-3' },
-          ];
+        {
+          label: '名称/内网IP',
+          field: 'ip',
+          width: '320px',
+          index: 1,
         },
-      },
-      buttonText: {
-        type: String,
-        default: '',
-      },
-      buttonTheme: {
-        type: String,
-        default: 'primary',
-      },
-    },
-    data() {
-      return {
-        keyword: '',
-        pagination: {
-          current: 1,
-          count: 0,
-          limit: 10,
+        {
+          label: '来源',
+          field: 'source',
+          width: '120px',
+          index: 2,
         },
-        renderSlotTable: [],
-      };
-    },
-    watch: {
-      slotTable: {
-        handler() {
-          this.renderSlotTable = JSON.parse(JSON.stringify(this.slotTable)).map(res => ({
-            ...res,
-            showLine: true,
-          }));
+        {
+          label: '创建时间',
+          field: 'create_time',
+          width: '220px',
+          index: 3,
         },
-        immediate: true,
-        deep: true,
+      ],
+      settings: {
+        trigger: 'click',
+        fields: [
+          {
+            name: '序号',
+            id: 'index',
+          },
+          {
+            name: '名称/内网IP',
+            id: 'ip',
+          },
+          {
+            name: '来源',
+            id: 'source',
+          },
+          {
+            name: '创建时间',
+            id: 'create_time',
+          },
+        ],
+        checked: [],
       },
-      dataTable(val) {
-        this.pagination.count = val.length;
-        this.pagination.current = 1;
-      },
+    };
+  },
+  methods: {
+    handleColumnsIndexChange() {
+      const targetIndex = this.columns[2].index;
+      this.columns[2].index = this.columns[3].index;
+      this.columns[3].index = targetIndex;
+      // const target = this.columns.splice(2, 1);
+      // setTimeout(() => {
+      //   this.columns.push(...target);
+      // });
     },
-    created() {
-      this.pagination.count = this.dataTable.length;
-    },
-    methods: {
-      handlePageChange(page) {
-        this.pagination.current = page;
-      },
-      handlelimitChange(page) {
-        if (this.pagination.limit !== page) {
-          this.pagination.limit = page;
-        }
-      },
-      handleClick(val) {
-        this.$emit('handle-click', val);
-      },
-      clickShowLine(val) {
-        this.renderSlotTable[val].showLine = !this.renderSlotTable[val].showLine;
-      },
-    },
-  };
+  },
+};
 </script>

@@ -22,12 +22,13 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { computed, defineComponent, getCurrentInstance, onBeforeUnmount } from 'vue';
+import { computed, defineComponent, getCurrentInstance, onBeforeUnmount, SlotsType } from 'vue';
+
+import { usePrefix } from '@bkui-vue/config-provider';
 
 import { useMenuInject, useMenuPathInject } from './utils';
-
 export default defineComponent({
   name: 'MenuItem',
   props: {
@@ -37,7 +38,11 @@ export default defineComponent({
     },
   },
   emits: ['click'],
-  slots: ['icon'],
+  // slots: ['icon'],
+  slots: Object as SlotsType<{
+    default?: () => HTMLElement;
+    icon?: () => HTMLElement;
+  }>,
   setup(props, { slots, emit }) {
     const { registerMenuInfo, unregisterMenuInfo, activeKey, handleActiveChange } = useMenuInject();
     const instance = getCurrentInstance();
@@ -54,20 +59,19 @@ export default defineComponent({
       emit('click', e);
     };
     onBeforeUnmount(() => unregisterMenuInfo(key));
+
+    const { resolveClassName } = usePrefix();
+
     return () => (
-      <li class={{
-        'bk-menu-item': true,
-        'is-active': isActive.value,
-      }}
-      onClick={handleClick}>
-        {
-          needIcon.value && <span class="item-icon">
-          {
-            slots?.icon?.() || <i class="default-icon"/>
-          }
-          </span>
-        }
-        <span class="item-content">{slots.default?.()}</span>
+      <li
+        class={{
+          [`${resolveClassName('menu-item')}`]: true,
+          'is-active': isActive.value,
+        }}
+        onClick={handleClick}
+      >
+        {needIcon.value && <span class='item-icon'>{slots?.icon?.() || <i class='default-icon' />}</span>}
+        <span class='item-content'>{slots.default?.()}</span>
       </li>
     );
   },

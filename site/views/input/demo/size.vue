@@ -1,29 +1,52 @@
 <template>
   <div>
     <bk-input
-      class="mb10"
+      class="mb8"
+      v-model="xxxx"
       size="small"
     />
     <bk-input
-      size="small"
-      class="mb10"
-      type="url"
+      class="mb8"
+      v-model="prefix"
       prefix="https://"
-    />
-    <bk-input class="mb10" />
-    <bk-input
-      class="mb10"
+      size="small"
       type="url"
-      suffix="@qq.com"
     />
     <bk-input
+      class="mb8"
+      v-model="normal"
+    />
+    <bk-input
+      class="mb8"
+      v-model="suffix"
+      suffix="@qq.com"
+      type="url"
+    />
+    <bk-input
+      class="mb8"
+      v-model="search"
       size="large"
-      class="mb10"
       type="search"
     />
     <bk-input
-      class="mb10"
+      class="mb8"
+      v-model="large"
       size="large"
     />
   </div>
 </template>
+
+<script setup>
+  import { ref } from 'vue';
+  const xxxx = ref('');
+  const prefix = ref('');
+  const normal = ref('');
+  const suffix = ref('');
+  const search = ref('');
+  const large = ref('');
+</script>
+<style lang="postcss" scoped>
+  .mb8 {
+    margin-bottom: 8px;
+  }
+</style>

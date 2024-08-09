@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, ref, toRefs, withModifiers } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { AngleLeft, AngleRight } from '@bkui-vue/icon';
 import { PropTypes } from '@bkui-vue/shared';
 
@@ -62,7 +63,7 @@ export default defineComponent({
     const asideStyle = computed(() => {
       let divide = initialDivide.value;
       if (typeof divide === 'number') {
-        divide = `${divide}px`;
+        divide = divide <= min.value ? `${min.value}px` : `${divide}px`;
       }
       return {
         [cssPropKey.value]: divide,
@@ -86,8 +87,9 @@ export default defineComponent({
       const rect = bkResizeLayoutRef.value.getBoundingClientRect();
       limitMax.value = vertical.value ? rect.width : rect.height;
     };
-    const observer = new ResizeObserver(setMaxLimit);
+    let observer = new ResizeObserver(setMaxLimit);
 
+    // 更新 resizeProxyRef 的样式
     const updateResizeProxyStyle = () => {
       resizeProxyRef.value.style.visibility = 'visible';
       switch (placement.value) {
@@ -106,17 +108,17 @@ export default defineComponent({
       }
     };
 
+    // 更新遮罩的样式
     const updateResizeMaskStyle = () => {
       resizeMaskRef.value.style.display = 'block';
       resizeMaskRef.value.style.cursor = vertical.value ? 'col-resize' : 'row-resize';
     };
 
-    const getRealValue = current => Math.min(
-      max.value,
-      Math.max(min.value, current), limitMax.value - triggerWidth.value,
-    );
+    const getRealValue = current =>
+      Math.min(max.value, Math.max(min.value, current), limitMax.value - triggerWidth.value);
 
-    const handleMousedown = (event) => {
+    // mousedown 事件处理
+    const handleMousedown = event => {
       emit('before-resize', event);
       const asideRect = asideRef.value.getBoundingClientRect();
       state.value = Object.freeze({
@@ -136,10 +138,10 @@ export default defineComponent({
       document.onselectstart = () => false;
       document.ondragstart = () => false;
 
-      const resizingCallback = (value) => {
+      const resizingCallback = value => {
         emit('resizing', value);
       };
-      const handleMouseMove = (event) => {
+      const handleMouseMove = event => {
         let delta;
         switch (placement.value) {
           case 'top':
@@ -190,7 +192,7 @@ export default defineComponent({
       }
       const asideRect = asideRef.value.getBoundingClientRect();
       // 最小化同时设置为已折叠，此时展开以初始化initial-divide数据为参考
-      // eslint-disable-next-line no-multi-assign
+
       minimized.value = collapsed.value = asideRect[cssPropKey.value] <= parseAutoMinimize.value;
       if (!minimized.value) {
         asideContentVisible.value = true;
@@ -202,7 +204,7 @@ export default defineComponent({
       });
     };
 
-    const setCollapse = (collapse) => {
+    const setCollapse = collapse => {
       collapsed.value = typeof collapse === 'boolean' ? collapse : !collapsed.value;
       setupAsideAnimation();
       emit('collapse-change', collapsed.value);
@@ -213,14 +215,14 @@ export default defineComponent({
       setupAsideListener(!collapsed.value);
       if (collapsed.value) {
         asideRef.value.setAttribute(`data-${cssPropKey.value}`, `${asideRect[cssPropKey.value]}px`);
-        asideRef.value.style[cssPropKey.value] = '5px';
+        asideRef.value.style[cssPropKey.value] = props.collapsible ? '0px' : '5px';
       } else {
         asideContentVisible.value = true;
         asideRef.value.style[cssPropKey.value] = asideRef.value.getAttribute(`data-${cssPropKey.value}`);
       }
     };
 
-    const setupAsideListener = (visible) => {
+    const setupAsideListener = visible => {
       const removeClass = () => {
         asideContentVisible.value = visible;
         asideRef.value.style.transition = '';
@@ -234,8 +236,14 @@ export default defineComponent({
       observer.observe(bkResizeLayoutRef.value);
     });
     onBeforeUnmount(() => {
-      observer.unobserve(bkResizeLayoutRef.value);
+      if (bkResizeLayoutRef.value) {
+        observer.unobserve(bkResizeLayoutRef.value);
+        observer = null;
+      }
     });
+
+    const { resolveClassName } = usePrefix();
+
     return {
       collapsed,
       asideContentVisible,
@@ -252,47 +260,70 @@ export default defineComponent({
       asideStyle,
       handleMousedown,
       setCollapse,
+      resolveClassName,
     };
   },
   render() {
     const bkResizeLayoutClass = [
-      'bk-resize-layout',
-      `bk-resize-layout-${this.placement}`,
+      `${this.resolveClassName('resize-layout')}`,
+      `${this.resolveClassName(`resize-layout-${this.placement}`)}`,
       {
-        'bk-resize-layout-collapsed': this.collapsed,
-        'bk-resize-layout-border': this.border,
+        [`${this.resolveClassName('resize-layout-collapsed')}`]: this.collapsed,
+        [`${this.resolveClassName('resize-layout-border')}`]: this.border,
+        [`${this.resolveClassName('resize-layout-collapsible')}`]: this.collapsible,
       },
     ];
 
     return (
-      <div ref="bkResizeLayoutRef" class={bkResizeLayoutClass}>
-        <aside class="bk-resize-layout-aside" ref="asideRef" style={this.asideStyle}>
-          <div class="bk-resize-layout-aside-content" v-show={this.asideContentVisible}>
+      <div
+        ref='bkResizeLayoutRef'
+        class={bkResizeLayoutClass}
+      >
+        <aside
+          ref='asideRef'
+          style={this.asideStyle}
+          class={`${this.resolveClassName('resize-layout-aside')}`}
+        >
+          <div
+            class={`${this.resolveClassName('resize-layout-aside-content')}`}
+            v-show={this.asideContentVisible}
+          >
             {this.$slots.aside?.()}
           </div>
-          <i class="bk-resize-trigger"
-            v-show={!this.disabled && (!this.collapsed || this.autoMinimize)}
+          <i
             style={this.triggerStyle}
-            onMousedown={withModifiers(this.handleMousedown, ['left'])}>
-          </i>
-          <i class={['bk-resize-proxy', this.placement]}
-            ref="resizeProxyRef" v-show={!this.collapsed || this.autoMinimize}></i>
-          {
-            this.collapsible
-            && (
-              this.$slots['collapse-trigger']?.()
-              || (
-                this.collapsed
-                  ? <AngleRight class="bk-resize-collapse" onClick={this.setCollapse}></AngleRight>
-                  : <AngleLeft class="bk-resize-collapse" onClick={this.setCollapse}></AngleLeft>
-              )
-            )
-          }
+            class={`${this.resolveClassName('resize-trigger')}`}
+            v-show={!this.disabled && (!this.collapsed || this.autoMinimize)}
+            onMousedown={withModifiers(this.handleMousedown, ['left'])}
+          ></i>
+          <i
+            ref='resizeProxyRef'
+            class={[`${this.resolveClassName('resize-proxy')}`, this.placement]}
+            v-show={!this.collapsed || this.autoMinimize}
+          ></i>
+          {this.collapsible &&
+            (this.$slots['collapse-trigger']?.() ||
+              (this.collapsed ? (
+                <AngleRight
+                  width={26}
+                  height={26}
+                  class={`${this.resolveClassName('resize-collapse')}`}
+                  onClick={this.setCollapse}
+                />
+              ) : (
+                <AngleLeft
+                  width={26}
+                  height={26}
+                  class={`${this.resolveClassName('resize-collapse')}`}
+                  onClick={this.setCollapse}
+                />
+              )))}
         </aside>
-        <main class="bk-resize-layout-main">
-          {this.$slots.main?.()}
-        </main>
-        <div class="bk-resize-mask" ref="resizeMaskRef"></div>
+        <main class={`${this.resolveClassName('resize-layout-main')}`}>{this.$slots.main?.()}</main>
+        <div
+          ref='resizeMaskRef'
+          class={`${this.resolveClassName('resize-mask')}`}
+        ></div>
       </div>
     );
   },

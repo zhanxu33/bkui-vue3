@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { computed, defineComponent, onBeforeUnmount, shallowRef  } from 'vue';
+import { computed, defineComponent, onBeforeUnmount, shallowRef } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { classes } from '@bkui-vue/shared';
 
 import uploadProps from './props';
@@ -50,40 +51,40 @@ export default defineComponent({
   props: uploadProps,
   emits: ['exceed', 'progress', 'success', 'error', 'delete', 'done'],
   setup(props, { slots, emit, expose }) {
-    const requests = shallowRef<Record<string, XMLHttpRequest | Promise<unknown>>>({});
+    const { resolveClassName } = usePrefix();
+
+    const requests = shallowRef<Record<string, Promise<unknown> | XMLHttpRequest>>({});
 
     const isPhotowall = computed<boolean>(() => props.theme === EThemes.PICTURE);
     const isSinglePhoto = computed<boolean>(() => isPhotowall.value && !props.multiple);
 
-    const classNames = computed(() => classes({
-      [CLASS_PREFIX]: true,
-      [`${CLASS_PREFIX}--${props.theme}`]: true,
-      [`${CLASS_PREFIX}--disabled`]: props.disabled,
-      [`${CLASS_PREFIX}--single-picture`]: isSinglePhoto.value,
-      [props.extCls]: props.extCls ?? false,
-    }));
+    const classNames = computed(() =>
+      classes({
+        [`${resolveClassName(CLASS_PREFIX)}`]: true,
+        [`${resolveClassName(CLASS_PREFIX)}--${props.theme}`]: true,
+        [`${resolveClassName(CLASS_PREFIX)}--disabled`]: props.disabled,
+        [`${resolveClassName(CLASS_PREFIX)}--single-picture`]: isSinglePhoto.value,
+        [props.extCls]: props.extCls ?? false,
+      }),
+    );
 
     const triggerProps = computed(() => ({
       theme: props.theme,
       multiple: props.multiple,
       disabled: props.disabled,
       accept: props.accept,
+      selectChange: props.selectChange,
     }));
-
 
     function onRemove(file: UploadFile, fileList: UploadFiles) {
       abort(file);
       emit('delete', file, fileList);
     }
 
-    const {
-      fileList,
-      handlePreprocess,
-      handleRemove,
-      handleProgress,
-      handleSuccess,
-      handleError,
-    } = useFileHandler(props, { onRemove });
+    const { fileList, handlePreprocess, handleRemove, handleProgress, handleSuccess, handleError } = useFileHandler(
+      props,
+      { onRemove },
+    );
 
     function handleFiles(files: File[]) {
       if (!files.length) {
@@ -91,9 +92,14 @@ export default defineComponent({
       }
 
       // limit检查
-      if (props.limit && fileList.value.length + files.length > props.limit) {
+      if (props.limit > 1 && fileList.value.length + files.length > props.limit) {
         emit('exceed', files, fileList.value);
         return;
+      }
+
+      // 限制1个时使用替换方式，将之前的列表清空
+      if (!props.multiple && props.limit === 1) {
+        fileList.value = [];
       }
 
       let sendFiles = files;
@@ -114,7 +120,7 @@ export default defineComponent({
           upload(rawFile, sendFiles);
         }
       }
-    };
+    }
 
     function handleRetry(file: UploadFile) {
       send(file.raw);
@@ -170,7 +176,7 @@ export default defineComponent({
         sliceUrl,
         mergeUrl,
         chunkSize,
-        onProgress: (event) => {
+        onProgress: event => {
           handleProgress(event, file);
           emit('progress', event, file, fileList.value);
         },
@@ -187,7 +193,7 @@ export default defineComponent({
 
           delete requests.value[uid];
         },
-        onError: (err) => {
+        onError: err => {
           handleError(err, file);
           emit('error', file, fileList.value, err);
           delete requests.value[uid];
@@ -215,7 +221,7 @@ export default defineComponent({
       if (file) {
         reqs = { [file.uid]: requests.value[file.uid] };
       }
-      Object.keys(reqs).forEach((uid) => {
+      Object.keys(reqs).forEach(uid => {
         if (reqs[uid] instanceof XMLHttpRequest) {
           const xhr = reqs[uid] as XMLHttpRequest;
           xhr?.abort();
@@ -237,29 +243,33 @@ export default defineComponent({
 
     return () => (
       <div class={classNames.value}>
-        {
-          !isPhotowall.value && <UploadTrigger {...triggerProps.value} v-slots={slots} onChange={handleFiles} />
-        }
-        {
-          slots.tip
-            ? slots.tip()
-            : props.tip && <div class={`${CLASS_PREFIX}__tip`}>{props.tip}</div>
-        }
+        {!isPhotowall.value && (
+          <UploadTrigger
+            {...triggerProps.value}
+            v-slots={slots}
+            onChange={handleFiles}
+          />
+        )}
+        {slots.tip ? slots.tip() : props.tip && <div class={`${resolveClassName(CLASS_PREFIX)}__tip`}>{props.tip}</div>}
         <UploadList
-          files={fileList.value}
-          theme={props.theme}
           disabled={props.disabled}
+          files={fileList.value}
           multiple={props.multiple}
+          theme={props.theme}
           onRemove={handleRemove}
-          onRetry={handleRetry}>
+          onRetry={handleRetry}
+        >
           {{
-            innerTrigger: (file: UploadFile) => isPhotowall.value
-              && <UploadTrigger
-                {...triggerProps.value}
-                file={file}
-                v-slots={slots}
-                onChange={handleFiles}
-                onRemove={handleRemove} />,
+            innerTrigger: (file: UploadFile) =>
+              isPhotowall.value && (
+                <UploadTrigger
+                  {...triggerProps.value}
+                  v-slots={slots}
+                  file={file}
+                  onChange={handleFiles}
+                  onRemove={handleRemove}
+                />
+              ),
             file: slots.file,
           }}
         </UploadList>

@@ -22,18 +22,18 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { defineComponent } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { bkZIndexManager, PropTypes } from '@bkui-vue/shared';
 
-
 interface INavItem {
-  icon: string,
-  action: Function,
-  text: string,
-  tooltip: object
+  icon: string;
+  action: Function;
+  text: string;
+  tooltip: object;
 }
 
 export default defineComponent({
@@ -46,12 +46,17 @@ export default defineComponent({
   },
   emits: ['update:modelValue', 'click'],
   setup(props, { emit }) {
-    const navConfig = props.navItems.map(item => Object.assign({
-      tooltip: { disabled: true },
-      action: () => {},
-      icon: '',
-      text: '',
-    }, item));
+    const navConfig = props.navItems.map(item =>
+      Object.assign(
+        {
+          tooltip: { disabled: true },
+          action: () => {},
+          icon: '',
+          text: '',
+        },
+        item,
+      ),
+    );
 
     const zIndex = bkZIndexManager.getModalNextIndex();
 
@@ -60,15 +65,24 @@ export default defineComponent({
       item.action();
     };
 
-    return () => (
-      props.modelValue && <div class={`bk-fixed-navbar ${props.extCls} ${props.position}`}
-        style={{ zIndex }}>
-        { navConfig.map(item => <div class="fixed-navbar-item"
-          onClick={handleClick.bind(this, item)}>
-            {item.icon ? <i class={`${item.icon} icon`}></i> : ''}
-            {item.text ? <span class="text">{item.text}</span> : ''}
-          </div>) }
-      </div>
-    );
+    const { resolveClassName } = usePrefix();
+
+    return () =>
+      props.modelValue && (
+        <div
+          style={{ zIndex }}
+          class={`${resolveClassName('fixed-navbar')} ${props.extCls} ${props.position}`}
+        >
+          {navConfig.map(item => (
+            <div
+              class='fixed-navbar-item'
+              onClick={handleClick.bind(this, item)}
+            >
+              {item.icon ? <i class={`${item.icon} icon`}></i> : ''}
+              {item.text ? <span class='text'>{item.text}</span> : ''}
+            </div>
+          ))}
+        </div>
+      );
   },
 });

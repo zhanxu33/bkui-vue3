@@ -1,55 +1,56 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-import type { ExtractPropTypes } from 'vue';
-import {
-  computed,
-  defineComponent,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  PropType,
-  reactive,
-  ref,
-  toRefs,
-} from 'vue';
+import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, PropType, reactive, ref, toRefs } from 'vue';
 
-import { BKPopover, bkZIndexManager, IBKPopover, resolveClassName } from '@bkui-vue/shared';
-import type { Placement } from '@popperjs/core';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { BKPopover, bkZIndexManager, IBKPopover } from '@bkui-vue/shared';
 
 import type { DatePickerPlacementType } from '../interface';
+import type { Placement } from '@popperjs/core';
+import type { ExtractPropTypes } from 'vue';
 
 const pickerDropdownProps = {
   placement: {
     type: String as PropType<DatePickerPlacementType>,
     default: 'bottom-start',
-    validator: (value) => {
+    validator: value => {
       const validList: DatePickerPlacementType[] = [
-        'top', 'top-start', 'top-end', 'bottom', 'bottom-start', 'bottom-end',
-        'left', 'left-start', 'left-end', 'right', 'right-start', 'right-end',
+        'top',
+        'top-start',
+        'top-end',
+        'bottom',
+        'bottom-start',
+        'bottom-end',
+        'left',
+        'left-start',
+        'left-end',
+        'right',
+        'right-start',
+        'right-end',
       ];
       if (validList.indexOf(value) < 0) {
         console.error(`placement property is not valid: '${value}'`);
@@ -195,61 +196,57 @@ export default defineComponent({
         });
       } else {
         nextTick(() => {
-          popoverInstance = new BKPopover(
-            props.triggerRef as HTMLElement,
-            refContentRef.value as HTMLElement,
-            {
-              placement: props.placement as Placement,
-              trigger: 'manual',
-              modifiers: [
-                // matchWidth,
-                // transformOrigin,
-                {
-                  name: 'computeStyles',
-                  options: {
-                    adaptive: false, // true by default
-                    gpuAcceleration: false,
-                  },
+          popoverInstance = new BKPopover(props.triggerRef as HTMLElement, refContentRef.value as HTMLElement, {
+            placement: props.placement as Placement,
+            trigger: 'manual',
+            modifiers: [
+              // matchWidth,
+              // transformOrigin,
+              {
+                name: 'computeStyles',
+                options: {
+                  adaptive: false, // true by default
+                  gpuAcceleration: false,
                 },
-                {
-                  name: 'offset',
-                  options: {
-                    offset: [0, 4],
-                  },
+              },
+              {
+                name: 'offset',
+                options: {
+                  offset: [0, 4],
                 },
-                // {
-                //   name: 'preventOverflow',
-                //   options: {
-                //     // boundariesElement: 'window',
-                //     padding: {
-                //       top: 2,
-                //       bottom: 2,
-                //       left: 5,
-                //       right: 5,
-                //     },
-                //   },
-                // },
-                // {
-                //   name: 'flip',
-                //   options: {
-                //     padding: 5,
-                //     rootBoundary: 'document',
-                //   },
-                // },
-                // {
-                //   name: 'onUpdate',
-                //   enabled: true,
-                //   phase: 'afterWrite',
-                //   fn({ state }) {
-                //     resetTransformOrigin(state);
-                //   },
-                // },
-              ],
-              // onFirstUpdate: () => {
-              //   resetTransformOrigin(popoverInstance.instance.state);
+              },
+              // {
+              //   name: 'preventOverflow',
+              //   options: {
+              //     // boundariesElement: 'window',
+              //     padding: {
+              //       top: 2,
+              //       bottom: 2,
+              //       left: 5,
+              //       right: 5,
+              //     },
+              //   },
               // },
-            },
-          );
+              // {
+              //   name: 'flip',
+              //   options: {
+              //     padding: 5,
+              //     rootBoundary: 'document',
+              //   },
+              // },
+              // {
+              //   name: 'onUpdate',
+              //   enabled: true,
+              //   phase: 'afterWrite',
+              //   fn({ state }) {
+              //     resetTransformOrigin(state);
+              //   },
+              // },
+            ],
+            // onFirstUpdate: () => {
+            //   resetTransformOrigin(popoverInstance.instance.state);
+            // },
+          });
           // popoverInstance.update();
         });
       }
@@ -268,6 +265,7 @@ export default defineComponent({
     const state = reactive({
       styles,
     });
+    const { resolveClassName } = usePrefix();
 
     return {
       ...toRefs(state),
@@ -275,14 +273,15 @@ export default defineComponent({
       forceUpdate,
       updateDropdown,
       destoryDropdown,
+      resolveClassName,
     };
   },
   render() {
     return (
       <div
-        ref="refContentRef"
-        class={[resolveClassName('date-picker-dropdown'), this.className, this.extPopoverCls]}
+        ref='refContentRef'
         style={this.styles}
+        class={[this.resolveClassName('date-picker-dropdown'), this.className, this.extPopoverCls]}
         onClick={this.onClick}
       >
         {this.$slots.default?.() ?? ''}

@@ -1,17 +1,16 @@
 <template>
   <div>
     <bk-input
+      class="mb8"
       v-model="val"
-      class="mb10"
       autocomplete="true"
-      autofocus="true"
+      autofocus
     />
     <bk-input
+      class="mb8"
       v-model="val"
-      class="mb10"
-      type="password"
       autocomplete="false"
-      autofocus="true"
+      type="password"
     />
   </div>
 </template>
@@ -20,3 +19,9 @@
   import { ref } from 'vue';
   const val = ref('');
 </script>
+
+<style lang="postcss" scoped>
+  .mb8 {
+    margin-bottom: 8px;
+  }
+</style>

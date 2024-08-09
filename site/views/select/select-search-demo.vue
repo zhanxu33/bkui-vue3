@@ -1,72 +1,79 @@
 <template>
   <div class="demo">
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
-      multiple
+      v-model="selectedValue"
+      :filter-option="filterOption"
       filterable
+      multiple
+      @search-change="searchChange"
     >
       <bk-option
         v-for="(item, index) in datasource"
+        :id="item.value"
         :key="index"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
       />
     </bk-select>
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
+      v-model="selectedValue"
+      :filter-option="filterOption"
       :input-search="false"
-      :list="datasource"
-      multiple
+      :list="searchList"
+      :remote-method="searchDataSource"
       filterable
+      multiple
     />
     <bk-select
-      v-model="selectedValue"
       class="bk-select"
+      v-model="selectedValue"
       :input-search="false"
-      multiple
-      filterable
       multiple-mode="tag"
+      filterable
+      multiple
     >
       <bk-option
         v-for="(item, index) in datasource"
+        :id="item.value"
         :key="index"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
       />
     </bk-select>
     <bk-select
+      class="bk-select"
       v-model="selectedValue"
-      class="bk-select"
-      multiple
-      filterable
       multiple-mode="tag"
+      allow-create
+      filterable
+      multiple
     >
       <bk-option
         v-for="(item, index) in datasource"
+        :id="item.value"
         :key="index"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
       />
     </bk-select>
     <bk-select
       class="bk-select"
-      multiple
-      filterable
       :remote-method="remoteMethod"
+      multiple-mode="tag"
+      filterable
+      multiple
     >
       <bk-option
-        v-for="(item) in list"
+        v-for="(item, index) in list"
+        :id="item.value"
         :key="item.value"
-        :value="item.value"
-        :label="item.label"
+        :name="item.label"
+        :order="index"
       />
     </bk-select>
   </div>
 </template>
 <script setup>
-  import { ref } from 'vue';
+  import { onMounted, ref } from 'vue';
   const datasource = ref([
     {
       value: 'climbing',
@@ -100,30 +107,45 @@
   ]);
   const selectedValue = ref('dancing');
   const list = ref([]);
-  const remoteMethod = async value => new Promise((resolve) => {
-    if (!value)  {
-      list.value = [];
-      resolve('ok');
-    } else {
-      setTimeout(() => {
-        list.value = new Array(10).fill('')
-          .map((_, i) => ({
+  const remoteMethod = async value =>
+    new Promise(resolve => {
+      if (!value) {
+        list.value = [];
+        resolve('ok');
+      } else {
+        setTimeout(() => {
+          list.value = new Array(10).fill('').map((_, i) => ({
             value: `${i}-${value}`,
             label: `label-${value}-${i}`,
           }));
-        resolve('ok');
-      }, 1000);
-    };
+          resolve('ok');
+        }, 1000);
+      }
+    });
+  const filterOption = (input, options) => options.name?.includes(input);
+
+  const searchList = ref();
+  const searchDataSource = key => {
+    searchList.value = datasource.value.filter(item => item.label.includes(key));
+  };
+
+  function searchChange(value) {
+    console.log(value);
+  }
+
+  onMounted(() => {
+    setTimeout(() => {
+      searchList.value = JSON.parse(JSON.stringify(datasource.value));
+    }, 1000);
   });
 </script>
 <style scoped>
-.demo {
-  display: flex;
-}
+  .demo {
+    display: flex;
+  }
 
-.bk-select {
-  width: 300px;
-  margin-right: 20px;
-}
+  .bk-select {
+    width: 300px;
+    margin-right: 20px;
+  }
 </style>
-

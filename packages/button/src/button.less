@@ -1,15 +1,15 @@
 @import '@bkui-vue/styles/themes/themes.less';
 
-@btnHeight: 32px;
-@btnPadding: 5px 12px;
-@btnBorderRadius: 2px;
+@btnHeight: @component-size-base;
+@btnPadding: @component-size-base-padding;
+@btnBorderRadius: @border-radius-base;
 
-@smallBtnHeight: 26px;
-@smallBtnPadding: 3px 12px;
+@smallBtnHeight: @component-size-small;
+@smallBtnPadding: @component-size-small-padding;
 @smallBtnFontSize: @font-size-base;
 
-@largeBtnHeight: 38px;
-@largeBtnPadding: 8px 20px;
+@largeBtnHeight: @component-size-large;
+@largeBtnPadding: @component-size-large-padding;
 @largeBtnFontSize: @font-size-large;
 
 @themeSelectors: primary, warning, success, danger;
@@ -33,11 +33,12 @@
   appearance: none;
   align-items: center;
   justify-content: center;
-  
+
   each(@themeSelectors, {
     @color: '@{value}-color';
     @hoverColor: 'button-@{value}-hover-color';
     @activeColor: 'button-@{value}-active-color';
+
     &.@{bk-prefix}-button-@{value} {
       background-color: @@color;
       color: @white-color;
@@ -64,22 +65,31 @@
           border-color: @@hoverColor;
           color: @white-color;
         }
+
+        &:active {
+          background-color: @@activeColor;
+          border-color: @@activeColor;
+          color: @white-color;
+        }
       }
 
       &.is-text {
         color: @@color;
         background-color: transparent;
         border: none;
+
         &:not(.is-disabled):hover {
           color: @@hoverColor;
         }
       }
+
       &.is-disabled {
         &:not(.is-text) {
           background-color: @disable-color;
           color: @white-color;
           border-color: @disable-color;
         }
+
         color: @disable-color;
         cursor: not-allowed;
       }
@@ -94,11 +104,11 @@
     }
   })
 
-  
     each(@sizeSelectors, {
     @sizeBtnHeight: '@{value}BtnHeight';
     @sizeBtnPadding: '@{value}BtnPadding';
     @sizeBtnFontSize: '@{value}BtnFontSize';
+
     &.@{bk-prefix}-button-@{value} {
       height: @@sizeBtnHeight;
       padding: @@sizeBtnPadding;
@@ -114,11 +124,13 @@
 
   &.is-loading {
     position: relative;
+
     .@{bk-prefix}-button-loading {
       &:not(:last-child) {
         position: absolute;
       }
     }
+
     .@{bk-prefix}-button-text {
       visibility: hidden;
     }
@@ -149,6 +161,10 @@
     color: @disable-color;
     cursor: not-allowed;
     border-color: @disable-color;
+
+    &:not(.is-text) {
+      background-color: @disable-bg-color;
+    }
   }
 
   // &.is-circle {
@@ -162,11 +178,12 @@
 .@{bk-prefix}-button-group {
   display: inline-block;
   font-size: 0;
-  
+
   each(@sizeSelectors, {
     @sizeBtnHeight: '@{value}BtnHeight';
     @sizeBtnPadding: '@{value}BtnPadding';
     @sizeBtnFontSize: '@{value}BtnFontSize';
+
     &.@{bk-prefix}-button-group-@{value} {
       .@{bk-prefix}-button {
         height: @@sizeBtnHeight;
@@ -174,8 +191,7 @@
         font-size: @@sizeBtnFontSize;
       }
     }
-  })
-;
+  });
 
   .@{bk-prefix}-button {
     height: @btnHeight;
@@ -191,7 +207,7 @@
     &.is-disabled {
       color: @light-gray;
     }
-    
+
     &:first-child {
       border-radius: @btnBorderRadius 0 0 @btnBorderRadius;
     }

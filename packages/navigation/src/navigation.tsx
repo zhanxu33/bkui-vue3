@@ -22,14 +22,15 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { defineComponent, onBeforeUnmount, PropType, reactive, ref } from 'vue';
+import { defineComponent, onBeforeUnmount, PropType, reactive, ref, SlotsType } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { CollapseLeft } from '@bkui-vue/icon';
 
 import NavigationTitle from './navigation-title';
-export type BkNavigationType = 'top-bottom' | 'left-right';
+export type BkNavigationType = 'left-right' | 'top-bottom';
 const NavigationProps = {
   navWidth: {
     type: [Number, String],
@@ -80,7 +81,16 @@ export default defineComponent({
   name: 'Navigation',
   props: NavigationProps,
   emits: ['leave', 'toggle', 'hover', 'toggle-click'],
-  slots: ['header', 'menu', 'footer', 'side-icon', 'side-header'],
+  // slots: ['header', 'menu', 'footer', 'side-icon', 'side-header'],
+  slots: Object as SlotsType<{
+    default?: () => HTMLElement;
+    header?: () => HTMLElement;
+    menu?: () => HTMLElement;
+    footer?: () => HTMLElement;
+    'side-icon'?: () => HTMLElement;
+    'side-header'?: () => HTMLElement;
+    'side-footer'?: () => HTMLElement;
+  }>,
   setup(props, { emit }) {
     const defaultHeaderTitle = ref(props.headerTitle);
     const nav = reactive({
@@ -101,7 +111,7 @@ export default defineComponent({
       nav.timer && window.clearTimeout(nav.timer);
     });
 
-    const handleMouseOver =  () => {
+    const handleMouseOver = () => {
       if (!nav.click) {
         nav.enterTimer = setTimeout(() => {
           nav.hover = true;
@@ -129,6 +139,9 @@ export default defineComponent({
       emit('toggle', nav.hover);
       emit('toggle-click', nav.hover);
     };
+
+    const { resolveClassName } = usePrefix();
+
     return {
       defaultHeaderTitle,
       nav,
@@ -136,94 +149,98 @@ export default defineComponent({
       handleMouseOver,
       handleMouseLeave,
       handleClick,
+      resolveClassName,
     };
   },
   render() {
-    return <div class="bk-navigation">
-      {
-        this.navigationType === 'top-bottom' && <div
-            class="bk-navigation-header"
-            style={{ flexBasis: `${this.headHeight}px` }}>
+    return (
+      <div class={`${this.resolveClassName('navigation')}`}>
+        {this.navigationType === 'top-bottom' && (
+          <div
+            style={{ flexBasis: `${this.headHeight}px` }}
+            class={`${this.resolveClassName('navigation-header')}`}
+          >
             <NavigationTitle sideTitle={this.sideTitle}>
-              {
-                {
-                  default: this.$slots['side-header'],
-                  'side-icon': !this.$slots['side-header'] ? this.$slots['side-icon'] : undefined,
-                }
-              }
+              {{
+                default: this.$slots['side-header'],
+                'side-icon': !this.$slots['side-header'] ? this.$slots['side-icon'] : undefined,
+              }}
             </NavigationTitle>
-            <div class="header-right">
-              {
-                this.$slots.header?.()
-              }
-            </div>
-        </div>
-      }
-      <div class="bk-navigation-wrapper">
-        {
-          this.needMenu &&  <div class="navigation-nav"
-                      style={{ width: !this.nav.click ? `${this.navWidth}px` : `${this.hoverWidth}px` }}>
-                      <div class="nav-slider"
-                      onMouseenter={this.handleMouseOver}
-                      onMouseleave={this.handleMouseLeave}
-                      style={{
-                        width: !this.nav.hover ? `${this.navWidth}px` : `${this.hoverWidth}px`,
-                        borderRight: this.navigationType !== 'top-bottom' ? 'none' : '1px solid #DCDEE5',
-                      }}>
-                      {
-                        this.navigationType !== 'top-bottom' && this.showSideNavTitle && <NavigationTitle
-                        style={{ flexBasis: `${this.headHeight}px` }}
-                        sideTitle={this.sideTitle}>
-                          {
-                            {
-                              default: this.$slots['side-header'],
-                              'side-icon': !this.$slots['side-header'] ? this.$slots['side-icon'] : undefined,
-                            }
-                          }
-                        </NavigationTitle>
-                      }
-                      <div class="nav-slider-list"
-                        style={{ height: `calc(100vh - ${+this.headHeight + 56}px)` }}>
-                        {
-                          this.$slots.menu?.()
-                        }
-                      </div>
-                      <div class="nav-slider-footer">
-                        <div class={{ 'is-left': this.navigationType !== 'top-bottom', 'footer-icon': true }}
-                            onClick={this.handleClick}>
-                              <CollapseLeft class="footer-icon-svg" style={{ transform: this.nav.click ? 'rotate(180deg)' : 'rotate(0deg)' }}/>
-                        </div>
-                    </div>
+            <div class='header-right'>{this.$slots.header?.()}</div>
+          </div>
+        )}
+        <div class={`${this.resolveClassName('navigation-wrapper')}`}>
+          {this.needMenu && (
+            <div
+              style={{ width: !this.nav.click ? `${this.navWidth}px` : `${this.hoverWidth}px` }}
+              class='navigation-nav'
+            >
+              <div
+                style={{
+                  width: !this.nav.hover ? `${this.navWidth}px` : `${this.hoverWidth}px`,
+                  borderRight: this.navigationType !== 'top-bottom' ? 'none' : '1px solid #DCDEE5',
+                }}
+                class='nav-slider'
+                onMouseenter={this.handleMouseOver}
+                onMouseleave={this.handleMouseLeave}
+              >
+                {this.navigationType !== 'top-bottom' && this.showSideNavTitle && (
+                  <NavigationTitle
+                    style={{ flexBasis: `${this.headHeight}px` }}
+                    sideTitle={this.sideTitle}
+                  >
+                    {{
+                      default: this.$slots['side-header'],
+                      'side-icon': !this.$slots['side-header'] ? this.$slots['side-icon'] : undefined,
+                    }}
+                  </NavigationTitle>
+                )}
+                <div
+                  style={{ height: `calc(100vh - ${+this.headHeight + 56}px)` }}
+                  class='nav-slider-list'
+                >
+                  {this.$slots.menu?.()}
                 </div>
-          </div>
-        }
-        <div class="navigation-container" style={{ maxWidth: this.needMenu ? 'calc(100vw - 60px)' : '100vw' }}>
-          {
-            this.navigationType !== 'top-bottom' && <div class="container-header" style={{ flexBasis: `${this.headHeight}px` }}>
-              {
-                this.$slots.header?.() || [
-                  <div class="container-header-title">{this.headerTitle}</div>,
-                  <div class="container-header-sets">
-                    {
-                      this.$slots['header-set']?.()
-                    }
-                  </div>,
-                ]
-              }
-          </div>
-          }
-          <div class="container-content" style={{ maxHeight: `calc(100vh - ${this.headHeight}px)` }}>
-              {
-                this.$slots.default?.()
-              }
-              <div class="container-footer">
-                {
-                  this.$slots.footer?.()
-                }
+                <div class='nav-slider-footer'>
+                  <div
+                    class={{ 'is-left': this.navigationType !== 'top-bottom', 'footer-icon': true }}
+                    onClick={this.handleClick}
+                  >
+                    <CollapseLeft
+                      style={{ transform: this.nav.click ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      class='footer-icon-svg'
+                    />
+                  </div>
+                </div>
+                {this.$slots['side-footer']?.()}
               </div>
+            </div>
+          )}
+          <div
+            style={{ maxWidth: this.needMenu ? 'calc(100vw - 60px)' : '100vw' }}
+            class='navigation-container'
+          >
+            {this.navigationType !== 'top-bottom' && (
+              <div
+                style={{ flexBasis: `${this.headHeight}px` }}
+                class='container-header'
+              >
+                {this.$slots.header?.() || [
+                  <div class='container-header-title'>{this.headerTitle}</div>,
+                  <div class='container-header-sets'>{this.$slots['header-set']?.()}</div>,
+                ]}
+              </div>
+            )}
+            <div
+              style={{ maxHeight: `calc(100vh - ${this.headHeight}px)` }}
+              class='container-content'
+            >
+              {this.$slots.default?.()}
+              <div class='container-footer'>{this.$slots.footer?.()}</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>;
+    );
   },
 });

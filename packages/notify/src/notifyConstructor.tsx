@@ -1,40 +1,41 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
 import { computed, defineComponent, onMounted, onUnmounted, ref, Transition, watch } from 'vue';
 import { toType } from 'vue-types';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { Close, Error, Info, Success, Warn } from '@bkui-vue/icon';
 import { bkZIndexManager, PropTypes } from '@bkui-vue/shared';
 
 enum NotifyThemeEnum {
-  PRIMARY = 'primary',
-  WARNING = 'warning',
-  SUCCESS = 'success',
   ERROR = 'error',
+  PRIMARY = 'primary',
+  SUCCESS = 'success',
+  WARNING = 'warning',
 }
 const notifyProps = {
   id: PropTypes.string.def(''),
@@ -67,9 +68,11 @@ export default defineComponent({
       zIndex,
     }));
 
+    const { resolveClassName } = usePrefix();
+
     const classNames = computed(() => [
-      'bk-notify',
-      `bk-notify-${props.theme}`,
+      resolveClassName('notify'),
+      resolveClassName(`notify-${props.theme}`),
       horizontalClass.value,
     ]);
 
@@ -115,6 +118,7 @@ export default defineComponent({
       visible,
       renderMessage,
       handleClose,
+      resolveClassName,
     };
   },
   render() {
@@ -129,17 +133,23 @@ export default defineComponent({
     };
 
     return (
-      <Transition name="bk-notify-fade">
+      <Transition name='bk-notify-fade'>
         <div
-          v-show={this.visible}
+          style={this.styles}
           class={this.classNames}
-          style={this.styles}>
-          <div class="bk-notify-content">
-            <div class="bk-notify-icon">{renderIcon()}</div>
-            {this.title ? <div class="bk-notify-content-header">{this.title}</div> : ''}
-            <div class="bk-notify-content-text">{this.renderMessage}</div>
+          v-show={this.visible}
+        >
+          <div class={`${this.resolveClassName('notify-content')}`}>
+            <div class={`${this.resolveClassName('notify-icon')}`}>{renderIcon()}</div>
+            {this.title ? <div class={`${this.resolveClassName('notify-content-header')}`}>{this.title}</div> : ''}
+            <div class={`${this.resolveClassName('notify-content-text')}`}>{this.renderMessage}</div>
           </div>
-          {this.dismissable && <Error class="bk-notify-icon bk-notify-close" onClick={this.handleClose}></Error>}
+          {this.dismissable && (
+            <Error
+              class={`${this.resolveClassName('notify-icon')} ${this.resolveClassName('notify-close')}`}
+              onClick={this.handleClose}
+            ></Error>
+          )}
         </div>
       </Transition>
     );

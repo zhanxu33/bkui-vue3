@@ -18,6 +18,7 @@
     </bk-form-item>
     <bk-form-item
       label="性别"
+      property="sex"
       required
     >
       <bk-radio-group>
@@ -39,12 +40,12 @@
     >
       <bk-select v-model="formData.school">
         <bk-option
-          value="1"
           label="本科以下"
+          value="1"
         />
         <bk-option
-          value="2"
           label="本科以上"
+          value="2"
         />
       </bk-select>
     </bk-form-item>
@@ -54,13 +55,19 @@
         type="textarea"
       />
     </bk-form-item>
-    <bk-form-item>
+    <bk-form-item style="margin-top: 32px">
       <bk-button
-        theme="primary"
         native-type="button"
+        theme="primary"
         @click="submit"
       >
         提交
+      </bk-button>
+      <bk-button
+        style="margin-left: 8px"
+        @click="handleReset"
+      >
+        重置
       </bk-button>
     </bk-form-item>
   </bk-form>
@@ -75,10 +82,10 @@
   import BkRadio, { BkRadioGroup } from '@bkui-vue/radio';
   import BkSelect, { BkOption } from '@bkui-vue/select';
 
-
   const formRef = ref('');
   const formData = ref({
     name: '',
+    sex: '',
     school: '',
   });
   const rules = {
@@ -95,6 +102,9 @@
     formRef.value.validate();
   };
 
+  const handleReset = () => {
+    formRef.value.clearValidate();
+  };
 </script>
 <style lang="postcss" scoped>
   .example {

@@ -22,7 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { ExtractPropTypes, PropType, VNode } from 'vue';
 import { toType } from 'vue-types';
@@ -32,8 +32,8 @@ import { PopoverPropTypes } from '@bkui-vue/popover';
 import { PropTypes } from '@bkui-vue/shared';
 
 enum TagInputTriggerEnum {
-  FOCUS ='focus',
-  SEARCH ='search'
+  FOCUS = 'focus',
+  SEARCH = 'search',
 }
 const tagProps = () => ({
   modelValue: PropTypes.arrayOf(PropTypes.string).def([]),
@@ -57,6 +57,7 @@ const tagProps = () => ({
   allowNextFocus: PropTypes.bool.def(true),
   allowAutoMatch: PropTypes.bool.def(false),
   showClearOnlyHover: PropTypes.bool.def(false),
+  isAsyncList: PropTypes.bool.def(false),
   leftSpace: PropTypes.number.def(0),
   createTagValidator: {
     type: Function as PropType<(tag: any) => boolean>,
@@ -90,7 +91,6 @@ const tagProps = () => ({
     default: () => ({}),
   },
 });
-
 
 export default tagProps;
 export type TagProps = Partial<ExtractPropTypes<ReturnType<typeof tagProps>>>;

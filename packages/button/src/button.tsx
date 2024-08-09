@@ -26,11 +26,11 @@
 
 import { computed, defineComponent, ExtractPropTypes, PropType, ref } from 'vue';
 
-import BkLoading, { BkLoadingMode, BkLoadingSize } from '@bkui-vue/loading';
+import { usePrefix } from '@bkui-vue/config-provider';
+import Loading, { BkLoadingMode, BkLoadingSize } from '@bkui-vue/loading';
 import { classes, ElementType, PropTypes } from '@bkui-vue/shared';
 
-
-type IButtonNativeType = PropType<'button' | 'submit' | 'reset'>;
+type IButtonNativeType = PropType<'button' | 'reset' | 'submit'>;
 const btnSizes = ['', 'small', 'large'] as const;
 const buttonProps = {
   theme: PropTypes.theme(),
@@ -67,24 +67,26 @@ export default defineComponent({
   setup(props, { slots, emit }) {
     const isHover = ref(false);
     const showSlot = slots.default ?? false;
-    const btnClsPrefix = 'bk-button';
+    const { resolveClassName } = usePrefix();
+    const btnClsPrefix = resolveClassName('button');
     const isText = computed(() => props.text && !props.hoverTheme);
     const btnCls = computed(() => {
-      const hoverTheme = props.hoverTheme
-        ? `${btnClsPrefix}-hover-${props.hoverTheme}`
-        : '';
+      const hoverTheme = props.hoverTheme ? `${btnClsPrefix}-hover-${props.hoverTheme}` : '';
       const btnThemeCls = props.theme ? `${btnClsPrefix}-${props.theme}` : '';
       const themeCls = props.hoverTheme ? '' : btnThemeCls;
-      return classes({
-        'is-disabled': props.disabled,
-        'is-outline': props.outline,
-        'is-text': isText.value,
-        'is-loading': props.loading,
-        'is-selected': props.selected,
-        // 'is-circle': props.circle,
-        [`${btnClsPrefix}-${props.size}`]: props.size && btnSizes.includes(props.size),
-        'no-slot': !showSlot,
-      }, `${themeCls} ${btnClsPrefix} ${hoverTheme}`);
+      return classes(
+        {
+          'is-disabled': props.disabled,
+          'is-outline': props.outline,
+          'is-text': isText.value,
+          'is-loading': props.loading,
+          'is-selected': props.selected,
+          // 'is-circle': props.circle,
+          [`${btnClsPrefix}-${props.size}`]: props.size && btnSizes.includes(props.size),
+          'no-slot': !showSlot,
+        },
+        `${themeCls} ${btnClsPrefix} ${hoverTheme}`,
+      );
     });
     const loadingTheme = computed(() => {
       if (props.text || props.outline || props.hoverTheme) {
@@ -94,8 +96,9 @@ export default defineComponent({
       }
       return !props.theme ? undefined : 'white';
     });
-    const loadingSize = computed(() => (
-      (isText.value || props.size === BkLoadingSize.Small) ? BkLoadingSize.Mini : BkLoadingSize.Small));
+    const loadingSize = computed(() =>
+      isText.value || props.size === BkLoadingSize.Small ? BkLoadingSize.Mini : BkLoadingSize.Small,
+    );
     const handleClick = (e: MouseEvent) => {
       if (props.loading) return;
       /**
@@ -114,35 +117,30 @@ export default defineComponent({
       isHover.value = false;
     };
 
-
     return () => (
       <button
-        title={props.title}
-        disabled={props.disabled}
         class={btnCls.value}
+        disabled={props.disabled}
+        title={props.title}
         type={props.nativeType}
         onClick={handleClick}
-        onMouseover={handleMouseOver}
         onMouseleave={handleMouseout}
+        onMouseover={handleMouseOver}
       >
-        {
-          props.loading && (
-            <BkLoading
-              loading
-              class={`${btnClsPrefix}-loading`}
-              mode={props.loadingMode}
-              size={loadingSize.value}
-              {
-                ...(loadingTheme.value ? {
+        {props.loading && (
+          <Loading
+            class={`${btnClsPrefix}-loading`}
+            mode={props.loadingMode}
+            size={loadingSize.value}
+            loading
+            {...(loadingTheme.value
+              ? {
                   theme: loadingTheme.value,
-                } : {})
-              }
-            />
-          )
-        }
-        {
-          slots.default && <span class={`${btnClsPrefix}-text`}>{slots.default?.()}</span>
-        }
+                }
+              : {})}
+          />
+        )}
+        {slots.default && <span class={`${btnClsPrefix}-text`}>{slots.default?.()}</span>}
       </button>
     );
   },

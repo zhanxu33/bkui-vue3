@@ -24,7 +24,6 @@
  * IN THE SOFTWARE.
  */
 
-import type { ExtractPropTypes } from 'vue';
 import { PropType } from 'vue';
 
 import type {
@@ -34,14 +33,25 @@ import type {
   DisabledDateType,
   PickerTypeType,
 } from './interface';
-
+import type { ExtractPropTypes } from 'vue';
 
 export const datePickerProps = {
   type: {
     type: String as PropType<PickerTypeType>,
     default: 'date',
     validator(value) {
-      const validList: PickerTypeType[] = ['year', 'month', 'date', 'daterange', 'datetime', 'datetimerange', 'time', 'timerange'];
+      const validList: PickerTypeType[] = [
+        'year',
+        'yearrange',
+        'month',
+        'monthrange',
+        'date',
+        'daterange',
+        'datetime',
+        'datetimerange',
+        'time',
+        'timerange',
+      ];
       if (validList.indexOf(value) < 0) {
         console.error(`type property is not valid: '${value}'`);
         return false;
@@ -96,10 +106,20 @@ export const datePickerProps = {
   placement: {
     type: String as PropType<DatePickerPlacementType>,
     default: 'bottom-start',
-    validator: (value) => {
+    validator: value => {
       const validList: DatePickerPlacementType[] = [
-        'top', 'top-start', 'top-end', 'bottom', 'bottom-start', 'bottom-end',
-        'left', 'left-start', 'left-end', 'right', 'right-start', 'right-end',
+        'top',
+        'top-start',
+        'top-end',
+        'bottom',
+        'bottom-start',
+        'bottom-end',
+        'left',
+        'left-start',
+        'left-end',
+        'right',
+        'right-start',
+        'right-end',
       ];
       if (validList.indexOf(value) < 0) {
         console.error(`placement property is not valid: '${value}'`);
@@ -138,7 +158,7 @@ export const datePickerProps = {
   // medium: 14px
   // large: 16px
   fontSize: {
-    type: String as PropType<'normal' | 'medium' | 'large'>,
+    type: String as PropType<'large' | 'medium' | 'normal'>,
     default: 'normal',
   },
   // 结束时间是否允许“至今”
@@ -167,7 +187,7 @@ export const datePickerProps = {
     default: false,
   },
   behavior: {
-    type: String as PropType<'simplicity' | 'normal'>,
+    type: String as PropType<'normal' | 'simplicity'>,
     default: 'normal',
     validator(v) {
       return ['simplicity', 'normal'].indexOf(v) > -1;

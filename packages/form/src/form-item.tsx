@@ -1,30 +1,28 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
-import { get, isFunction } from 'lodash';
-import type { ComputedRef, ExtractPropTypes } from 'vue';
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 import {
   computed,
   defineComponent,
@@ -36,23 +34,19 @@ import {
   toRefs,
 } from 'vue';
 
-import { useLocale } from '@bkui-vue/config-provider';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { bkTooltips } from '@bkui-vue/directives';
 import { ExclamationCircleShape } from '@bkui-vue/icon';
-import type { Language } from '@bkui-vue/locale';
-import {
-  classes,
-  formItemKey,
-  PropTypes,
-  useForm,
-  useFormItem,
-} from '@bkui-vue/shared';
+import { classes, formItemKey, PropTypes, useForm, useFormItem } from '@bkui-vue/shared';
+import get from 'lodash/get';
+import isFunction from 'lodash/isFunction';
 
-import type {
-  IFormItemRule,
-} from './type';
 import { getRuleMessage } from './utils';
 import defaultValidator from './validator';
+
+import type { IFormItemRule } from './type';
+import type { Language } from '@bkui-vue/locale';
+import type { ComputedRef, ExtractPropTypes } from 'vue';
 
 const formItemProps = {
   label: PropTypes.string,
@@ -65,7 +59,6 @@ const formItemProps = {
   min: PropTypes.number,
   maxlength: PropTypes.number,
   rules: PropTypes.array,
-  autoCheck: PropTypes.bool.def(false),
   description: PropTypes.string,
   errorDisplayType: PropTypes.oneOf(['tooltips', 'normal']).def('normal'),
 };
@@ -82,7 +75,7 @@ const getRulesFromProps = (props, t: ComputedRef<Language['form']>) => {
     rules.push({
       required: true,
       validator: defaultValidator.required,
-      message: `${label} ${t.value.notBeEmpty}`,
+      message: `${label}${t.value.notBeEmpty}`,
       trigger: 'change',
     });
   }
@@ -90,28 +83,28 @@ const getRulesFromProps = (props, t: ComputedRef<Language['form']>) => {
     rules.push({
       email: true,
       validator: defaultValidator.email,
-      message: `${label} ${t.value.incorrectFormat}`,
+      message: `${label}${t.value.incorrectFormat}`,
       trigger: 'change',
     });
   }
   if (Number(props.max) > -1) {
     rules.push({
       validator: value => defaultValidator.max(value, props.max),
-      message: `${label} ${t.value.max} ${props.max}`,
+      message: `${label}${t.value.max} ${props.max}`,
       trigger: 'change',
     });
   }
   if (Number(props.min) > -1) {
     rules.push({
       validator: value => defaultValidator.min(value, props.min),
-      message: `${label} ${t.value.min} ${props.min}`,
+      message: `${label}${t.value.min} ${props.min}`,
       trigger: 'change',
     });
   }
   if (Number(props.maxlength) > -1) {
     rules.push({
       validator: value => defaultValidator.maxlength(value, props.maxlength),
-      message: `${label} ${t.value.maxLen} ${props.maxlength}`,
+      message: `${label}${t.value.maxLen} ${props.maxlength}`,
       trigger: 'change',
     });
   }
@@ -121,7 +114,7 @@ const getRulesFromProps = (props, t: ComputedRef<Language['form']>) => {
 const mergeRules: (
   configRules: IFormItemRule[],
   propRules: IFormItemRule[],
-  t: ComputedRef<Language['form']>
+  t: ComputedRef<Language['form']>,
 ) => IFormItemRule[] = (configRules, propRules, t: ComputedRef<Language['form']>) => {
   let customRequired = false;
   let customEmail = false;
@@ -143,7 +136,7 @@ const mergeRules: (
     } else if (Object.prototype.toString.call(rule.pattern) === '[object RegExp]') {
       rulevalidator = value => defaultValidator.pattern(value, rule.pattern);
     } else if (isFunction(rule.validator)) {
-      rulevalidator =  rule.validator;
+      rulevalidator = rule.validator;
     } else {
       // 不支持的配置规则
       return result;
@@ -171,24 +164,20 @@ const mergeRules: (
   return [...filterPropRules, ...formatConfigRules];
 };
 
-const getTriggerRules = (
-  trigger: String,
-  rules: IFormItemRule[],
-) => rules.reduce((result, rule) => {
-  if (!rule.trigger || !trigger) {
-    result.push(rule);
+const getTriggerRules = (trigger: string, rules: IFormItemRule[]) =>
+  rules.reduce((result, rule) => {
+    if (!rule.trigger || !trigger) {
+      result.push(rule);
+      return result;
+    }
+    const ruleTriggerList = Array.isArray(rule.trigger) ? rule.trigger : [rule.trigger];
+    if (ruleTriggerList.includes(trigger as IFormItemRule['trigger'])) {
+      result.push(rule);
+    }
     return result;
-  }
-  const ruleTriggerList = Array.isArray(rule.trigger) ? rule.trigger : [rule.trigger];
-  if (ruleTriggerList.includes(trigger as IFormItemRule['trigger'])) {
-    result.push(rule);
-  }
-  return result;
-}, []);
+  }, []);
 
-
-const isValid = (value: string | number): boolean => value !== undefined;
-
+const isValid = (value: number | string): boolean => value !== undefined;
 
 export default defineComponent({
   name: 'FormItem',
@@ -241,7 +230,7 @@ export default defineComponent({
         return styles;
       }
 
-      const labelWidth = isValid(props.labelWidth) ? props.labelWidth : (isForm && form.props.labelWidth);
+      const labelWidth = isValid(props.labelWidth) ? props.labelWidth : isForm && form.props.labelWidth;
       if (isValid(labelWidth)) {
         styles.width = `${labelWidth}px`;
         styles.paddingRight = labelWidth ? '' : '0px';
@@ -256,18 +245,18 @@ export default defineComponent({
 
     /**
      * @desc 验证字段
+     *
+     * @param { undefined | string } trigger 验证触发方式
+     * @param { boolean } showError 是否展示错误信息
      */
-    const validate = (trigger?: String): Promise<boolean> => {
+    const validate = (trigger?: string, showError = true): Promise<boolean> => {
       // 没有设置 property 不进行验证
-      if (!props.property
-      || (isForm && !form.props.model)) {
+      if (!props.property || (isForm && !form.props.model)) {
         return Promise.resolve(true);
       }
       let rules: IFormItemRule[] = [];
       // 继承 form 的验证规则
-      if (isForm
-        && form.props.rules
-        && hasOwn(form.props.rules, props.property)) {
+      if (isForm && form.props.rules && hasOwn(form.props.rules, props.property)) {
         rules = form.props.rules[props.property];
       }
       // form-item 自己的 rules 规则优先级更高
@@ -279,7 +268,7 @@ export default defineComponent({
       rules = getTriggerRules(trigger, mergeRules(rules, getRulesFromProps(props, t), t));
 
       // 重新触发验证重置上次的验证状态
-      if (rules.length > 0) {
+      if (rules.length > 0 && showError) {
         state.isError = false;
         state.errorMessage = '';
       }
@@ -292,41 +281,48 @@ export default defineComponent({
           stepIndex = stepIndex + 1;
           // form-item 验证通过
           if (stepIndex >= rules.length) {
-            form.emit('validate', props.property, true, null);
+            form.emit('validate', props.property, true, '');
             return Promise.resolve(true);
           }
           const rule = rules[stepIndex];
 
-          return Promise.resolve()
-            .then(() => {
-              const result = rule.validator(value);
-              const errorMessage = getRuleMessage(rule);
-              // 异步验证（validator 返回一个 Promise）
-              if (typeof result !== 'boolean'
-                && typeof result.then === 'function') {
-                return result.then((data) => {
+          return Promise.resolve().then(() => {
+            const result = rule.validator(value);
+            const errorMessage = getRuleMessage(rule);
+            // 异步验证（validator 返回一个 Promise）
+            if (typeof result !== 'boolean' && typeof result.then === 'function') {
+              return result
+                .then(data => {
                   // 异步验证结果为 false
                   if (data === false) {
                     return Promise.reject(errorMessage);
                   }
-                }).then(() => doValidate(), () => {
-                  state.isError = true;
-                  state.errorMessage = errorMessage;
-                  form.emit('validate', props.property, false, errorMessage);
-                  return Promise.reject(state.errorMessage);
-                });
-              }
-              // 同步验证失败
-              if (!result) {
+                })
+                .then(
+                  () => doValidate(),
+                  () => {
+                    if (showError) {
+                      state.isError = true;
+                      state.errorMessage = errorMessage;
+                    }
+                    form.emit('validate', props.property, false, errorMessage);
+                    return Promise.reject(state.errorMessage);
+                  },
+                );
+            }
+            // 同步验证失败
+            if (!result) {
+              if (showError) {
                 state.isError = true;
                 // 验证结果返回的是 String 表示验证失败，返回结果作为错误信息
                 state.errorMessage = typeof result === 'string' ? result : errorMessage;
-                form.emit('validate', props.property, false, errorMessage);
-                return Promise.reject(state.errorMessage);
               }
-              // 下一步
-              return doValidate();
-            });
+              form.emit('validate', props.property, false, errorMessage);
+              return Promise.reject(state.errorMessage);
+            }
+            // 下一步
+            return doValidate();
+          });
         };
       })();
       return doValidate();
@@ -358,6 +354,8 @@ export default defineComponent({
       }
     });
 
+    const { resolveClassName } = usePrefix();
+
     return {
       ...toRefs(state),
       isShowLabel,
@@ -366,31 +364,36 @@ export default defineComponent({
       isFormTypeVertical,
       validate,
       clearValidate,
+      resolveClassName,
     };
   },
   render() {
     const itemClassees = classes({
-      'bk-form-item': true,
+      [`${this.resolveClassName('form-item')}`]: true,
       'is-error': this.isError,
       'is-required': this.required,
     });
 
     const renderLabel = () => {
       if (this.$slots.label) {
-        return this.$slots.label();
+        return <span>{this.$slots.label()}</span>;
       }
       if (this.description) {
         return (
           <span
             class={{
-              'bk-form-label-description': Boolean(this.description),
+              [`${this.resolveClassName('form-label-description')}`]: Boolean(this.description),
             }}
-            v-bk-tooltips={this.description}>
+            v-bk-tooltips={{
+              content: this.description,
+              extCls: this.resolveClassName('form-label-description-popper'),
+            }}
+          >
             {this.label}
           </span>
         );
       }
-      return this.label;
+      return <span>{this.label}</span>;
     };
 
     const renderError = () => {
@@ -400,36 +403,35 @@ export default defineComponent({
       if (this.errorDisplayType === 'tooltips') {
         return (
           <div
-            class="bk-form-error-tips"
-            v-bk-tooltips={this.errorMessage}>
+            class={`${this.resolveClassName('form-error-tips')}`}
+            v-bk-tooltips={this.errorMessage}
+          >
             <ExclamationCircleShape />
           </div>
         );
       }
       return (
-          <div class="bk-form-error">
-              {this.$slots.error
-                ? this.$slots.error(this.errorMessage)
-                : this.errorMessage}
-              </div>
+        <div class={`${this.resolveClassName('form-error')}`}>
+          {this.$slots.error ? this.$slots.error(this.errorMessage) : this.errorMessage}
+        </div>
       );
     };
 
     return (
       <div class={itemClassees}>
-        {
-          this.isShowLabel && (
-            <div
-              class="bk-form-label"
-              style={this.labelStyles}>
-                {renderLabel()}
-                {this.isFormTypeVertical && this.$slots.labelAppend?.()}
-            </div>
-          )
-        }
+        {this.isShowLabel && (
+          <div
+            style={this.labelStyles}
+            class={`${this.resolveClassName('form-label')}`}
+          >
+            {renderLabel()}
+            {this.isFormTypeVertical && this.$slots.labelAppend?.()}
+          </div>
+        )}
         <div
-          class="bk-form-content"
-          style={this.contentStyles}>
+          style={this.contentStyles}
+          class={`${this.resolveClassName('form-content')}`}
+        >
           {this.$slots.default?.()}
           {renderError()}
         </div>

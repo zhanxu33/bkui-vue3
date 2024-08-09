@@ -22,10 +22,11 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { defineComponent, h } from 'vue';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes } from '@bkui-vue/shared';
 
 export default defineComponent({
@@ -38,10 +39,12 @@ export default defineComponent({
     tpl: {
       type: Function,
     },
+    disabled: PropTypes.bool.def(false),
   },
   render() {
+    const { resolveClassName } = usePrefix();
     const highlightKeyword = (value: string): string => {
-      if (this.searchKeyword) {
+      if (this.searchKeyword && !this.disabled) {
         const keywordReg = new RegExp(`(${this.searchKeyword})`, 'i');
         return value.replace(keywordReg, '<strong class="highlight-text">$1</strong>');
       }
@@ -53,8 +56,13 @@ export default defineComponent({
     }
     const displayText = this.node[this.displayKey];
     return (
-      <div class="bk-selector-node">
-        <span class="text" innerHTML={highlightKeyword(displayText)}>{displayText}</span>
+      <div class={`${resolveClassName('selector-node')}`}>
+        <span
+          class='text'
+          innerHTML={highlightKeyword(displayText)}
+        >
+          {displayText}
+        </span>
       </div>
     );
   },

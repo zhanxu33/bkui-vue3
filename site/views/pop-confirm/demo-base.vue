@@ -1,9 +1,10 @@
 <template>
   <div>
     <bk-pop-confirm
-      title="确认删除该脚本？"
-      content="删除操作无法撤回，请谨慎操作！"
+      ref="popConfirmRef"
       width="288"
+      content="删除操作无法撤回，请谨慎操作！"
+      title="确认删除该脚本？"
       trigger="click"
       @confirm="ensure"
     >
@@ -12,16 +13,19 @@
   </div>
 </template>
 <script>
-  import { defineComponent } from 'vue';
+  import { defineComponent, ref } from 'vue';
 
   export default defineComponent({
     components: {},
     setup() {
+      const popConfirmRef = ref(null);
       function ensure() {
+        console.error(popConfirmRef.value);
         console.log('ensure');
       }
       return {
         ensure,
+        popConfirmRef,
       };
     },
   });

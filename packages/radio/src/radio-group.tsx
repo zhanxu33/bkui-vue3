@@ -22,22 +22,27 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import type { ExtractPropTypes } from 'vue';
 import { defineComponent, onMounted, provide, watch } from 'vue';
+import { func } from 'vue-types';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { PropTypes, useFormItem } from '@bkui-vue/shared';
 
 import { radioGroupKey } from './common';
+
 import type { IRadioGroupContext } from './type';
+import type { ExtractPropTypes } from 'vue';
 
 const radioGroupProps = {
   name: PropTypes.string.def(''),
-  modelValue: PropTypes.oneOfType([String, Number, Boolean]),
+  modelValue: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.number]),
   disabled: PropTypes.bool,
   withValidate: PropTypes.bool.def(true),
-  type: PropTypes.oneOf(['tab', 'capsule']).def('tab'),
+  type: PropTypes.oneOf(['tab', 'capsule', 'card']).def('tab'),
+  size: PropTypes.size(),
+  beforeChange: func<(event: boolean | number | string) => Promise<boolean> | boolean>().def(() => true),
 };
 
 export type RadioGroupProps = Readonly<ExtractPropTypes<typeof radioGroupProps>>;
@@ -45,27 +50,26 @@ export type RadioGroupProps = Readonly<ExtractPropTypes<typeof radioGroupProps>>
 export default defineComponent({
   name: 'RadioGroup',
   props: radioGroupProps,
-  emits: [
-    'change',
-    'update:modelValue',
-  ],
+  emits: {
+    'update:modelValue': (value: any) => value !== undefined,
+    change: (value: any) => value !== undefined,
+  },
   setup(props, context) {
     const formItem = useFormItem();
     const radioInstanceList = [];
-    const register: IRadioGroupContext['register'] = (radioContext) => {
+    const register: IRadioGroupContext['register'] = radioContext => {
       radioInstanceList.push(radioContext);
     };
-    const unregister: IRadioGroupContext['unregister'] = (radioContext) => {
+    const unregister: IRadioGroupContext['unregister'] = radioContext => {
       const index = radioInstanceList.indexOf(radioContext);
       if (index > -1) {
         radioInstanceList.splice(index, 1);
       }
     };
 
-    const handleChange: IRadioGroupContext['handleChange'] = (checkedRadioInstance) => {
+    const handleChange: IRadioGroupContext['handleChange'] = checkedRadioInstance => {
       const nextValue = checkedRadioInstance.label;
-
-      radioInstanceList.forEach((radioInstance) => {
+      radioInstanceList.forEach(radioInstance => {
         if (radioInstance !== checkedRadioInstance) {
           radioInstance.setChecked(false);
         }
@@ -82,26 +86,33 @@ export default defineComponent({
       handleChange,
     });
 
-    watch(() => props.modelValue, () => {
-      if (props.withValidate) {
-        formItem?.validate?.('change');
-      }
-    });
+    watch(
+      () => props.modelValue,
+      () => {
+        if (props.withValidate) {
+          formItem?.validate?.('change');
+        }
+      },
+    );
 
     onMounted(() => {
       if (props.modelValue === '') {
         return;
       }
-      radioInstanceList.forEach((radioInstance) => {
+      radioInstanceList.forEach(radioInstance => {
         radioInstance.setChecked(radioInstance.label === props.modelValue);
       });
     });
 
-    return {};
+    const { resolveClassName } = usePrefix();
+
+    return {
+      resolveClassName,
+    };
   },
   render() {
     return (
-      <div class={['bk-radio-group', `bk-radio-${this.type}`]}>
+      <div class={[`${this.resolveClassName('radio-group')}`, `${this.resolveClassName(`radio-${this.type}`)}`]}>
         {this.$slots?.default()}
       </div>
     );

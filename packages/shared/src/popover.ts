@@ -22,9 +22,7 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
-
-import { v4 as uuidv4 } from 'uuid';
+ */
 
 import {
   createPopper,
@@ -35,6 +33,7 @@ import {
   State,
   VirtualElement,
 } from '@popperjs/core';
+import { v4 as uuidv4 } from 'uuid';
 
 import { isElement, merge } from './helper';
 
@@ -49,7 +48,7 @@ export declare type IOptions = {
   theme?: string;
   trigger?: string;
   disabled?: boolean;
-  appendTo?: string | HTMLElement;
+  appendTo?: HTMLElement | string;
   afterShow?: () => void;
   afterHidden?: () => void;
   /**
@@ -57,7 +56,7 @@ export declare type IOptions = {
    * 是否将弹出内容固定到目标元素位置
    * 例如：appendTo = document.body, fixOnBoundary = true，则弹出内容会一直固定到body
    */
-  fixOnBoundary?: Boolean
+  fixOnBoundary?: boolean;
 };
 
 export declare type IBKPopover = Instance & {
@@ -102,13 +101,13 @@ export class BKPopover {
   private disabled = false;
 
   /** 执行显示函数 */
-  private afterShow: void | any = null;
+  private afterShow: any | void = null;
 
   /** 执行隐藏函数 */
-  private afterHidden: void | any = null;
+  private afterHidden: any | void = null;
 
   /** 弹出内容AppendTo */
-  private appendTo: string | HTMLElement = 'parent';
+  private appendTo: HTMLElement | string = 'parent';
 
   /** 父级容器 */
   private container?: HTMLElement = null;
@@ -118,9 +117,9 @@ export class BKPopover {
    * 是否将弹出内容固定到目标元素位置
    * 例如：appendTo = document.body, fixOnBoundary = true，则弹出内容会一直固定到body
    */
-  private fixOnBoundary: Boolean = false;
+  private fixOnBoundary = false;
 
-  constructor(reference?: string | HTMLElement, popperRefer?: string | HTMLElement, options?: IOptions) {
+  constructor(reference?: HTMLElement | string, popperRefer?: HTMLElement | string, options?: IOptions) {
     this.instanceOptions = this.initDefaultOptions(options);
     this.reference = this.resolveInputSelectorToHtmlElement(reference);
     this.popperRefer = this.resolveInputSelectorToHtmlElement(popperRefer);
@@ -131,8 +130,8 @@ export class BKPopover {
     this.trigger = this.instanceOptions.trigger;
     this.disabled = this.instanceOptions.disabled;
     this.appendTo = this.instanceOptions.appendTo;
-    this.afterHidden = typeof options.afterHidden === 'function' ? options.afterHidden : () => { };
-    this.afterShow = typeof options.afterShow === 'function' ? options.afterShow : () => { };
+    this.afterHidden = typeof options.afterHidden === 'function' ? options.afterHidden : () => {};
+    this.afterShow = typeof options.afterShow === 'function' ? options.afterShow : () => {};
     this.fixOnBoundary = this.instanceOptions.fixOnBoundary;
     this.initInstance();
     this.registerEvents();
@@ -234,10 +233,12 @@ export class BKPopover {
    */
   private restorePopContent() {
     const target = this.getAppendToTarget();
-    if (isElement(target)
-      && (target as HTMLElement).contains(this.popperRefer)
-      && this.container
-      && !this.container.contains(this.popperRefer)) {
+    if (
+      isElement(target) &&
+      (target as HTMLElement).contains(this.popperRefer) &&
+      this.container &&
+      !this.container.contains(this.popperRefer)
+    ) {
       this.container.append(this.popperRefer);
     }
   }
@@ -258,7 +259,7 @@ export class BKPopover {
    */
   private getAppendToTarget() {
     const { appendTo } = this;
-    let target: string | HTMLElement = appendTo;
+    let target: HTMLElement | string = appendTo;
     if (appendTo !== 'parent') {
       if (typeof appendTo === 'string') {
         target = document.querySelector(appendTo) as HTMLElement;
@@ -304,8 +305,8 @@ export class BKPopover {
   }
 
   /**
- * 判定是否需要将PopContent挂载到目标元素
- */
+   * 判定是否需要将PopContent挂载到目标元素
+   */
   private handleFirstUpdate() {
     if (this.fixOnBoundary) {
       this.appendToTarget();
@@ -351,7 +352,7 @@ export class BKPopover {
    * @param checkVirtualDom 是否检查虚拟DOM
    * @returns Html Element Or Null
    */
-  private resolveInputSelectorToHtmlElement(refer?: string | HTMLElement) {
+  private resolveInputSelectorToHtmlElement(refer?: HTMLElement | string) {
     if (this.isElement(refer)) {
       return refer as HTMLElement;
     }
@@ -365,7 +366,7 @@ export class BKPopover {
         return refer;
       }
     } else {
-      console.error('\'getBoundingClientRect\' is needed when use virtual elements');
+      console.error("'getBoundingClientRect' is needed when use virtual elements");
     }
 
     return null;
@@ -386,14 +387,14 @@ export class BKPopover {
         const showEvents = ['mouseenter', 'focus'];
         const hideEvents = ['mouseleave', 'blur'];
         const contentEvents = ['mouseenter', 'mouseleave'];
-        showEvents.forEach((event) => {
-          (this.referenceTarget as HTMLElement).addEventListener(event, (evt) => {
+        showEvents.forEach(event => {
+          (this.referenceTarget as HTMLElement).addEventListener(event, evt => {
             if (event === 'mouseenter') this.isInnerPopper = true;
             this.show(evt);
           });
         });
 
-        hideEvents.forEach((event) => {
+        hideEvents.forEach(event => {
           (this.referenceTarget as HTMLElement).addEventListener(event, () => {
             this.isInnerPopper = false;
             setTimeout(() => {
@@ -403,7 +404,7 @@ export class BKPopover {
         });
 
         if (this.isElement(this.popperRefer)) {
-          contentEvents.forEach((event) => {
+          contentEvents.forEach(event => {
             (this.popperRefer as HTMLElement).addEventListener(event, () => {
               if (event === 'mouseenter') this.isInnerPopper = true;
               if (event === 'mouseleave') this.hide();
@@ -415,17 +416,18 @@ export class BKPopover {
 
     if (this.trigger === 'click') {
       const showEvents = ['click'];
-      showEvents.forEach((event) => {
-        (document.body as HTMLElement).addEventListener(event, (event) => {
+      showEvents.forEach(event => {
+        (document.body as HTMLElement).addEventListener(event, event => {
           if (
-            this.isSameElement(event.target as HTMLElement, this.reference)
-            || (this.reference as HTMLElement).contains(event.target as HTMLElement)
+            this.isSameElement(event.target as HTMLElement, this.reference) ||
+            (this.reference as HTMLElement).contains(event.target as HTMLElement)
           ) {
             this.show(event);
           } else {
-            if (this.isShow
-              && !this.isSameElement(event.target as HTMLElement, this.popperRefer)
-              && !(this.popperRefer as HTMLElement).contains(event.target as HTMLElement)
+            if (
+              this.isShow &&
+              !this.isSameElement(event.target as HTMLElement, this.popperRefer) &&
+              !(this.popperRefer as HTMLElement).contains(event.target as HTMLElement)
             ) {
               this.hide();
             }

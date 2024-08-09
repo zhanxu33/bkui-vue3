@@ -22,12 +22,12 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import ResizeObserver from 'resize-observer-polyfill';
 import { nextTick } from 'vue';
 
 import { mount } from '@vue/test-utils';
+import ResizeObserver from 'resize-observer-polyfill';
 
 import BkSelect from '../src';
 import BkOption from '../src/option';
@@ -78,10 +78,10 @@ describe('Select.tsx', () => {
       template: `
       <BkSelect v-model="value">
         <BkOption value="test" label="label1"></BkOption>
-        <BkOption :value="false" label="label2" disabled></BkOption>
-        <BkOption :value="undefined" label="label3"></BkOption>
-        <BkOption :value="1" label="label4"></BkOption>
-        <BkOption :value="null" label="label5"></BkOption>
+        <BkOption :id="false" label="label2" disabled></BkOption>
+        <BkOption :id="undefined" label="label3"></BkOption>
+        <BkOption :id="1" label="label4"></BkOption>
+        <BkOption :id="null" label="label5"></BkOption>
       </BkSelect>`,
       data() {
         return {
@@ -110,8 +110,8 @@ describe('Select.tsx', () => {
       <BkSelect v-model="this.selectValue" multiple>
         <BkOption v-for="item in options"
           :key="item.value"
-          :value="item.value"
-          :label="item.label"
+          :id="item.value"
+          :name="item.label"
           :disabled="item.disabled">
         </BkOption>
       </BkSelect>`,
@@ -128,7 +128,7 @@ describe('Select.tsx', () => {
               disabled: true,
             },
             {
-              value: undefined,
+              value: { a: 1 },
               label: '标签3',
             },
             {
@@ -144,7 +144,7 @@ describe('Select.tsx', () => {
     for (const item of optionInstances) {
       await item.trigger('click');
     }
-    expect(wrapper.vm.selectValue).toEqual([1, undefined, null]);
+    expect(wrapper.vm.selectValue).toEqual([1, { a: 1 }, null]);
     wrapper.unmount();
   });
 
@@ -157,7 +157,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -194,10 +194,10 @@ describe('Select.tsx', () => {
           <BkSelect v-model="this.selectValue" :filterable="false" multiple>
             <BkOptionGroup label="分组1">
               <BkOption value="test" label="label1"></BkOption>
-              <BkOption :value="false" label="label2"></BkOption>
-              <BkOption :value="undefined" label="label3"></BkOption>
-              <BkOption :value="1" label="label4">测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label</BkOption>
-              <BkOption :value="null" label="label5"></BkOption>
+              <BkOption :id="false" label="label2"></BkOption>
+              <BkOption :id="undefined" label="label3"></BkOption>
+              <BkOption :id="1" label="label4">测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label测试label</BkOption>
+              <BkOption :id="null" label="label5"></BkOption>
             </BkOptionGroup>
             <BkOptionGroup label="分组2">
               <BkOption value="test" label="label6"></BkOption>
@@ -217,7 +217,7 @@ describe('Select.tsx', () => {
     await wrapper.findComponent({ name: 'Option' }).trigger('click');
     expect(wrapper.findAllComponents('.is-selected.bk-select-option')).toHaveLength(2);
     expect(wrapper.vm.selectValue).toEqual(['test']);
-    const option =  wrapper.findAllComponents({ name: 'Option' })[5];
+    const option = wrapper.findAllComponents({ name: 'Option' })[5];
     await option.trigger('click');
     expect(wrapper.vm.selectValue).toHaveLength(0);
     wrapper.unmount();
@@ -251,7 +251,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect :model-value="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -283,7 +283,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect :model-value="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -315,7 +315,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue" multiple multiple-mode="tag">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -334,7 +334,7 @@ describe('Select.tsx', () => {
         };
       },
     });
-    const tags = wrapper.findAllComponents('.bk-tag');
+    const tags = wrapper.findAllComponents('.bk-tag').filter(com => com.isVisible());
     expect(tags).toHaveLength(2);
     tags[0].find('.bk-tag-close').trigger('click');
     expect(wrapper.vm.seletValue).toEqual([2]);
@@ -342,15 +342,15 @@ describe('Select.tsx', () => {
   });
 
   // 搜索功能
-  test('select search', (done) => {
+  test('select search', done => {
     const wrapper = mount({
       components: {
         BkSelect,
         BkOption,
       },
       template: `
-        <BkSelect v-model="seletValue" filterable>
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+        <BkSelect v-model="seletValue" input-search filterable>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -381,7 +381,7 @@ describe('Select.tsx', () => {
     input.setValue('test2');
     const select = wrapper.findComponent(BkSelect);
     setTimeout(() => {
-      expect(select.vm.searchKey).toBe('test2');
+      expect(select.vm.curSearchValue).toBe('test2');
       expect(wrapper.findAllComponents({ name: 'Option' }).filter(com => com.vm.visible).length).toBe(2);
       wrapper.unmount();
       done();
@@ -389,15 +389,15 @@ describe('Select.tsx', () => {
   });
 
   // 下拉框搜索测试
-  test('select input search', (done) => {
+  test('select input search', done => {
     const wrapper = mount({
       components: {
         BkSelect,
         BkOption,
       },
       template: `
-        <BkSelect v-model="seletValue" :input-search="false" multiple filterable multiple-mode="tag">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+        <BkSelect v-model="seletValue" multiple filterable multiple-mode="tag">
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -428,7 +428,7 @@ describe('Select.tsx', () => {
     input.setValue('test4');
     const select = wrapper.findComponent(BkSelect);
     setTimeout(() => {
-      expect(select.vm.searchKey).toBe('test4');
+      expect(select.vm.searchValue).toBe('test4');
       expect(wrapper.findAllComponents({ name: 'Option' }).filter(com => com.vm.visible).length).toBe(1);
       wrapper.unmount();
       done();
@@ -440,8 +440,7 @@ describe('Select.tsx', () => {
     const wrapper = await mount(BkSelect, {
       props: {
         enableVirtualRender: true,
-        list: new Array(1000000).fill('')
-          .map((_, index) => ({ value: index, label: `测试数据${index}` })),
+        list: new Array(1000000).fill('').map((_, index) => ({ value: index, label: `测试数据${index}` })),
       },
     });
     expect(wrapper.findAllComponents(BkOption).length).toBeLessThan(10);
@@ -457,7 +456,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue" disabled multiple multiple-mode="tag">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -493,7 +492,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue" disabled>
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -531,7 +530,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -565,7 +564,7 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
@@ -600,12 +599,12 @@ describe('Select.tsx', () => {
       },
       template: `
         <BkSelect v-model="seletValue">
-          <BkOption v-for="item in options" :value="item.value" :label="item.label"></BkOption>
+          <BkOption v-for="item in options" :id="item.value" :name="item.label"></BkOption>
         </BkSelect>
       `,
       data() {
         return {
-          seletValue: { b: 456 },
+          seletValue: { d: 'xxxx' },
           options: [
             {
               value: { a: 123 },
@@ -624,7 +623,7 @@ describe('Select.tsx', () => {
               label: 'test4',
             },
             {
-              value: 1,
+              value: { d: 'xxxx' },
               label: 'test5',
             },
           ],
@@ -632,9 +631,10 @@ describe('Select.tsx', () => {
       },
     });
     const options = wrapper.findAllComponents({ name: 'Option' });
+    expect(options[4].vm.selected).toBe(true);
     await options[1].trigger('click');
     await nextTick();
-    expect(wrapper.vm.seletValue).toBe({ b: 456 });
+    expect(wrapper.vm.seletValue).toEqual({ b: 456 });
     expect((wrapper.find('.bk-input--text').element as any).value).toBe('testObject');
     wrapper.unmount();
   });

@@ -22,29 +22,17 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { debounce } from 'lodash';
-import {
-  type Ref,
-  computed,
-  defineComponent,
-  nextTick,
-  onMounted,
-  reactive,
-  ref,
-  toRefs,
-  watch,
-} from 'vue';
+import { computed, defineComponent, nextTick, onMounted, reactive, type Ref, ref, toRefs, watch } from 'vue';
 
-import { useLocale } from '@bkui-vue/config-provider';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { bkTooltips } from '@bkui-vue/directives';
 import { Close, Error } from '@bkui-vue/icon';
-import BkLoading, { BkLoadingSize } from '@bkui-vue/loading';
-import BKPopover from '@bkui-vue/popover';
-import {
-  useFormItem,
-} from '@bkui-vue/shared';
+import Loading, { BkLoadingSize } from '@bkui-vue/loading';
+import Popover from '@bkui-vue/popover';
+import { useFormItem } from '@bkui-vue/shared';
+import debounce from 'lodash/debounce';
 
 import { getCharLength, INPUT_MIN_WIDTH, useFlatList, usePage, useTagsOverflow } from './common';
 import ListTagRender from './list-tag-render';
@@ -57,16 +45,7 @@ export default defineComponent({
     bkTooltips,
   },
   props: tagProps(),
-  emits: [
-    'update:modelValue',
-    'change',
-    'select',
-    'focus',
-    'blur',
-    'remove',
-    'removeAll',
-    'input',
-  ],
+  emits: ['update:modelValue', 'change', 'select', 'focus', 'blur', 'remove', 'removeAll', 'input'],
   setup(props, { emit }) {
     const formItem = useFormItem();
     const t = useLocale('tagInput');
@@ -87,6 +66,8 @@ export default defineComponent({
       ...props.popoverProps,
     });
 
+    const { resolveClassName } = usePrefix();
+
     // 分页处理
     const { maxResult } = toRefs(props);
     const { pageState, initPage, pageChange } = usePage(maxResult);
@@ -103,9 +84,9 @@ export default defineComponent({
     // 是否单选
     const isSingleSelect = computed(() => props.maxData === 1);
     // 是否展示placeholder
-    const isShowPlaceholder = computed(() => (
-      listState.selectedTagList.length === 0 && curInputValue.value === '' && !state.isEdit
-    ));
+    const isShowPlaceholder = computed(
+      () => listState.selectedTagList.length === 0 && curInputValue.value === '' && !state.isEdit,
+    );
     const placeholderText = computed(() => props.placeholder || t.value.placeholder);
     // 是否展示清空Icon
     /**
@@ -115,12 +96,15 @@ export default defineComponent({
      * 3. tag标签为空时
      * 4. 设置了showClearOnlyHover，且没有hover的时候
      */
-    const isShowClear = computed(() => props.clearable
-        && !props.disabled
-        && listState.selectedTagList.length !== 0
-        && (props.showClearOnlyHover ? state.isHover : true));
+    const isShowClear = computed(
+      () =>
+        props.clearable &&
+        !props.disabled &&
+        listState.selectedTagList.length !== 0 &&
+        (props.showClearOnlyHover ? state.isHover : true),
+    );
     const triggerClass = computed(() => ({
-      'bk-tag-input-trigger': true,
+      [`${resolveClassName('tag-input-trigger')}`]: true,
       active: state.isEdit,
       disabled: props.disabled,
     }));
@@ -155,49 +139,62 @@ export default defineComponent({
       return pageState.curPageList;
     });
 
-    watch([() => flatList.value], () => {
-      nextTick(() => {
-        initData();
-      });
-    }, { deep: true });
-
-    watch(() => props.modelValue, (val) => {
-      if (!shallowCompareArray(tagList.value, val)) {
+    watch(
+      [() => flatList.value],
+      () => {
         nextTick(() => {
           initData();
         });
-        if (props.withValidate) {
-          formItem?.validate?.('change');
-        }
-      }
-    });
+      },
+      { deep: true },
+    );
 
-    watch(curInputValue, debounce(() => {
-      const hasShowCount = pageState.curPageList.length !== 0;
-      const { value } = curInputValue;
-      /**
-       * 1. value !== '' && hasShowCount => search value list.
-       * 2. value === '' && props.trigger === 'focus' && hasShowCount => trigger is focus and show all list.
-       */
-      if ((value !== '' && hasShowCount) || (value === '' && props.trigger === 'focus' && hasShowCount)) {
-        popoverProps.isShow = true;
-      } else if (props.trigger !== 'focus' || !hasShowCount) {
-        popoverProps.isShow = false;
-      }
-    }, 150));
-
-    watch(() => popoverProps.isShow, (show: boolean) => {
-      changePopoverOffset();
-      if (show) {
-        if (selectorListRef.value) {
+    watch(
+      () => props.modelValue,
+      val => {
+        if (!shallowCompareArray(tagList.value, val)) {
           nextTick(() => {
-            selectorListRef.value.scrollTop = 0;
+            initData();
           });
-          selectorListRef.value.removeEventListener('scroll', scrollHandler);
-          selectorListRef.value.addEventListener('scroll', scrollHandler);
+          if (props.withValidate) {
+            formItem?.validate?.('change');
+          }
         }
-      }
-    });
+      },
+    );
+
+    watch(
+      curInputValue,
+      debounce(() => {
+        const hasShowCount = pageState.curPageList.length !== 0;
+        const { value } = curInputValue;
+        /**
+         * 1. value !== '' && hasShowCount => search value list.
+         * 2. value === '' && props.trigger === 'focus' && hasShowCount => trigger is focus and show all list.
+         */
+        if ((value !== '' && hasShowCount) || (value === '' && props.trigger === 'focus' && hasShowCount)) {
+          popoverProps.isShow = true;
+        } else if (props.trigger !== 'focus' || !hasShowCount) {
+          popoverProps.isShow = false;
+        }
+      }, 150),
+    );
+
+    watch(
+      () => popoverProps.isShow,
+      (show: boolean) => {
+        changePopoverOffset();
+        if (show) {
+          if (selectorListRef.value) {
+            nextTick(() => {
+              selectorListRef.value.scrollTop = 0;
+            });
+            selectorListRef.value.removeEventListener('scroll', scrollHandler);
+            selectorListRef.value.addEventListener('scroll', scrollHandler);
+          }
+        }
+      },
+    );
 
     onMounted(() => {
       initData();
@@ -211,11 +208,7 @@ export default defineComponent({
       if (pageState.isPageLoading || selectorListRef.value.scrollTop === 0) {
         return;
       }
-      const {
-        scrollTop,
-        offsetHeight,
-        scrollHeight,
-      } = selectorListRef.value;
+      const { scrollTop, offsetHeight, scrollHeight } = selectorListRef.value;
       if (scrollTop + offsetHeight >= scrollHeight) {
         const curPage = pageState.curPage + 1;
         if (curPage <= pageState.totalPage) {
@@ -230,7 +223,9 @@ export default defineComponent({
     // 获取选中元素节点
     const getSelectedTagNodes = (): HTMLElement[] => {
       const nodes = Array.from(tagListRef.value?.childNodes || []) as HTMLElement[];
-      return nodes.filter((node: HTMLElement) => ![Node.TEXT_NODE, Node.COMMENT_NODE].includes(node.nodeType));
+      return nodes.filter(
+        (node: HTMLElement) => ![Node.TEXT_NODE as number, Node.COMMENT_NODE as number].includes(node.nodeType),
+      );
     };
 
     /**
@@ -242,7 +237,7 @@ export default defineComponent({
 
       if (e?.target) {
         const { className } = e.target as HTMLElement;
-        if ((className.indexOf('bk-tag-input-trigger') > -1) || (className.indexOf('tag-list') > -1)) {
+        if (className.indexOf(`${resolveClassName('tag-input-trigger')}`) > -1 || className.indexOf('tag-list') > -1) {
           // 如果没点在节点上，重置input位置（在最后插入input）
           tagListRef.value.appendChild(tagInputItemRef.value);
         }
@@ -263,7 +258,7 @@ export default defineComponent({
 
       state.isEdit = true;
 
-      nextTick(() => {
+      setTimeout(() => {
         tagInputRef.value?.focus();
         if (props.trigger === 'focus' && listState.localList.length !== 0) {
           filterData();
@@ -273,39 +268,42 @@ export default defineComponent({
             popoverProps.isShow = true;
           }
         }
-      });
+      }, 200);
     };
 
     /**
      * 初始化列表数据
      */
     const initData = () => {
-      const {
-        saveKey,
-        modelValue,
-        displayKey,
-        allowCreate,
-        trigger,
-      } = props;
+      const { saveKey, modelValue, displayKey, allowCreate, trigger, isAsyncList } = props;
       listState.selectedTagList = [];
       listState.localList = flatList.value;
 
-
       if (modelValue.length) {
         const modelValueMap = {};
-        listState.selectedTagList = modelValue.map((tag) => {
-          const item = saveKeyMap.value[tag];
-          modelValueMap[tag] = 1;
-          if (!item && allowCreate) {
-            return { [saveKey]: tag, [displayKey]: tag };
-          }
-          return item;
-        }).filter(item => item);
+        listState.selectedTagList = modelValue
+          .map(tag => {
+            const item = saveKeyMap.value[tag];
+            modelValueMap[tag] = 1;
+            if (!item && allowCreate) {
+              return { [saveKey]: tag, [displayKey]: tag };
+            }
+            return item;
+          })
+          .filter(item => item);
 
         // 如果不是单选时，需要将已选的过滤掉
         if (!isSingleSelect.value) {
           listState.localList = listState.localList.filter(val => !modelValueMap[val[saveKey]]);
         }
+      }
+
+      if (isAsyncList && curInputValue.value) {
+        filterData(curInputValue.value);
+        if (pageState.curPageList.length) {
+          popoverProps.isShow = true;
+        }
+        return;
       }
 
       // 如果需要首次展示列表，先初始化
@@ -316,10 +314,7 @@ export default defineComponent({
 
     // 过滤数据
     const filterData = (value = '') => {
-      const {
-        searchKey,
-        filterCallback,
-      } = props;
+      const { searchKey, filterCallback } = props;
       const lowerCaseValue = value.toLowerCase().trim();
       if (lowerCaseValue === '') {
         initPage(listState.localList);
@@ -333,8 +328,9 @@ export default defineComponent({
         if (Array.isArray(searchKey)) {
           // 数组，过滤多个关键字
 
-          filterData = listState.localList
-            .filter(item => searchKey.some(keyword => item[keyword].toLowerCase().indexOf(lowerCaseValue) > -1));
+          filterData = listState.localList.filter(item =>
+            searchKey.some(keyword => item[keyword].toLowerCase().indexOf(lowerCaseValue) > -1),
+          );
         } else {
           filterData = listState.localList.filter(item => item[searchKey].toLowerCase().indexOf(lowerCaseValue) > -1);
         }
@@ -344,13 +340,13 @@ export default defineComponent({
 
     const activeClass = (data, index: number) => {
       const style = {
-        'bk-selector-actived': false,
-        'bk-selector-selected': tagList.value.includes(data[props.saveKey]),
+        [`${resolveClassName('selector-actived')}`]: true,
+        [`${resolveClassName('selector-selected')}`]: tagList.value.includes(data[props.saveKey]),
       };
       if (props.useGroup) {
-        style['bk-selector-actived'] = data.__index__ === state.focusItemIndex;
+        style[`${resolveClassName('selector-actived')}`] = data.__index__ === state.focusItemIndex;
       } else {
-        style['bk-selector-actived'] = index === state.focusItemIndex;
+        style[`${resolveClassName('selector-actived')}`] = index === state.focusItemIndex;
       }
 
       return style;
@@ -398,11 +394,7 @@ export default defineComponent({
     };
 
     const handleInput = (e?: Event) => {
-      const {
-        maxData,
-        trigger,
-        allowCreate,
-      } = props;
+      const { maxData, trigger, allowCreate } = props;
       if (maxData === -1 || maxData > tagList.value.length) {
         const { value } = e?.target ? (e.target as HTMLInputElement) : curInputValue;
         const charLen = getCharLength(value);
@@ -442,23 +434,25 @@ export default defineComponent({
         // this.dispatch('bk-form-item', 'form-blur')
         state.isEdit = false;
 
-        if (isSingleSelect.value) {
-          const [oldValue] = listState.tagListCache;
-          // 如果是单选，且input不为空，即保留了上次的结果则恢复
-          if (inputValue && inputValue === oldValue && listState.selectedTagListCache.length) {
-            addTag(listState.selectedTagListCache[0], 'select');
-          } else {
-            handleChange('remove');
+        if (props.allowAutoMatch && inputValue) {
+          if (isSingleSelect.value) {
+            const [oldValue] = listState.tagListCache;
+            // 如果是单选，且input不为空，即保留了上次的结果则恢复
+            if (inputValue === oldValue && listState.selectedTagListCache.length) {
+              addTag(listState.selectedTagListCache[0], 'select');
+            } else {
+              handleChange('remove');
+            }
           }
-        } else if (props.allowAutoMatch && inputValue) {
           // 如果匹配，则自动选则
-          const matchItem = pageState.curPageList.find((item) => {
+          const matchItem = pageState.curPageList.find(item => {
             if (Array.isArray(props.searchKey)) {
               const searchValue = props.searchKey.map((key: string) => item[key]);
               return searchValue.includes(inputValue);
             }
             return item[props.searchKey] === inputValue;
           });
+
           if (matchItem) {
             handleTagSelected(matchItem, 'select');
           } else if (props.allowCreate) {
@@ -466,6 +460,7 @@ export default defineComponent({
             handleTagSelected(inputValue, 'custom');
           }
         }
+
         popoverProps.isShow = false;
         emit('blur', inputValue, tagList.value);
         formItem?.validate?.('blur');
@@ -529,7 +524,7 @@ export default defineComponent({
 
       // 将删除的项加入加列表
       const existList = removeList.filter(item => saveKeyMap.value[item[props.saveKey]]);
-      if (((props.allowCreate && (existList.length !== 0)) || !props.allowCreate) && !isSingleSelect.value) {
+      if (((props.allowCreate && existList.length !== 0) || !props.allowCreate) && !isSingleSelect.value) {
         listState.localList.push(...existList);
       }
       handleChange('removeAll');
@@ -543,7 +538,7 @@ export default defineComponent({
       };
 
       nextTick(() => {
-        const activeObj = selectorListRef.value.querySelector('.bk-selector-actived');
+        const activeObj = selectorListRef.value.querySelector(`.${resolveClassName('selector-actived')}`);
         if (!activeObj) {
           return;
         }
@@ -614,9 +609,10 @@ export default defineComponent({
             return;
           }
           state.focusItemIndex = state.focusItemIndex + 1;
-          state.focusItemIndex = state.focusItemIndex > pageState.curPageList.length - 1
-            ? pageState.curPageList.length
-            : state.focusItemIndex;
+          state.focusItemIndex =
+            state.focusItemIndex > pageState.curPageList.length - 1
+              ? pageState.curPageList.length
+              : state.focusItemIndex;
           if (state.focusItemIndex === pageState.curPageList.length) {
             state.focusItemIndex = 0;
           }
@@ -646,8 +642,9 @@ export default defineComponent({
           break;
         case 'Enter':
         case 'NumpadEnter':
-          if ((!props.allowCreate && popoverProps.isShow)
-            || (props.allowCreate && state.focusItemIndex >= 0 && popoverProps.isShow)
+          if (
+            (!props.allowCreate && popoverProps.isShow) ||
+            (props.allowCreate && state.focusItemIndex >= 0 && popoverProps.isShow)
           ) {
             handleTagSelected(pageState.curPageList[state.focusItemIndex], 'select', e);
           } else if (props.allowCreate && curInputValue.value.trim()) {
@@ -672,7 +669,7 @@ export default defineComponent({
       const textArr = value.split(';');
       const regx = /^[a-zA-Z][a-zA-Z_]*/g;
 
-      textArr.forEach((item) => {
+      textArr.forEach(item => {
         const matchValue = item.match(regx);
         if (matchValue) {
           const finalItem = matchValue.join('');
@@ -690,13 +687,7 @@ export default defineComponent({
         return false;
       }
 
-      const {
-        maxData,
-        saveKey,
-        displayKey,
-        pasteFn,
-        allowCreate,
-      } = props;
+      const { maxData, saveKey, displayKey, pasteFn, allowCreate } = props;
       const value = e.clipboardData.getData('text');
       const valArr = pasteFn ? pasteFn(value) : defaultPasteFn(value);
       let tags = valArr.map((value: string) => value[saveKey]);
@@ -705,7 +696,7 @@ export default defineComponent({
         const index = getTagInputItemSite();
         const localInitData = listState.localList.map(data => data[saveKey]);
 
-        tags = tags.filter((tag) => {
+        tags = tags.filter(tag => {
           const canSelected = tag?.trim() && !tagList.value.includes(tag);
 
           return allowCreate ? canSelected : canSelected && localInitData.includes(tag);
@@ -716,17 +707,17 @@ export default defineComponent({
           if (selectedLength < maxData) {
             const differ = maxData - selectedLength;
             if (tags.length > differ) {
-              tags = [...tags.slice(0, (differ))];
+              tags = [...tags.slice(0, differ)];
             }
           } else {
             tags = [];
           }
         }
         const localTags = allowCreate
-          ? tags.map((tag) => {
-            const localTag = listState.localList.find(localTag => localTag[saveKey] === tag);
-            return localTag ?? { [saveKey]: tag, [displayKey]: tag };
-          })
+          ? tags.map(tag => {
+              const localTag = listState.localList.find(localTag => localTag[saveKey] === tag);
+              return localTag ?? { [saveKey]: tag, [displayKey]: tag };
+            })
           : listState.localList.filter(tag => tags.includes(tag[saveKey]));
 
         if (tags.length) {
@@ -749,7 +740,7 @@ export default defineComponent({
       if (props.disabled) {
         return;
       }
-      swapElementPositions(tagInputItemRef.value, (e.currentTarget as HTMLElement), true);
+      swapElementPositions(tagInputItemRef.value, e.currentTarget as HTMLElement, true);
       tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
       popoverProps.isShow && changePopoverOffset();
     };
@@ -763,12 +754,7 @@ export default defineComponent({
       // 不允许超过最大可选数量
       if (listState.selectedTagList.length >= props.maxData && props.maxData !== -1) return;
 
-      const {
-        separator,
-        saveKey,
-        displayKey,
-        createTagValidator,
-      } = props;
+      const { separator, saveKey, displayKey, createTagValidator } = props;
       const targetIndex = getTagInputItemSite();
       let moveCount = 1;
       let isSelected = false;
@@ -786,10 +772,13 @@ export default defineComponent({
         if (separator) {
           let tags = item.split(separator);
           tags = tags.filter(tag => tag?.trim() && !tagList.value.includes(tag) && validateTag(tag));
-          const localTags = tags.map(tag => saveKeyMap.value[tag] || {
-            [saveKey]: tag,
-            [displayKey]: tag,
-          });
+          const localTags = tags.map(
+            tag =>
+              saveKeyMap.value[tag] || {
+                [saveKey]: tag,
+                [displayKey]: tag,
+              },
+          );
           if (tags.length) {
             listState.selectedTagList.splice(targetIndex, 0, ...localTags);
             moveCount = localTags.length;
@@ -800,8 +789,8 @@ export default defineComponent({
           newValue = isObject ? item[saveKey] : item.trim();
           newValue = newValue.replace(/\s+/g, '');
           if (newValue !== undefined && !tagList.value.includes(newValue) && validateTag(newValue)) {
-            const localItem = saveKeyMap.value[newValue]
-              || (isObject ? item : { [saveKey]: newValue, [displayKey]: newValue });
+            const localItem =
+              saveKeyMap.value[newValue] || (isObject ? item : { [saveKey]: newValue, [displayKey]: newValue });
             listState.selectedTagList.splice(targetIndex, 0, localItem);
             isSelected = true;
           }
@@ -854,12 +843,20 @@ export default defineComponent({
       }
     };
     // 折叠 tags index
-    const localCollapseTags = computed(() => (
-      props.collapseTags
-        ? props.collapseTags && !state.isEdit
-        : props.collapseTags
-    ));
+    const localCollapseTags = computed(() =>
+      props.collapseTags ? props.collapseTags && !state.isEdit : props.collapseTags,
+    );
     const { overflowTagIndex } = useTagsOverflow(bkTagSelectorRef, localCollapseTags, tagList);
+
+    // 根据 overflowTagIndex 获取需要收起的tag，并生成 tooltip
+    const collapseTooltip = computed(() =>
+      listState.selectedTagList.reduce((acc, cur, curIndex) => {
+        if (overflowTagIndex.value !== null && curIndex >= overflowTagIndex.value) {
+          acc.push(cur[props.displayKey]);
+        }
+        return acc;
+      }, []),
+    );
 
     return {
       popoverProps,
@@ -880,6 +877,7 @@ export default defineComponent({
       triggerClass,
       overflowTagIndex,
       localCollapseTags,
+      collapseTooltip,
       focusInputTrigger,
       activeClass,
       handleInput,
@@ -891,127 +889,171 @@ export default defineComponent({
       tagFocus,
       handleKeydown,
       handlePaste,
+      resolveClassName,
     };
   },
   render() {
     return (
       <div
-        class="bk-tag-input"
-        ref="bkTagSelectorRef"
+        ref='bkTagSelectorRef'
+        class={`${this.resolveClassName('tag-input')}`}
         onClick={this.focusInputTrigger}
-        onMouseenter={() => this.isHover = true}
-        onMouseleave={() => this.isHover = false}>
-        <BKPopover
-          theme="light bk-tag-input-popover-content"
-          trigger="manual"
-          placement="bottom-start"
+        onMouseenter={() => (this.isHover = true)}
+        onMouseleave={() => (this.isHover = false)}
+      >
+        <Popover
           arrow={false}
+          placement='bottom-start'
+          theme={`light ${this.resolveClassName('tag-input-popover-content')}`}
+          trigger='manual'
           {...this.popoverProps}
         >
           {{
             default: () => (
               <div class={this.triggerClass}>
-                <ul class="tag-list" ref="tagListRef" style={{ marginLeft: `${this.leftSpace}px` }}>
-                  {
-                    this.selectedTagList.map((item: any, index: number) => {
-                      const tooltips = {
-                        boundary: 'window',
-                        theme: 'light',
-                        distance: 12,
-                        content: item[this.tooltipKey],
-                        disabled: !this.tooltipKey,
-                      };
-                      const isOverflow = this.localCollapseTags
-                        && this.overflowTagIndex
-                        && index >= this.overflowTagIndex;
-                      return (
-                        <li
-                          class="tag-item"
-                          style={{ display: isOverflow ? 'none' : '' }}
-                          v-bk-tooltips={tooltips}
-                          onClick={this.tagFocus}>
-                          <TagRender
-                            node={item}
-                            tpl={this.tagTpl}
-                            displayKey={this.displayKey}
-                            hasTips={!!this.tooltipKey}
-                            tagOverflowTips={this.tagOverflowTips}
+                <ul
+                  ref='tagListRef'
+                  style={{ marginLeft: `${this.leftSpace}px` }}
+                  class='tag-list'
+                >
+                  {this.selectedTagList.map((item: any, index: number) => {
+                    const isOverflow =
+                      this.localCollapseTags && this.overflowTagIndex && index >= this.overflowTagIndex;
+                    return (
+                      <li
+                        style={{ display: isOverflow ? 'none' : '' }}
+                        class='tag-item'
+                        onClick={this.tagFocus}
+                      >
+                        <TagRender
+                          displayKey={this.displayKey}
+                          node={item}
+                          tagOverflowTips={this.tagOverflowTips}
+                          tooltipKey={this.tooltipKey || this.displayKey}
+                          tpl={this.tagTpl}
+                        />
+                        {this.showTagClose && (
+                          <Error
+                            class='remove-tag'
+                            onClick={this.handleTagRemove.bind(this, item, index)}
                           />
-                          {this.showTagClose ? <Error class="remove-tag" onClick={this.handleTagRemove.bind(this, item, index)} /> : null}
-                        </li>
-                      );
-                    })
-                  }
-                  <li ref="tagInputItemRef" id="tagInputItem" class="tag-input-item" role="input" v-show={this.isEdit}>
+                        )}
+                      </li>
+                    );
+                  })}
+                  <li
+                    id='tagInputItem'
+                    ref='tagInputItemRef'
+                    class='tag-input-item'
+                    v-show={this.isEdit}
+                    role='input'
+                  >
                     <input
-                      type="text"
-                      class="tag-input"
-                      ref="tagInputRef"
+                      ref='tagInputRef'
+                      class='tag-input'
                       v-model={this.curInputValue}
-                      onInput={this.handleInput}
-                      onFocus={this.handleFocus}
+                      type='text'
                       onBlur={this.handleBlur}
+                      onFocus={this.handleFocus}
+                      onInput={this.handleInput}
                       onKeydown={this.handleKeydown}
                       onPaste={this.handlePaste}
-                      />
+                    />
                   </li>
-                  {
-                    !!this.overflowTagIndex && this.localCollapseTags && (
-                      <li class="tag-item">
-                        <div class="tag">
-                          <span class="text">+{this.selectedTagList.length - this.overflowTagIndex}</span>
-                        </div>
-                      </li>
-                    )
-                  }
+                  {!!this.overflowTagIndex && this.localCollapseTags && (
+                    <li
+                      class='tag-item'
+                      v-bk-tooltips={this.collapseTooltip.join(', ')}
+                    >
+                      <div class='tag'>
+                        <span class='text'>+{this.selectedTagList.length - this.overflowTagIndex}</span>
+                      </div>
+                    </li>
+                  )}
                 </ul>
-                <p class="placeholder" v-show={this.isShowPlaceholder}>{this.placeholderText}</p>
-                {this.$slots?.suffix?.() ?? (this.isShowClear && <Close class="clear-icon" onClick={this.handleClear} />) }
+                <p
+                  class='placeholder'
+                  v-show={this.isShowPlaceholder}
+                >
+                  {this.placeholderText}
+                </p>
+                {this.$slots?.suffix?.() ??
+                  (this.isShowClear && (
+                    <Close
+                      class='clear-icon'
+                      onClick={this.handleClear}
+                    />
+                  ))}
               </div>
             ),
             content: () => (
-              <div class="bk-selector-list">
-                <ul ref="selectorListRef" style={{ 'max-height': `${this.contentMaxHeight}px` }} class="outside-ul">
-                  {
-                    this.renderList.map((group, index) => (this.useGroup ? (
-                          <li class="bk-selector-group-item">
-                            <span class="group-name">{group.name} ({group.children.length})</span>
-                            <ul class="bk-selector-group-list-item">
-                              {
-                                group.children.map((item, index: number) => (
-                                  <li class={['bk-selector-list-item', { disabled: item.disabled }, this.activeClass(item, index)]}
-                                    onClick={this.handleTagSelected.bind(this, item, 'select')}>
-                                    <ListTagRender node={item}
-                                      displayKey={this.displayKey}
-                                      tpl={this.tpl}
-                                      searchKey={this.searchKey}
-                                      searchKeyword={this.curInputValue} />
-                                  </li>
-                                ))
-                              }
-                            </ul>
-                          </li>
+              <div class={`${this.resolveClassName('selector-list')}`}>
+                <ul
+                  ref='selectorListRef'
+                  style={{ 'max-height': `${this.contentMaxHeight}px` }}
+                  class='outside-ul'
+                >
+                  {this.renderList.map((group, index) =>
+                    this.useGroup ? (
+                      <li class={`${this.resolveClassName('selector-group-item')}`}>
+                        <span class='group-name'>
+                          {group.name} ({group.children.length})
+                        </span>
+                        <ul class={`${this.resolveClassName('selector-group-list-item')}`}>
+                          {group.children.map((item, index: number) => (
+                            <li
+                              class={[
+                                `${this.resolveClassName('selector-list-item')}`,
+                                { disabled: item.disabled },
+                                this.activeClass(item, index),
+                              ]}
+                              onClick={this.handleTagSelected.bind(this, item, 'select')}
+                            >
+                              <ListTagRender
+                                disabled={item.disabled}
+                                displayKey={this.displayKey}
+                                node={item}
+                                searchKey={this.searchKey}
+                                searchKeyword={this.curInputValue}
+                                tpl={this.tpl}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
                     ) : (
-                          <li class={['bk-selector-list-item', { disabled: group.disabled }, this.activeClass(group, index)]}
-                            onClick={this.handleTagSelected.bind(this, group, 'select')}>
-                            <ListTagRender node={group}
-                              displayKey={this.displayKey}
-                              tpl={this.tpl}
-                              searchKey={this.searchKey}
-                              searchKeyword={this.curInputValue} />
-                          </li>
-                    )))
-                  }
-                  {
-                    this.isPageLoading
-                      ? <li class="bk-selector-list-item loading"><BkLoading theme="primary" size={BkLoadingSize.Small} /></li>
-                      : null
-                  }
+                      <li
+                        class={[
+                          `${this.resolveClassName('selector-list-item')}`,
+                          { disabled: group.disabled },
+                          this.activeClass(group, index),
+                        ]}
+                        onClick={this.handleTagSelected.bind(this, group, 'select')}
+                      >
+                        <ListTagRender
+                          disabled={group.disabled}
+                          displayKey={this.displayKey}
+                          node={group}
+                          searchKey={this.searchKey}
+                          searchKeyword={this.curInputValue}
+                          tpl={this.tpl}
+                        />
+                      </li>
+                    ),
+                  )}
+                  {this.isPageLoading ? (
+                    <li class={`${this.resolveClassName('selector-list-item')} loading`}>
+                      <Loading
+                        size={BkLoadingSize.Small}
+                        theme='primary'
+                      />
+                    </li>
+                  ) : null}
                 </ul>
               </div>
             ),
           }}
-        </BKPopover>
+        </Popover>
       </div>
     );
   },

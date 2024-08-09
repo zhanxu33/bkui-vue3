@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { ExtractPropTypes } from 'vue';
+import { ExtractPropTypes, VNode } from 'vue';
 import { string, toType } from 'vue-types';
 
 import { PropTypes } from '@bkui-vue/shared';
@@ -31,18 +31,23 @@ import { PropTypes } from '@bkui-vue/shared';
 import { NodeContentActionEnum } from './constant';
 
 enum ColumnTypeEnum {
-  ONCE = 'once',
   EVERY = 'every',
+  ONCE = 'once',
 }
 enum TreeSearchMatchEnum {
-  FUZZY = 'fuzzy',
   FULL = 'full',
+  FUZZY = 'fuzzy',
 }
 
 enum TreeSearchResultEnum {
-  TREE = 'tree',
   LIST = 'list',
+  TREE = 'tree',
 }
+
+export type TreeNode = {
+  [key: string]: unknown;
+  children: TreeNode[];
+};
 
 /**
  * Tree Prop: prefixIcon function
@@ -52,7 +57,13 @@ enum TreeSearchResultEnum {
  * @param {} renderType 当前渲染类型（action: 用来标识当前节点状态，展开 | 收起, node_type：节点类型，文件、文件夹）
  * @param {} item 当前节点数据
  */
-export type IPrefixIcon = (isRoot: boolean, hasChild: boolean, isOpen: boolean, renderType: string, item: any) => any;
+export type IPrefixIcon = (
+  isRoot: boolean,
+  hasChild: boolean,
+  isOpen: boolean,
+  renderType: string,
+  item: TreeNode,
+) => VNode | string;
 
 export const treeProps = {
   /**
@@ -80,12 +91,18 @@ export const treeProps = {
   /**
    * 相邻级节点间的水平缩进，单位为像素
    */
-  indent: PropTypes.number.def(18),
+  indent: PropTypes.number.def(16),
 
   /**
    * 设置行高
    */
   lineHeight: PropTypes.number.def(32),
+
+  /**
+   * 设置树形组件高度
+   * 在设置 virtualRender=true时，请指定高度，避免组件自动计算高度导致多次渲染
+   */
+  height: PropTypes.number,
 
   /**
    * 设置层级连线
@@ -106,10 +123,7 @@ export const treeProps = {
    * 当前节点标识图标
    * 默认 true
    */
-  prefixIcon: PropTypes.oneOfType([
-    PropTypes.func.def(() => {}),
-    PropTypes.bool.def(false),
-  ]).def(true),
+  prefixIcon: PropTypes.oneOfType([PropTypes.func.def(() => {}), PropTypes.bool.def(false)]).def(true),
 
   /**
    * 异步加载节点数据配置
@@ -150,37 +164,30 @@ export const treeProps = {
    */
   search: PropTypes.oneOfType([
     PropTypes.shape<SearchOption>({
-    /**
-     * 需要匹配的值
-     * */
-      value: PropTypes.oneOfType([
-        PropTypes.number,
-        PropTypes.string,
-        PropTypes.bool,
-      ]).def(''),
+      /**
+       * 需要匹配的值
+       * */
+      value: PropTypes.oneOfType([PropTypes.number, PropTypes.string, PropTypes.bool]).def(''),
 
       /**
-     * 匹配方式
-     * 支持模糊匹配（fuzzy） || 完全匹配（full）
-     * 默认 模糊匹配（fuzzy）
-     * 支持自定义匹配函数 (searchValue, itemText, item) => true || false
-     */
-      match: PropTypes.oneOfType([
-        string<`${TreeSearchMatchEnum}`>(),
-        PropTypes.func,
-      ]).def(TreeSearchMatchEnum.FUZZY),
+       * 匹配方式
+       * 支持模糊匹配（fuzzy） || 完全匹配（full）
+       * 默认 模糊匹配（fuzzy）
+       * 支持自定义匹配函数 (searchValue, itemText, item) => true || false
+       */
+      match: PropTypes.oneOfType([string<`${TreeSearchMatchEnum}`>(), PropTypes.func]).def(TreeSearchMatchEnum.FUZZY),
 
       /**
-     * 搜索结果如何展示
-     * 显示为 tree || list
-     * 默认 tree
-     */
+       * 搜索结果如何展示
+       * 显示为 tree || list
+       * 默认 tree
+       */
       resultType: string<`${TreeSearchResultEnum}`>().def(TreeSearchResultEnum.TREE),
 
       /**
-       * 默认展开所有搜索结果
+       * 是否显示匹配项的子节点
        */
-      openResultNode: PropTypes.bool,
+      showChildNodes: PropTypes.bool.def(false),
     }),
     PropTypes.string,
     PropTypes.number,
@@ -207,7 +214,9 @@ export const treeProps = {
   /**
    * 是否支持多选
    */
-  showCheckbox: PropTypes.bool.def(false),
+  showCheckbox: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]).def(false),
+
+  checked: PropTypes.arrayOf(PropTypes.any).def([]),
 
   /**
    * 是否显示节点类型Icon
@@ -224,7 +233,7 @@ export const treeProps = {
    * 节点前面的展开收起Icon会根据判定值做改变
    * 如果需要自已控制，请设置为false
    */
-  autoCheckChildren: PropTypes.bool.def(true),
+  autoCheckChildren: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]).def(true),
 
   /**
    * 如果设置了某一个叶子节点状态为展开，是否自动展开所有父级节点
@@ -246,19 +255,48 @@ export const treeProps = {
     PropTypes.arrayOf(toType<`${NodeContentActionEnum}`>('nodeContentActionType', {}).def(NodeContentActionEnum.CLICK)),
     PropTypes.func.def(() => ['selected']),
   ]).def(['selected', 'expand', 'click']),
+
+  /**
+   * 是否作用域插槽抛出参数是否保持源数据的引用
+   * 如果设置为true，则作用域插槽参数格式为: { data: node, attributes: {} }
+   * 如果设置为false，则作用域插槽参数格式为: { ...node, ...attributes }
+   * attributes 为节点内置属性，包含节点是否展开，是否选中，是否有子节点等等
+   */
+  keepSlotData: PropTypes.bool.def(false),
+
+  /**
+   * 在显示复选框的情况下，是否严格的遵循父子互相关联的做法
+   */
+  checkStrictly: PropTypes.bool.def(true),
+
+  /**
+   * 是否开启监听Tree节点进入Tree容器可视区域
+   */
+  intersectionObserver: PropTypes.oneOfType([
+    PropTypes.bool.def(false),
+    PropTypes.shape<IIntersectionObserver>({
+      enabled: PropTypes.bool.def(false),
+      callback: PropTypes.func.def(undefined),
+    }),
+  ]).def(false),
 };
 
 type AsyncOption = {
-  callback: (item, cb) => Promise<any>,
-  cache: Boolean,
-  deepAutoOpen?: string
+  callback: (item, cb) => Promise<VNode | string>;
+  cache: boolean;
+  deepAutoOpen?: string;
+};
+
+export type IIntersectionObserver = {
+  enabled: boolean;
+  callback: (node: TreeNode, level: number, index: number) => void;
 };
 
 export type SearchOption = {
-  value: string | number | boolean,
-  match?: `${TreeSearchMatchEnum}` | Function,
+  value: boolean | number | string;
+  match?: ((...args) => boolean) | `${TreeSearchMatchEnum}`;
   resultType?: `${TreeSearchResultEnum}`;
-  openResultNode: boolean;
+  showChildNodes?: boolean;
 };
 
 export type TreePropTypes = Readonly<ExtractPropTypes<typeof treeProps>>;

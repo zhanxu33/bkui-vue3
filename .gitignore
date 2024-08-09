@@ -31,9 +31,15 @@ pnpm-debug.log*
 .node_repl_history
 *.tgz
 .yarn-integrity
-yarn*
-!yarn.lock
 package-lock.json
 themes.variable.less
 .history
 .codecc
+.vscode
+.husky/pre-push
+.husky/pre-push-bkcodeai
+
+
+pre-*-bkcodeai
+
+/preset

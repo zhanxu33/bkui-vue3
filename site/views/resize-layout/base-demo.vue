@@ -7,7 +7,8 @@
       <bk-radio label="bottom" />
     </bk-radio-group>
     <bk-resize-layout
-      style="height: 500px;"
+      style="height: 500px"
+      :initial-divide="'40%'"
       :placement="radioGroupValue"
     >
       <template #aside>

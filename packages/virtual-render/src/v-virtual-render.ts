@@ -32,11 +32,11 @@
 
 import { throttle } from 'lodash';
 
-function getMatchedIndex(
+export function getMatchedIndex(
   maxCount: number,
   maxHeight: number,
   groupItemCount: number,
-  callback: (index: number, items: any[]) => 0,
+  callback: (index: number, items: (number | string)[]) => 0,
 ) {
   let startIndex = 0;
   let height = 0;
@@ -55,22 +55,23 @@ function getMatchedIndex(
   return { startIndex, height, diffHeight };
 }
 
-export function computedVirtualIndex(lineHeight, callback, pagination, el, event) {
-  if (!el) {
+export function computedVirtualIndex(lineHeight, callback, pagination, wrapper, event) {
+  if (!wrapper || !event.offset) {
     return;
   }
-  const elScrollTop = el.scrollTop;
-  const elScrollLeft = el.scrollLeft;
-  const { scrollTop, count, groupItemCount, startIndex, endIndex, scrollLeft } = pagination;
-  const { offsetHeight } = el;
+  const elScrollTop = event.offset.y >= 0 ? event.offset.y : 0;
+  const elScrollLeft = event.offset.x >= 0 ? event.offset.x : 0;
+  const elScrollHeight = wrapper.scrollHeight;
+  const elOffsetHeight = wrapper.offsetHeight;
 
+  const { count, groupItemCount } = pagination;
   let targetStartIndex = 0;
   let targetEndIndex = 0;
   let translateY = 0;
 
   if (typeof lineHeight === 'number') {
-    targetStartIndex = Math.floor(elScrollTop / lineHeight);
-    targetEndIndex = Math.ceil(offsetHeight / lineHeight) + targetStartIndex;
+    targetStartIndex = Math.ceil(elScrollTop / lineHeight);
+    targetEndIndex = Math.ceil(elOffsetHeight / lineHeight) + targetStartIndex;
     translateY = elScrollTop % lineHeight;
   }
 
@@ -78,61 +79,122 @@ export function computedVirtualIndex(lineHeight, callback, pagination, el, event
     const startValue = getMatchedIndex(count, elScrollTop, groupItemCount, lineHeight);
     targetStartIndex = startValue.startIndex > 0 ? startValue.startIndex : 0;
     translateY = startValue.diffHeight;
-    const endValue = getMatchedIndex(count, offsetHeight, groupItemCount, lineHeight);
-    targetEndIndex = endValue.startIndex + targetStartIndex + 1;
+    const endValue = getMatchedIndex(count, elOffsetHeight, groupItemCount, lineHeight);
+    targetEndIndex = endValue.startIndex + targetStartIndex;
   }
 
-  if (elScrollTop !== scrollTop
-      || targetStartIndex !== startIndex
-      || targetEndIndex !== endIndex
-      || scrollLeft !== elScrollLeft) {
-    const bottom = el.scrollHeight - el.offsetHeight - el.scrollTop;
-    typeof callback === 'function' && callback(event, targetStartIndex, targetEndIndex, elScrollTop, translateY, elScrollLeft, { bottom: bottom >= 0 ? bottom : 0 });
-  }
+  const bottom = elScrollHeight - elOffsetHeight - elScrollTop;
+  typeof callback === 'function' &&
+    callback(event, targetStartIndex, targetEndIndex, elScrollTop, elScrollTop, elScrollLeft, {
+      bottom: bottom >= 0 ? bottom : 0,
+      scrollbar: event,
+    });
+
+  return {
+    targetStartIndex,
+    targetEndIndex,
+    elScrollTop,
+    translateY,
+    elScrollLeft,
+  };
 }
 
-function visibleRender(e, wrapper: HTMLElement, binding) {
-  const { lineHeight = 30, handleScrollCallback, pagination = {}, onlyScroll } = binding.value;
-  if (onlyScroll) {
-    const elScrollTop = wrapper.scrollTop;
-    const elScrollLeft = wrapper.scrollLeft;
-    const bottom = wrapper.scrollHeight - wrapper.offsetHeight - wrapper.scrollTop;
-    handleScrollCallback(e, null, null, elScrollTop, elScrollTop, elScrollLeft, { bottom: bottom >= 0 ? bottom : 0 });
-    return;
+export class VisibleRender {
+  private binding;
+  private wrapper;
+  private delay;
+  constructor(binding, el) {
+    this.binding = binding;
+    this.wrapper = el;
+    const { throttleDelay } = binding.value;
+    this.delay = throttleDelay;
   }
 
-  const { startIndex, endIndex, groupItemCount, count, scrollTop, scrollLeft } = pagination;
-  computedVirtualIndex(
-    lineHeight,
-    handleScrollCallback,
-    { scrollTop, startIndex, endIndex, groupItemCount, count, scrollLeft },
-    wrapper,
-    e,
-  );
+  public render(e) {
+    const { lineHeight = 30, handleScrollCallback, pagination = {}, onlyScroll } = this.binding.value;
+    if (onlyScroll) {
+      const elScrollTop = e.offset?.y;
+      const elScrollLeft = e.offset?.x ?? 0;
+      const bottom = this.wrapper.scrollHeight - this.wrapper.offsetHeight - elScrollTop;
+      handleScrollCallback(e, null, null, elScrollTop, elScrollTop, elScrollLeft, {
+        bottom: bottom >= 0 ? bottom : 0,
+        scrollbar: e,
+      });
+      return;
+    }
+
+    const { startIndex, endIndex, groupItemCount, count, scrollTop, scrollLeft } = pagination;
+    computedVirtualIndex(
+      lineHeight,
+      handleScrollCallback,
+      { scrollTop, startIndex, endIndex, groupItemCount, count, scrollLeft },
+      this.wrapper,
+      e,
+    );
+  }
+
+  public executeThrottledRender(e) {
+    throttle(this.render.bind(this), this.delay)(this.getEvent(e));
+  }
+
+  public install() {
+    this.wrapper?.addEventListener('scroll', this.executeThrottledRender.bind(this));
+  }
+
+  public uninstall() {
+    this.wrapper?.removeListener?.('scroll', this.executeThrottledRender.bind(this));
+  }
+
+  public setBinding(binding) {
+    this.binding = binding;
+  }
+
+  private getEvent = (event: { offset: number; target: HTMLElement } & Event) => {
+    const { scrollbar = { enabled: false } } = this.binding.value;
+    if (scrollbar.enabled) {
+      return {
+        offset: event.offset ?? event,
+      };
+    }
+
+    if (event?.offset) {
+      return {
+        offset: event?.offset,
+      };
+    }
+
+    const elScrollTop = (event.target as HTMLElement).scrollTop;
+    const elScrollLeft = (event.target as HTMLElement).scrollLeft;
+
+    return {
+      offset: {
+        x: elScrollLeft,
+        y: elScrollTop,
+      },
+    };
+  };
 }
 
-const throttledRender = (delay = 60) => throttle((e, wrapper, binding) => visibleRender(e, wrapper, binding), delay);
-// const debounceRender = (delay = 60) => debounce((e, wrapper, binding) => visibleRender(e, wrapper, binding), delay);
-const executeThrottledRender = (e, wrapper, binding, delay = 60) => {
-  Reflect.apply(throttledRender(delay), this, [e, wrapper, binding]);
-};
+let instance: VisibleRender = null;
 
 export default {
   mounted(el, binding) {
     const wrapper = el.parentNode;
-    const { throttleDelay } = binding.value;
-    wrapper.addEventListener('scroll', (e: MouseEvent) => {
-      // @ts-ignore:next-line
-      executeThrottledRender(e, wrapper, binding, throttleDelay);
-    });
+    instance = new VisibleRender(binding, el);
+    wrapper.addEventListener('scroll', instance.executeThrottledRender.bind(instance));
   },
+
+  updated(_el, binding) {
+    instance?.setBinding(binding);
+  },
+
   unbind(el) {
     if (el) {
       const wrapper = el.parentNode;
-      if (!wrapper) {
+      if (!wrapper || !instance) {
         return;
       }
-      wrapper.removeEventListener('scroll', throttledRender);
+      wrapper.removeEventListener('scroll', instance.executeThrottledRender);
     }
   },
 };

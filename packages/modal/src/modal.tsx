@@ -22,134 +22,211 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { defineComponent, Transition } from 'vue';
+import {
+  computed,
+  defineComponent,
+  type ExtractPropTypes,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  Teleport,
+  Transition,
+  useAttrs,
+  useSlots,
+  watch,
+} from 'vue';
 
-import { bkPopIndexManager, resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { bkZIndexManager } from '@bkui-vue/shared';
 
+import { useContentResize } from './hooks';
+import { mask } from './mask';
 import { propsMixin } from './props.mixin';
+
+export type ModalProps = Readonly<ExtractPropTypes<typeof propsMixin>>;
 
 export default defineComponent({
   name: 'Modal',
   props: {
     ...propsMixin,
   },
-  emits: ['quick-close', 'quickClose', 'hidden', 'shown', 'close'],
-  data() {
-    return {
-      visible: false,
-      closeTimer: null,
-    };
-  },
-  computed: {
-    dialogWidth(): String | Number {
-      return /^\d+$/.test(`${this.width}`) ? `${this.width}px` : this.width;
-    },
+  emits: ['quick-close', 'hidden', 'shown', 'close'],
+  setup(props, ctx) {
+    const slots = useSlots();
+    const attrs = useAttrs();
+    const { resolveClassName } = usePrefix();
 
-    dialogHeight(): String | Number {
-      return /^\d+$/.test(`${this.height}`) ? `${this.height}px` : this.height;
-    },
+    const rootRef = ref<HTMLElement>();
+    const maskRef = ref<HTMLElement>();
+    const resizeTargetRef = ref<HTMLElement>();
 
-    compStyle(): any {
+    const localShow = ref(props.isShow);
+    const zIndex = ref(props.zIndex);
+    const initRendered = ref(false);
+
+    const { contentStyles, isContentScroll } = useContentResize(rootRef, resizeTargetRef, props);
+
+    const modalWrapperStyles = computed(() => {
       return {
-        width: this.dialogWidth,
-        height: this.dialogHeight,
-        minHeigth: `${200}px`,
-        display: this.visible ? 'inherit' : 'none',
-        zIndex: this.zIndex || 'inherit',
+        zIndex: zIndex.value,
+        width: /^\d+\.?\d*$/.test(`${props.width}`) ? `${props.width}px` : props.width,
+        left: props.left,
+        top: props.top,
       };
-    },
-    fullscreenStyle(): any {
-      return {
-        width: `${100}%`,
-        height: `${100}%`,
-      };
-    },
-  },
-  watch: {
-    isShow: {
-      handler(val: boolean) {
-        if (val) {
-          // 避免is-show: false执行覆盖
-          this.closeTimer && clearTimeout(this.closeTimer);
-          this.closeTimer = null;
-          this.visible = val;
-        } else {
-          this.closeTimer = setTimeout(() => { // 直接设为false会失去离开的动画效果，这里延迟设置
-            this.$emit('hidden'); // 为false直接触发hidden事件，在上层有200ms的延时
-            this.visible = val;
-          }, 250);
-        }
-      },
-      immediate: true,
-    },
-    // isShow 初始化为 true 的时候，防止直接展示
-    visible: {
-      handler(val: boolean) {
-        if (val) {
-          this.$nextTick(() => {
-            // isShow初始化为true的时候，放在nextTick才能获取$el
-            bkPopIndexManager.onMaskClick((_e: MouseEvent) => {
-              this.handleClickOutSide();
-            }, this.$el);
-            const hideMaskStyle = {
-              'background-color': 'rgba(0,0,0,0)',
-            };
-            const appendStyle = this.showMask ? {} : hideMaskStyle;
-            bkPopIndexManager.show(this.$el, this.showMask, appendStyle, this.transfer, this.zIndex);
-            this.$emit('shown');
+    });
+
+    watch(
+      () => props.isShow,
+      () => {
+        if (props.isShow) {
+          initRendered.value = true;
+          setTimeout(() => {
+            zIndex.value = props.zIndex || bkZIndexManager.getModalNextIndex();
+            props.showMask && mask.showMask(maskRef.value);
+            ctx.emit('shown');
+            localShow.value = true;
           });
-        } else {
-          bkPopIndexManager?.hide(this.$el, this.transfer);
-          bkPopIndexManager?.destroy();
+        } else if (initRendered.value) {
+          props.showMask && mask.hideMask(maskRef.value);
+          ctx.emit('hidden');
+          localShow.value = false;
         }
       },
-      immediate: true,
-    },
-  },
-
-  beforeUnmount() {
-    if (this.visible) {
-      bkPopIndexManager?.hide(this.$el);
-      bkPopIndexManager?.destroy();
-    }
-  },
-  methods: {
-    handleClickOutSide() {
-      if (this.quickClose) {
-        this.$emit('close');
-        this.$emit('quick-close', this.$el);
-        this.$emit('quickClose', this.$el);
-      }
-    },
-  },
-  render() {
-    const maxHeight = this.maxHeight ? { maxHeight: this.maxHeight } : {};
-    const bodyClass = `${resolveClassName('modal-body')} ${this.animateType === 'slide' ? this.direction : ''}`;
-    return (
-      <div class={[resolveClassName('modal-wrapper'), this.extCls, this.size, this.fullscreen ? 'fullscreen' : '']}
-        style={[this.compStyle, this.fullscreen ? this.fullscreenStyle : '']}>
-        <Transition name={this.animateType}>
-        {this.isShow ? <div class={bodyClass}>
-          <div class={resolveClassName('modal-header')}>
-            {this.$slots.header?.() ?? ''}
-          </div>
-          <div class={resolveClassName('modal-content')}
-            style={[this.dialogType === 'show' ? 'padding-bottom: 20px' : '', { ...maxHeight }]}>
-            {this.$slots.default?.() ?? ''}
-          </div>
-          {this.dialogType === 'show' ? '' : (
-            <div class={resolveClassName('modal-footer')}>
-              {this.$slots.footer?.() ?? ''}
-            </div>
-          )}
-          <div class={[resolveClassName('modal-close'), this.closeIcon ? '' : 'close-icon']}>
-              {this.$slots.close?.() ?? ''}
-            </div>
-        </div> : ''}
-        </Transition>
-      </div>
+      {
+        immediate: true,
+      },
     );
+
+    const handleClose = () => {
+      ctx.emit('close');
+    };
+
+    const handleClickOutSide = (e: MouseEvent) => {
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (props.quickClose) {
+        ctx.emit('quick-close');
+        ctx.emit('close');
+      }
+    };
+
+    // 按 esc 关闭弹框
+    const handleEscClose = e => {
+      if (props.isShow && props.escClose) {
+        if (e.keyCode === 27) {
+          handleClose();
+        }
+      }
+    };
+
+    onMounted(() => {
+      addEventListener('keydown', handleEscClose);
+    });
+
+    onBeforeUnmount(() => {
+      removeEventListener('keydown', handleEscClose);
+      mask.destroyMask(maskRef.value);
+      ctx.emit('hidden');
+    });
+
+    return () => {
+      if (!initRendered.value) {
+        return null;
+      }
+
+      const renderMask = () => {
+        if (!props.showMask) {
+          return null;
+        }
+        return (
+          <Transition name={mask.getMaskCount() > 0 ? 'fadein' : ''}>
+            <div
+              ref={maskRef}
+              style={{
+                zIndex: zIndex.value,
+              }}
+              class={{
+                [resolveClassName('modal-mask')]: true,
+              }}
+              v-show={localShow.value}
+              onClick={handleClickOutSide}
+            />
+          </Transition>
+        );
+      };
+
+      const renderContent = () => {
+        // v-if 模式渲染，如果 isShow 为 false 销毁 DOM
+        if (props.renderDirective === 'if' && !localShow.value) {
+          return null;
+        }
+        return (
+          <div
+            style={{
+              backgroundColor: props.backgroundColor,
+            }}
+            class={resolveClassName('modal-body')}
+          >
+            <div class={resolveClassName('modal-header')}>{slots.header?.()}</div>
+            <div
+              style={contentStyles.value}
+              class={resolveClassName('modal-content')}
+            >
+              <div style='position: relative; display: inline-block; width: 100%;'>
+                {slots.default?.()}
+                <div
+                  ref={resizeTargetRef}
+                  style='position: absolute; top: 0; bottom: 0;'
+                />
+              </div>
+            </div>
+            <div
+              class={{
+                [resolveClassName('modal-footer')]: true,
+                'is-fixed': isContentScroll.value,
+              }}
+            >
+              {slots.footer?.()}
+            </div>
+            {props.closeIcon && (
+              <div
+                class={resolveClassName('modal-close')}
+                onClick={handleClose}
+              >
+                {slots.close?.()}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      return (
+        <Teleport
+          disabled={!props.transfer}
+          to='body'
+        >
+          <div
+            ref={rootRef}
+            {...attrs}
+            class={[resolveClassName('modal'), props.extCls || '']}
+          >
+            {renderMask()}
+            <Transition name={`modal-${props.animateType}`}>
+              <div
+                style={modalWrapperStyles.value}
+                class={resolveClassName('modal-wrapper')}
+                v-show={localShow.value}
+              >
+                {renderContent()}
+              </div>
+            </Transition>
+          </div>
+        </Teleport>
+      );
+    };
   },
 });

@@ -1,142 +1,70 @@
 @import '@bkui-vue/styles/themes/themes.less';
 @import '@bkui-vue/modal/modal.less';
 
-.@{bk-prefix}-modal-wrapper {
-  &.@{bk-prefix}-dialog-wrapper {
-    position: relative;
+.@{bk-prefix}-dialog {
+  font-size: 14px;
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-    }
-
-    &.scroll-able {
-      .@{bk-prefix}-modal-content {
-        overflow: auto;
-      }
-    }
-
-    &.multi-instance {
-      position: absolute;
-    }
-
-    .@{bk-prefix}-dialog-tool {
-      position: absolute;
+  &.is-fullscreen {
+    .@{bk-prefix}-modal-wrapper {
       top: 0;
-      right: 0;
-      left: 0;
-      height: 30px;
-    }
-
-    .move {
-      cursor: move;
-    }
-
-    .content-dragging {
-      user-select: none;
-    }
-
-    .@{bk-prefix}-dialog-header {
-      padding: 24px;
-      font-size: 20px;
-
-      .@{bk-prefix}-header-icon {
-        text-align: center;
-
-        .@{bk-prefix}-info-icon {
-          display: inline-block;
-          font-size: 48px;
-
-          &.success {
-            color: @success-color;
-          }
-
-          &.warning {
-            color: @warning-color;
-          }
-
-          &.danger {
-            color: @danger-color;
-          }
-        }
-      }
-
-      .@{bk-prefix}-dialog-title {
-        display: inline-block;
-        width: 100%;
-        overflow: hidden;
-        color: @table-head-font-color;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-
-    .@{bk-prefix}-modal-content {
-      height: calc(100% - 79px);
-      max-height: calc(100vh - 300px);
-      min-height: 100px;
-      padding: 3px 24px 0;
-      font-size: 14px;
-      line-height: 1.5;
-      color: @default-color;
-    }
-
-    &.fullscreen {
-      .@{bk-prefix}-modal-content {
-        max-height: calc(100vh - 137px);
-      }
-
-      &.no-footer {
-        max-height: calc(100vh - 79px);
-      }
-    }
-
-    .@{bk-prefix}-modal-body {
-      padding-bottom: 48px;
-    }
-
-    &.no-footer {
-      .@{bk-prefix}-modal-body {
-        padding-bottom: 0;
-      }
-    }
-
-    .@{bk-prefix}-modal-footer {
-      position: absolute;
       right: 0;
       bottom: 0;
       left: 0;
-      height: 48px;
-      padding: 8px 24px;
-      background-color: @whitesmoke-color;
-      border-top: 1px solid @table-border-color;
-      border-radius: 2px;
-
-      .@{bk-prefix}-dialog-perv {
-        float: left;
-        margin-right: 8px;
-      }
-
-      .@{bk-prefix}-dialog-next {
-        float: left;
-      }
-
-      .@{bk-prefix}-dialog-cancel {
-        margin-left: 8px;
-      }
+      border-radius: 0;
+      transform: translate(0, 0);
     }
+  }
 
-    .@{bk-prefix}-modal-close {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      font-size: 18px;
-      color: @light-gray;
-      cursor: pointer;
+  .@{bk-prefix}-modal-wrapper {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
 
-      &:hover {
-        color: @gray-color;
-      }
-    }
+.@{bk-prefix}-dialog-header {
+  padding: 16px 24px 0;
+  font-size: 20px;
+}
+
+.@{bk-prefix}-dialog-title {
+  display: inline-block;
+  width: 100%;
+  color: @table-head-font-color;
+}
+
+.@{bk-prefix}-dialog-tool {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 18px;
+  cursor: move;
+  user-select: none;
+}
+
+.@{bk-prefix}-dialog-content {
+  padding: 0 24px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  color: @default-color;
+}
+
+.@{bk-prefix}-dialog-footer {
+  padding: 8px 24px;
+  background-color: @whitesmoke-color;
+  border-top: 1px solid @table-border-color;
+
+  .@{bk-prefix}-dialog-perv {
+    float: left;
+    margin-right: 8px;
+  }
+
+  .@{bk-prefix}-dialog-next {
+    float: left;
+  }
+
+  .@{bk-prefix}-dialog-cancel {
+    margin-left: 8px;
   }
 }

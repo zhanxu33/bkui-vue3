@@ -22,12 +22,13 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
 import { computed, ref, watch } from 'vue';
 
 import {
   EUploadStatus,
+  SuccessResponse,
   UploadFile,
   UploadHanderHooks,
   UploadProgressEvent,
@@ -95,13 +96,13 @@ export default (props: UploadProps, hooks: UploadHanderHooks) => {
       error = new Error(uploadFile.statusText);
     }
 
-    if (isImage && file.size > (maxImgSize.value * 1024 ** 2)) {
+    if (isImage && file.size > maxImgSize.value * 1024 ** 2) {
       uploadFile.status = EUploadStatus.FAIL;
       uploadFile.statusText = 'invalid file size';
       error = new Error(uploadFile.statusText);
     }
 
-    if (!isImage && file.size > (maxFileSize.value * 1024 ** 2)) {
+    if (!isImage && file.size > maxFileSize.value * 1024 ** 2) {
       uploadFile.status = EUploadStatus.FAIL;
       uploadFile.statusText = 'invalid file size';
       error = new Error(uploadFile.statusText);
@@ -144,7 +145,7 @@ export default (props: UploadProps, hooks: UploadHanderHooks) => {
     file.response = res;
   }
 
-  async function handleSuccess(res: unknown, rawFile: UploadRawFile) {
+  async function handleSuccess(res: SuccessResponse, rawFile: UploadRawFile) {
     const file = findFile(rawFile);
     if (!file) return;
 
@@ -164,8 +165,8 @@ export default (props: UploadProps, hooks: UploadHanderHooks) => {
 
   watch(
     () => props.files,
-    (files) => {
-      fileList.value = files.map((file) => {
+    files => {
+      fileList.value = files.map(file => {
         activeIndex += 1;
         return {
           ...file,

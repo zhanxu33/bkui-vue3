@@ -22,42 +22,41 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
-*/
+ */
 
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent, SlotsType } from 'vue';
 import { toType } from 'vue-types';
 
+import { usePrefix } from '@bkui-vue/config-provider';
 import { Error } from '@bkui-vue/icon';
-import { classes, PropTypes, TagThemeType } from '@bkui-vue/shared';
+import { PropTypes, TagThemeType } from '@bkui-vue/shared';
 
 enum TagStrokeType {
-  UNKNOWN = '',
   FILLED = 'filled',
   STROKE = 'stroke',
+  UNKNOWN = '',
 }
 
 export default defineComponent({
   name: 'Tag',
   props: {
-    theme: TagThemeType(),
+    theme: TagThemeType().def(''),
     closable: PropTypes.bool.def(false),
     type: toType<`${TagStrokeType}`>('tagStorkeType', {}).def(TagStrokeType.UNKNOWN),
     checkable: PropTypes.bool.def(false),
     checked: PropTypes.bool.def(false),
     radius: PropTypes.string.def('2px'),
-    extCls: PropTypes.string.def(''),
+    size: PropTypes.size(),
   },
   emits: ['change', 'close'],
-  slots: ['icon'],
+  // slots: ['icon'],
+  slots: Object as SlotsType<{
+    default?: () => HTMLElement;
+    icon?: () => HTMLElement;
+  }>,
   setup(props, { emit }) {
-    const wrapperCls = computed(() => classes({
-      'bk-tag-closable': props.closable,
-      'bk-tag-checkable': props.checkable,
-      'bk-tag-check': props.checked,
-      [`bk-tag-${props.type}`]: props.type,
-      [`bk-tag-${props.theme}`]: props.theme,
-      [props.extCls]: !!props.extCls,
-    }, 'bk-tag'));
+    const { resolveClassName } = usePrefix();
+
     const wrapperStyle = computed(() => ({
       borderRadius: props.radius,
     }));
@@ -79,18 +78,37 @@ export default defineComponent({
     };
 
     return {
-      wrapperCls,
       wrapperStyle,
       handleClose,
       handleClick,
+      resolveClassName,
     };
   },
   render() {
+    const classes = {
+      [this.resolveClassName('tag')]: true,
+      [this.resolveClassName('tag-closable')]: this.closable,
+      [this.resolveClassName('tag-checkable')]: this.checkable,
+      [this.resolveClassName('tag-check')]: this.checked,
+      [this.resolveClassName(`tag-${this.type}`)]: this.type,
+      [this.resolveClassName(`tag-${this.theme}`)]: this.theme,
+      [this.resolveClassName(`tag--${this.size}`)]: true,
+    };
+
     return (
-      <div class={this.wrapperCls} style={this.wrapperStyle} onClick={this.handleClick}>
-        { this.$slots.icon ? <span class="bk-tag-icon">{this.$slots.icon()}</span> : '' }
-        <span class="bk-tag-text">{ this.$slots.default?.() }</span>
-        { this.closable ? <Error class="bk-tag-close" onClick={this.handleClose} /> : '' }
+      <div
+        style={this.wrapperStyle}
+        class={classes}
+        onClick={this.handleClick}
+      >
+        {this.$slots.icon ? <span class={`${this.resolveClassName('tag-icon')}`}>{this.$slots.icon()}</span> : ''}
+        <span class={`${this.resolveClassName('tag-text')}`}>{this.$slots.default?.()}</span>
+        {this.closable && (
+          <Error
+            class={`${this.resolveClassName('tag-close')}`}
+            onClick={this.handleClose}
+          />
+        )}
       </div>
     );
   },

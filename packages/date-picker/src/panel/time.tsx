@@ -1,30 +1,29 @@
 /*
-* Tencent is pleased to support the open source community by making
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
-*
-* Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
-*
-* 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
-*
-* License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
-*
-* ---------------------------------------------------
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-* to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-* the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-* THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-* CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-* IN THE SOFTWARE.
-*/
+ * Tencent is pleased to support the open source community by making
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ *
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
+ *
+ * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ *
+ * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-import type { ExtractPropTypes, PropType } from 'vue';
 import {
   computed,
   defineComponent,
@@ -37,14 +36,17 @@ import {
   watch,
 } from 'vue';
 
-import { capitalize, resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { capitalize } from '@bkui-vue/shared';
 
 import TimeSpinner from '../base/time-spinner';
 import fecha from '../fecha';
 // import type { DatePickerValueType } from '../interface';
-import { IDisabledHMS } from '../interface';
+import { IDisabledHMS, SelectionModeType } from '../interface';
 import { datePickerProps, timePanelProps } from '../props';
 import { initTime, mergeDateHMS, timePickerKey } from '../utils';
+
+import type { ExtractPropTypes, PropType } from 'vue';
 
 const timeProps = {
   disabledDate: {
@@ -67,6 +69,17 @@ const timeProps = {
   confirm: {
     type: Boolean,
     default: false,
+  },
+  selectionMode: {
+    type: String as PropType<SelectionModeType>,
+    default: 'date',
+    validator(v) {
+      if (['year', 'month', 'date', 'time'].indexOf(v) < 0) {
+        console.error(`selectionMode property is not valid: '${v}'`);
+        return false;
+      }
+      return true;
+    },
   },
 };
 
@@ -111,7 +124,7 @@ export default defineComponent({
 
     const disabledHMS = computed<IDisabledHMS>(() => {
       const disabledTypes = ['disabledHours', 'disabledMinutes', 'disabledSeconds'];
-      if (props.disabledDate === (() => false || !props.value[0])) {
+      if (props.disabledDate === (() => !props.value[0])) {
         const disabled = disabledTypes.reduce((obj, type) => {
           obj[type] = this[type];
           return obj;
@@ -123,7 +136,7 @@ export default defineComponent({
       const disabledHMS = disabled.map((preDisabled, j) => {
         const slot = slots[j];
         const toDisable = preDisabled;
-        for (let i = 0; i < slot; i += (props.steps[j] || 1)) {
+        for (let i = 0; i < slot; i += props.steps[j] || 1) {
           const hms: number[] = timeSlots.value.map((slot, x) => (x === j ? i : slot));
           const testDateTime = mergeDateHMS(state.date, ...hms);
           if (props.disabledDate(testDateTime, true)) {
@@ -138,11 +151,14 @@ export default defineComponent({
       }, {});
     });
 
-    watch(() => props.value, (dates) => {
-      let newVal: any = dates[0] || initTime();
-      newVal = new Date(newVal);
-      state.date = newVal;
-    });
+    watch(
+      () => props.value,
+      dates => {
+        let newVal: any = dates[0] || initTime();
+        newVal = new Date(newVal);
+        state.date = newVal;
+      },
+    );
 
     onMounted(() => {
       if (parentProvide && parentProvide.parentName === 'DatePanel') {
@@ -155,13 +171,16 @@ export default defineComponent({
       Object.keys(date).forEach(type => newDate[`set${capitalize(type)}`](date[type]));
 
       if (isEmit) {
-        emit('pick', newDate, true, 'time');
+        // pick 参数：dates, visible, type, isUseShortCut
+        emit('pick', newDate, true, props.selectionMode);
       }
     }
 
     function handlePickClick() {
       emit('pick-click');
     }
+
+    const { resolveClassName } = usePrefix();
 
     return {
       ...toRefs(state),
@@ -174,35 +193,37 @@ export default defineComponent({
 
       handlePickClick,
       handleChange,
+      resolveClassName,
     };
   },
   render() {
     return (
-      <div class={resolveClassName('picker-panel-body-wrapper')} onMousedown={(e) => {
-        e.preventDefault();
-      }}>
-        <div class={resolveClassName('picker-panel-body')} style={{ width: `${this.width}px` }}>
-          {
-            this.showDate
-              ? (
-                <div class={resolveClassName('time-picker-header')}>{this.visibleDate}</div>
-              )
-              : ''
-          }
-          <div class={resolveClassName('picker-panel-content')}>
+      <div
+        class={this.resolveClassName('picker-panel-body-wrapper')}
+        onMousedown={e => {
+          e.preventDefault();
+        }}
+      >
+        <div
+          style={{ width: `${this.width}px` }}
+          class={this.resolveClassName('picker-panel-body')}
+        >
+          {this.showDate ? <div class={this.resolveClassName('time-picker-header')}>{this.visibleDate}</div> : ''}
+          <div class={this.resolveClassName('picker-panel-content')}>
             <TimeSpinner
-              ref="timeSpinnerRef"
-              showSeconds={this.showSeconds}
-              steps={this.steps}
-              hours={this.timeSlots[0]}
-              minutes={this.timeSlots[1]}
-              seconds={this.timeSlots[2]}
+              ref='timeSpinnerRef'
               disabledHours={this.disabledHMS.disabledHours}
               disabledMinutes={this.disabledHMS.disabledMinutes}
               disabledSeconds={this.disabledHMS.disabledSeconds}
               hideDisabledOptions={this.hideDisabledOptions}
+              hours={this.timeSlots[0]}
+              minutes={this.timeSlots[1]}
+              seconds={this.timeSlots[2]}
+              showSeconds={this.showSeconds}
+              steps={this.steps}
+              onChange={this.handleChange}
               onPick-click={this.handlePickClick}
-              onChange={this.handleChange} />
+            />
           </div>
         </div>
       </div>

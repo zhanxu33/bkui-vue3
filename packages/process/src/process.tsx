@@ -26,7 +26,7 @@
 
 import { defineComponent, ExtractPropTypes, onMounted, ref, watch } from 'vue';
 
-import { useLocale } from '@bkui-vue/config-provider';
+import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { Circle, Done, Error } from '@bkui-vue/icon';
 import { classes, PropTypes } from '@bkui-vue/shared';
 // import { Error, Circle, Done } from '@bkui-vue/icon';
@@ -54,30 +54,37 @@ export default defineComponent({
     const paddingBottom = ref(0);
 
     const init = () => {
-      defaultProcessList.value.splice(0, defaultProcessList.value.length, ...[
-        {
-          content: t.value.step1,
-        },
-        {
-          content: t.value.step2,
-        },
-        {
-          content: t.value.step3,
-        },
-        {
-          content: t.value.step4,
-        },
-      ]);
+      defaultProcessList.value.splice(
+        0,
+        defaultProcessList.value.length,
+        ...[
+          {
+            content: t.value.step1,
+          },
+          {
+            content: t.value.step2,
+          },
+          {
+            content: t.value.step3,
+          },
+          {
+            content: t.value.step4,
+          },
+        ],
+      );
       if (props.list?.length) {
         defaultProcessList.value.splice(0, defaultProcessList.value.length, ...props.list);
       }
     };
 
-    watch(() => lang.value, () => {
-      init();
-    });
+    watch(
+      () => lang.value,
+      () => {
+        init();
+      },
+    );
 
-    const jumpTo = async (index) => {
+    const jumpTo = async index => {
       try {
         if (props.controllable && index !== props.curProcess) {
           emit('update:curProcess', index);
@@ -90,36 +97,47 @@ export default defineComponent({
 
     onMounted(init);
 
+    const { resolveClassName } = usePrefix();
+
     return {
       defaultProcessList,
       paddingBottom,
       jumpTo,
+      resolveClassName,
     };
   },
 
   render() {
-    const processClsPrefix = 'bk-process';
-    const processCls: string = classes({
-      [`${this.extCls}`]: !!this.extCls,
-    }, `${processClsPrefix}`);
+    const processClsPrefix = this.resolveClassName('process');
+    const processCls: string = classes(
+      {
+        [`${this.extCls}`]: !!this.extCls,
+      },
+      `${processClsPrefix}`,
+    );
 
     const isLoadingStatus = item => item.status === 'loading';
 
     const isErrorStatus = item => item.status === 'error';
 
-    const isDone = index => this.curProcess >= (index + 1) || this.defaultProcessList[index].status === 'done';
+    const isDone = index => this.curProcess >= index + 1 || this.defaultProcessList[index].status === 'done';
 
     const isIcon = item => (item.icon ? item.icon : '');
 
     const renderIcon = (index, item) => {
       if (index === this.curProcess - 1 && isLoadingStatus(item)) {
-        return (<Circle class="bk-icon bk-process-icon icon-loading" />);
-      }  if (index === this.curProcess - 1 && isErrorStatus(item)) {
-        return (<Error class="bk-process-icon icon-error" />);
-      }  if (index === this.curProcess - 1 && isIcon(item)) {
-        return (<span class="bk-process-icon-custom">{<item.icon/>}</span>);
-      } if (isDone(index)) {
-        return (<Done class="bk-process-icon-done" />);
+        return (
+          <Circle class={`${this.resolveClassName('icon')} ${this.resolveClassName('process-icon')} icon-loading`} />
+        );
+      }
+      if (index === this.curProcess - 1 && isErrorStatus(item)) {
+        return <Error class={`${this.resolveClassName('process-icon')} icon-error`} />;
+      }
+      if (index === this.curProcess - 1 && isIcon(item)) {
+        return <span class={`${this.resolveClassName('process-icon-custom')}`}>{<item.icon />}</span>;
+      }
+      if (isDone(index)) {
+        return <Done class={`${this.resolveClassName('process-icon-done')}`} />;
       }
       // return (<span class="number">{<item.icon/>}</span>);
     };
@@ -127,21 +145,25 @@ export default defineComponent({
     return (
       <div class={processCls}>
         <ul style={{ paddingBottom: `${this.paddingBottom}px` }}>
-          {this.defaultProcessList.map((item, index) => <li
-            onClick={() => {
-              this.jumpTo(index + 1);
-            }} style={{ cursor: this.controllable ? 'pointer' : '' }}
-              class={{ success: this.curProcess >= (index + 1),
+          {this.defaultProcessList.map((item, index) => (
+            <li
+              style={{ cursor: this.controllable ? 'pointer' : '' }}
+              class={{
+                success: this.curProcess >= index + 1,
                 current: isLoadingStatus(item) && index === this.curProcess - 1,
-                error: isErrorStatus(item) && index === this.curProcess - 1 } }
-                >
-            <div>
-              <span class="display">{item[this.displayKey]}</span>
-              {renderIcon(index, item)}
-            </div>
-          </li>)}
+                error: isErrorStatus(item) && index === this.curProcess - 1,
+              }}
+              onClick={() => {
+                this.jumpTo(index + 1);
+              }}
+            >
+              <div>
+                <span class='display'>{item[this.displayKey]}</span>
+                {renderIcon(index, item)}
+              </div>
+            </li>
+          ))}
         </ul>
-
       </div>
     );
   },

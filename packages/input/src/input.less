@@ -8,10 +8,12 @@
 }
 
 .disabled() {
+
   &.is-disabled,
   &.is-readonly {
     background-color: @input-disabled-bg;
     border-color: @disable-color;
+
     .@{bk-prefix}-input--prefix-area,
     .@{bk-prefix}-input--suffix-area,
     .@{bk-prefix}-input--suffix-icon {
@@ -36,20 +38,20 @@
 
 }
 
-.placeholder() {
+.placeholder(@fontSize: @font-size-base) {
   ::placeholder {
+    font-size: @fontSize;
     color: @light-gray;
   }
 }
 
 .@{bk-prefix}-textarea {
-  .placeholder();
+  --textarea-line-height: 20px;
   display: inline-flex;
   width: 100%;
-  min-height: 70px;
   overflow: hidden;
   font-size: @font-size-base;
-  line-height: 20px;
+  line-height: var(--textarea-line-height);
   color: @input-color;
   background-color: white;
   border: @border-width-base @border-style-base @input-border-color;
@@ -57,9 +59,25 @@
   box-sizing: border-box;
   transition: all .3s;
   flex-direction: column;
+  .placeholder();
+
+  &.resizable {
+    resize: both;
+  }
+
+  ::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: #DCDEE5;
+  }
+
   .disabled();
 
-  > textarea {
+  >textarea {
     width: 100%;
     padding: 5px 10px;
     line-height: 1.5;
@@ -68,21 +86,23 @@
     border-radius: @border-radius-base;
     outline: none;
     resize: none;
-    flex: 1;
   }
 
   &--max-length {
     padding-right: @input-horizontal-padding;
     margin: 0;
     margin-left: auto;
-    font-size: 12px;
+    font-size: @font-size-base;
     text-align: right;
     transform: scale(.8);
     justify-content: flex-end;
 
+    &.is-over-limit {
+      color: @danger-color;
+    }
+
     span {
       color: @input-maxlength-color;
-
     }
   }
 
@@ -121,7 +141,9 @@
       border-color: transparent;
       border-bottom-color: @light-gray;
       box-shadow: none;
-      .@{bk-prefix}-input--text, .@{bk-prefix}-input--suffix-icon {
+
+      .@{bk-prefix}-input--text,
+      .@{bk-prefix}-input--suffix-icon {
         background-color: @input-block-color;
       }
     }
@@ -136,6 +158,12 @@
     background-color: @input-bg;
     align-items: center;
     align-self: center;
+    flex-shrink: 0;
+    cursor: pointer;
+
+    &:hover {
+      color: #313238;
+    }
 
     &.show-clear-only-hover {
       display: none;
@@ -144,6 +172,7 @@
 
   &--clear-icon {
     cursor: pointer;
+    flex-shrink: 0;
 
     &:hover {
       color: @gray-color;
@@ -153,10 +182,12 @@
 
   &--large {
     .component-size(@component-size-large, @font-size-medium);
+    .placeholder(@font-size-medium);
 
     .@{bk-prefix}-input--max-length {
       font-size: @font-size-large;
     }
+
     .@{bk-prefix}-input--number-control {
       span:first-child {
         margin-bottom: 4px;
@@ -187,7 +218,9 @@
       border-color: transparent;
       border-bottom-color: @primary-color;
       box-shadow: none;
-      .@{bk-prefix}-input--text, .@{bk-prefix}-input--suffix-icon {
+
+      .@{bk-prefix}-input--text,
+      .@{bk-prefix}-input--suffix-icon {
         background-color: @input-block-color;
       }
     }
@@ -216,6 +249,10 @@
     font-size: 12px;
     transform: scale(.8);
 
+    &.is-over-limit {
+      color: @danger-color;
+    }
+
     span {
       color: @input-maxlength-color;
     }
@@ -224,8 +261,11 @@
   &--text {
     width: 100%;
     padding: 0 @input-horizontal-padding;
+    overflow: hidden;
     line-height: 1;
     color: @input-color;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     background-color: @input-bg;
     background-image: none;
     border: none;
@@ -242,6 +282,7 @@
     &[type='search']::-webkit-search-results-decoration {
       appearance: none;
     }
+
     // IE
     [type='search']::-ms-clear {
       display: none;
@@ -261,9 +302,7 @@
       appearance: none;
     }
 
-    &::placeholder {
-      color: @light-gray;
-    }
+
   }
 
   &--number-control {
@@ -305,4 +344,23 @@
       background-color: @input-block-hover-color;
     }
   }
+}
+
+// 去掉自动填充时的背景颜色
+/* 针对 Chrome、Safari 和新版 Edge 的样式 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100px @input-bg inset !important;
+  box-shadow: 0 0 0 100px @input-bg inset !important;
+}
+
+/* 针对 Firefox 的样式 */
+input:-moz-autofill,
+input:-moz-autofill:hover,
+input:-moz-autofill:focus,
+input:-moz-autofill:active {
+  -moz-box-shadow: 0 0 0 100px @input-bg inset !important;
+  box-shadow: 0 0 0 100px @input-bg inset !important;
 }
