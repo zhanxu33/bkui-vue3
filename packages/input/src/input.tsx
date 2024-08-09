@@ -263,10 +263,10 @@ export default defineComponent({
     }
 
     function handleNumber(step: number, INC = true) {
-      const numStep = parseInt(String(step), 10);
+      const numStep = parseFloat(String(step));
       const precision = Number.isInteger(props.precision) ? props.precision : 0;
       const val: number = parseFloat((props.modelValue ?? 0).toString());
-      const factor = Number.isInteger(numStep) ? numStep : 1;
+      const factor = typeof numStep === 'number' ? numStep : 1;
 
       let newVal = val + (INC ? factor : -1 * factor);
       if (Number.isInteger(props.max)) {
