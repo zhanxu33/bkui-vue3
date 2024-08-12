@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, CSSProperties, defineComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { toType } from 'vue-types';
 
 import { bkEllipsisInstance } from '@bkui-vue/directives';
@@ -40,7 +40,9 @@ export default defineComponent({
     parentSetting: IOverflowTooltipPropType,
     title: PropTypes.string.def(undefined),
     observerResize: PropTypes.bool.def(true),
+    intersectionObserver: PropTypes.bool.def(false),
     isHead: PropTypes.bool.def(false),
+    isExpandChild: PropTypes.bool.def(false),
     headExplain: PropTypes.string,
     resizerWay: toType<`${ResizerWay}`>('ResizerWay', {
       default: ResizerWay.DEBOUNCE,
@@ -50,9 +52,10 @@ export default defineComponent({
   setup(props, { slots }) {
     const refRoot = ref();
     const isTipsEnabled = ref(false);
+    const renderSlots = ref(!props.intersectionObserver);
 
     const cellStyle = computed(() => ({
-      textAlign: props.column.textAlign as any,
+      textAlign: props.column.textAlign as CSSProperties['textAlign'],
       minWidth: resolveNumberOrStringToPix(props.column.minWidth, null),
     }));
 
@@ -104,10 +107,10 @@ export default defineComponent({
     const resolveTooltipOption = () => {
       const { showOverflowTooltip = false } = resolveSetting();
 
-      let disabled: ((col: Column, row: any) => boolean) | boolean = true;
+      let disabled: ((col: Column, row: Record<string, object>) => boolean) | boolean = true;
       let { resizerWay } = props;
-      const defaultContent = getContentValue((showOverflowTooltip as any).allowHtml);
-      let content: any = () => defaultContent;
+      const defaultContent = getContentValue((showOverflowTooltip as IOverflowTooltipOption).allowHtml);
+      let content: () => ((col: Column, row: Record<string, object>) => string) | Node | string = () => defaultContent;
       let popoverOption = {};
       let mode = 'auto';
       let watchCellResize = true;
@@ -156,6 +159,10 @@ export default defineComponent({
         }
       }
 
+      if (props.column.type === 'expand' && !props.isHead && !props.isExpandChild) {
+        disabled = true;
+      }
+
       return { disabled, content, mode, resizerWay, watchCellResize, popoverOption };
     };
 
@@ -200,12 +207,13 @@ export default defineComponent({
       }
     };
 
-    onMounted(() => {
+    let resizeObserverIns = null;
+    const onComponentRender = () => {
       const { disabled, resizerWay, watchCellResize } = resolveTooltipOption();
       if (!disabled) {
         resolveOverflowTooltip();
         if (watchCellResize !== false && props.observerResize) {
-          let observerIns = observerResize(
+          resizeObserverIns = observerResize(
             refRoot.value,
             () => {
               resolveOverflowTooltip();
@@ -214,17 +222,52 @@ export default defineComponent({
             true,
             resizerWay,
           );
-          observerIns.start();
-          onBeforeUnmount(() => {
-            observerIns.disconnect();
-            observerIns = null;
-          });
+          resizeObserverIns.start();
         }
       }
+    };
+
+    let intersectionObserver = null;
+    const initObserver = () => {
+      if (!props.intersectionObserver) {
+        return;
+      }
+
+      intersectionObserver = new IntersectionObserver(
+        entries => {
+          if (entries[0].intersectionRatio <= 0) {
+            renderSlots.value = false;
+            bkEllipsisIns?.destroyInstance(refRoot.value);
+            return;
+          }
+
+          renderSlots.value = true;
+          onComponentRender();
+        },
+        {
+          threshold: 0.5,
+        },
+      );
+
+      intersectionObserver?.observe(refRoot.value);
+    };
+
+    onMounted(() => {
+      initObserver();
+
+      if (!renderSlots.value) {
+        return;
+      }
+
+      onComponentRender();
     });
 
     onBeforeUnmount(() => {
+      resizeObserverIns?.disconnect();
+      resizeObserverIns = null;
       bkEllipsisIns?.destroyInstance(refRoot.value);
+      intersectionObserver?.disconnect();
+      intersectionObserver = null;
     });
 
     const hasExplain = props.headExplain || props.column.explain;
@@ -234,7 +277,7 @@ export default defineComponent({
         style={cellStyle.value}
         class={['cell', props.column.type, hasExplain ? 'explain' : '']}
       >
-        {slots.default?.()}
+        {renderSlots.value ? slots.default?.() : '--'}
       </div>
     );
   },

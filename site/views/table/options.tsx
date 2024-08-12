@@ -109,6 +109,7 @@ export const DATA_COLUMNS = [
     width: 350,
     minWidth: 80,
     sort: true,
+    fixed: true,
     showOverflowTooltip: {
       mode: 'static',
       content: '这是个静态的提示，限制最大宽度为200px，测试一下是否生效，长度不够，数字来凑，哈哈哈',
@@ -284,13 +285,13 @@ export const DATA_FIX_COLUMNS = [
     label: '序号',
     type: 'index',
     sort: true,
-    width: 100,
+    minWidth: 30,
     fixed: true,
   },
   {
     label: '名称/内网IP',
     field: 'ip',
-    minWidth: 400,
+    minWidth: 50,
     fixed: true,
   },
   {
@@ -321,7 +322,7 @@ export const DATA_FIX_COLUMNS = [
     label: '状态',
     field: 'status',
     width: 180,
-    fixed: 'right',
+    // fixed: 'right',
   },
   {
     label: '操作',
@@ -329,7 +330,7 @@ export const DATA_FIX_COLUMNS = [
       return <bk-input v-model={data.status}></bk-input>;
     },
     width: 180,
-    fixed: 'right',
+    // fixed: 'right',
   },
 ];
 

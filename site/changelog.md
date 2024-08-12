@@ -1,6 +1,79 @@
 ## 更新日志
 
 
+### 2.0.1-beta.45
+
+* **[feat]**:
+    - feat(table): 支持虚拟渲染自定义行高配置
+    - bugfix(search-select): 删除搜索条件时， 始终选中第一个下拉选项
+    - bugfix(select): 修复 virtualScrollRender slot失效问题
+    - 前端 UI 库容器化相关能力支持
+
+
+### 2.0.1-beta.44
+
+* **[feat]**:
+    - bugfix(table): 修复虚拟滚动下面fixed列位置偏移问题
+
+
+### 2.0.1-beta.43
+
+* **[feat]**:
+    - fix(tree): 功能梳理&TS修复
+
+
+### 2.0.1-beta.41
+
+* **[feat]**:
+    - feat(table): scrollbar优化
+
+
+### 2.0.1-beta.40
+
+* **[feat]**:
+    - feat: TS定义导出 BkTableColumn, BkCollapse 配置
+
+
+### 2.0.1-beta.39
+
+* **[feat]**:
+    - docs(tab|notify): 文档补全
+    - bugfix(infobox): onCancel 配置不生效
+
+
+### 2.0.1-beta.38
+
+* **[feat]**:
+    - feature(select): select tag模式下新增tagRender插槽 & tree模式优化
+
+
+### 2.0.1-beta.37
+
+* **[feat]**:
+    - feat: prop.isEmptyCell 支持为空判定配置
+
+
+### 2.0.1-beta.36
+
+* **[feat]**:
+    - bugfix: 修复lodash isEmpty判定number类型为true的问题
+
+
+### 2.0.1-beta.35
+
+* **[feat]**:
+    - feat(tree): setSelect & setChecked 参数调整
+
+
+### 2.0.1-beta.34
+
+* **[feat]**:
+    - feat(table｜tree)：table展开收起单元格tooltip提示禁用 & tree支持selected事件抛出 & tree check-strictly属性支持
+    - feat(upload): 支持纯文件流上传
+    - docs(rate): 文档补全
+    - feature(select|resize): 完善select和resize文档
+
+
 ### 2.0.1-beta.33
 
 * **[feat]**:

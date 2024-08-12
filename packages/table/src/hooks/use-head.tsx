@@ -126,7 +126,7 @@ export default ({
   const { cellFn } = config;
   const getHeadCellText = () => {
     if (typeof cellFn === 'function') {
-      return cellFn(index);
+      return cellFn({ index, column });
     }
 
     if (typeof column.renderHead === 'function') {
@@ -275,7 +275,7 @@ export default ({
         data-id={columns.getColumnId(column)}
         rowspan={group?.thRowspan}
         onClick={() => handleColumnHeadClick()}
-        {...columns.resolveEventListener(column)}
+        {...columns.resolveEventListener(column, index)}
       >
         {renderHeadCell()}
       </th>

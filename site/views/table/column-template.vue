@@ -4,7 +4,10 @@
     <bk-table :data="tableData" :settings="settings" height="auto">
       <template v-for="column in columns" :key="column.label">
         <bk-table-column :field="column.field" :index="column.index" :label="column.label" :type="column.type"
-          :width="column.width" />
+          :width="column.width">
+          <template #default="{ data }">
+            {{ data[column.field] }}
+          </template></bk-table-column>
       </template>
     </bk-table>
     <h2>如何动态改变列的顺序</h2>
@@ -47,6 +50,7 @@ export default {
   data() {
     return {
       tableData: [...DATA_TABLE],
+      count: 0,
       columns: [
         {
           label: '序号',
