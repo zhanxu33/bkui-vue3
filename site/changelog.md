@@ -1,6 +1,12 @@
 ## 更新日志
 
 
+### 2.0.1-beta.48
+
+* **[feat]**:
+    - bugfix(tooltips): 修复tooltips前缀未生效
+
+
 ### 2.0.1-beta.45
 
 * **[feat]**:
