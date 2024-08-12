@@ -26,7 +26,8 @@
 
 import { DirectiveBinding, h, ObjectDirective, render, VNode } from 'vue';
 
-import { bkZIndexManager, resolveClassName } from '@bkui-vue/shared';
+import { usePrefix } from '@bkui-vue/config-provider';
+import { bkZIndexManager } from '@bkui-vue/shared';
 import { createPopper, ModifierPhases, Placement } from '@popperjs/core';
 
 export declare type IOptions = {
@@ -166,6 +167,7 @@ function renderContext(value: string, content: HTMLElement) {
 }
 
 function renderContent(opts): HTMLElement {
+  const { resolveClassName } = usePrefix();
   const { content: value, arrow: hasArrow, theme, extCls } = opts;
   const isLight = theme === 'light';
   const zIndex = bkZIndexManager.getPopperIndex();
@@ -188,6 +190,7 @@ function renderContent(opts): HTMLElement {
  */
 function renderArrow(): HTMLElement {
   const arrow = document.createElement('div');
+  const { resolveClassName } = usePrefix();
   arrow.className = resolveClassName('popper-arrow');
   arrow.setAttribute('data-popper-arrow', '');
   return arrow;
